@@ -1,0 +1,61 @@
+AI_HEALTH_COMPANION_BACKEND/
+│
+├── src/
+│   ├── config/
+│   │   ├── index.ts                    # Main configuration loader
+│   │   └── swagger.ts                  # Swagger/OpenAPI configuration
+│   │
+│   ├── controllers/
+│   │   ├── auth.controller.ts          # Authentication endpoints logic
+│   │   ├── patient.controller.ts       # Patient management logic
+│   │   └── diagnosis.controller.ts     # AI diagnosis logic
+│   │
+│   ├── database/
+│   │   └── connection.ts               # MongoDB connection setup
+│   │
+│   ├── middleware/
+│   │   ├── auth.ts                     # JWT authentication & authorization
+│   │   ├── error-handler.ts            # Global error handling
+│   │   ├── not-found.ts                # 404 handler
+│   │   └── rate-limiter.ts             # Rate limiting protection
+│   │
+│   ├── models/
+│   │   ├── User.ts                     # User schema (auth, roles)
+│   │   ├── Patient.ts                  # Patient schema (demographics, medical)
+│   │   └── Diagnosis.ts                # Diagnosis schema (AI predictions)
+│   │
+│   ├── routes/
+│   │   ├── index.ts                    # Route aggregator
+│   │   ├── auth.routes.ts              # /api/v1/auth/*
+│   │   ├── patient.routes.ts           # /api/v1/patients/*
+│   │   ├── diagnosis.routes.ts         # /api/v1/diagnosis/*
+│   │   ├── sync.routes.ts              # /api/v1/sync/*
+│   │   └── analytics.routes.ts         # /api/v1/analytics/*
+│   │
+│   ├── services/
+│   │   └── ai.service.ts               # AI disease prediction service
+│   │
+│   ├── utils/
+│   │   └── logger.ts                   # Winston logger configuration
+│   │
+│   └── server.ts                       # Application entry point
+│
+├── logs/                               # Log files (auto-generated)
+│   └── .gitkeep
+│
+├── uploads/                            # File uploads directory
+│   └── .gitkeep
+│
+├── models/                             # AI model files (.tflite)
+│   └── README.md
+│
+├── .env.example                        # Environment variables template
+├── .eslintrc.js                        # ESLint configuration
+├── .gitignore                          # Git ignore rules
+├── jest.config.js                      # Jest testing configuration
+├── package.json                        # NPM dependencies & scripts
+├── PROJECT_STRUCTURE.md                # Detailed project documentation
+├── README.md                           # Main documentation
+└── tsconfig.json                       # TypeScript configuration
+
+TOTAL FILES CREATED: 50+

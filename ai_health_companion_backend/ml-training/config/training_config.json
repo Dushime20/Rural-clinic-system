@@ -1,0 +1,66 @@
+{
+  "data": {
+    "ddxplus_path": "data/ddxplus.csv",
+    "afrimedqa_path": "data/afrimedqa.csv",
+    "train_ratio": 0.7,
+    "val_ratio": 0.15,
+    "test_ratio": 0.15,
+    "random_seed": 42
+  },
+  "features": {
+    "symptom_categories": [
+      "respiratory",
+      "digestive",
+      "neurological",
+      "cardiovascular",
+      "general",
+      "musculoskeletal",
+      "dermatological",
+      "urinary",
+      "reproductive",
+      "endocrine"
+    ],
+    "vital_ranges": {
+      "temperature": {"min": 35.0, "max": 42.0},
+      "bloodPressureSystolic": {"min": 80, "max": 200},
+      "bloodPressureDiastolic": {"min": 50, "max": 120},
+      "heartRate": {"min": 40, "max": 180},
+      "respiratoryRate": {"min": 10, "max": 40},
+      "oxygenSaturation": {"min": 80, "max": 100}
+    },
+    "age_range": {"min": 0, "max": 100}
+  },
+  "model": {
+    "architecture": [
+      {"type": "dense", "units": 256, "activation": "relu"},
+      {"type": "dropout", "rate": 0.3},
+      {"type": "dense", "units": 128, "activation": "relu"},
+      {"type": "dropout", "rate": 0.2},
+      {"type": "dense", "units": 64, "activation": "relu"}
+    ],
+    "output_activation": "softmax",
+    "optimizer": "adam",
+    "learning_rate": 0.001,
+    "loss": "categorical_crossentropy",
+    "metrics": ["accuracy"]
+  },
+  "training": {
+    "batch_size": 32,
+    "epochs": 100,
+    "early_stopping_patience": 10,
+    "reduce_lr_patience": 5,
+    "reduce_lr_factor": 0.5,
+    "min_lr": 1e-7
+  },
+  "evaluation": {
+    "confidence_threshold": 0.6,
+    "min_accuracy": 0.90
+  },
+  "output": {
+    "tensorflow_model_path": "models/tensorflow",
+    "tfjs_model_path": "models/tfjs",
+    "metadata_path": "models/metadata.json",
+    "evaluation_report_path": "models/evaluation_report.html",
+    "training_history_path": "models/training_history.json"
+  }
+}

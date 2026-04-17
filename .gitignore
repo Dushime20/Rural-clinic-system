@@ -1,0 +1,58 @@
+# ── Dependencies ──────────────────────────────────────────────────────────────
+node_modules/
+.dart_tool/
+.pub-cache/
+.pub/
+
+# ── Build outputs ─────────────────────────────────────────────────────────────
+dist/
+build/
+.dart_tool/flutter_build/
+
+# ── Environment / secrets — NEVER commit ──────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Editor ────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.iml
+
+# ── Flutter / Dart ────────────────────────────────────────────────────────────
+*.g.dart
+*.freezed.dart
+coverage/
+doc/api/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# ── Android ───────────────────────────────────────────────────────────────────
+ai_health_companion/android/.gradle/
+ai_health_companion/android/local.properties
+ai_health_companion/android/key.properties
+ai_health_companion/android/app/google-services.json
+
+# ── iOS ───────────────────────────────────────────────────────────────────────
+ai_health_companion/ios/Pods/
+ai_health_companion/ios/.symlinks/
+ai_health_companion/ios/Flutter/Flutter.framework
+ai_health_companion/ios/Flutter/Flutter.podspec
+
+# ── Vite ──────────────────────────────────────────────────────────────────────
+*.local
+admin_dashboard/dist/
+
+# ── Backend uploads / models ──────────────────────────────────────────────────
+ai_health_companion_backend/uploads/*
+!ai_health_companion_backend/uploads/.gitkeep
+ai_health_companion_backend/models/v*/
