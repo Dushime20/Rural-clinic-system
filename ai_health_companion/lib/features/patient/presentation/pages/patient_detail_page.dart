@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/services/patient_service.dart';
 import '../../../../shared/widgets/app_header.dart';
 
 class PatientDetailPage extends StatefulWidget {
@@ -15,75 +16,17 @@ class PatientDetailPage extends StatefulWidget {
 class _PatientDetailPageState extends State<PatientDetailPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final _patientService = PatientService();
 
-  // Mock patient data
-  final Map<String, dynamic> _patientData = {
-    'name': 'John Doe',
-    'age': 45,
-    'gender': 'Male',
-    'bloodType': 'O+',
-    'phone': '+250 788 123 456',
-    'email': 'john.doe@email.com',
-    'address': 'Kigali, Gasabo District',
-    'weight': '75 kg',
-    'height': '175 cm',
-    'allergies': ['Penicillin', 'Peanuts'],
-    'chronicConditions': ['Hypertension', 'Type 2 Diabetes'],
-  };
-
-  final List<Map<String, dynamic>> _recentVisits = [
-    {
-      'date': '2026-02-01',
-      'diagnosis': 'Common Cold',
-      'doctor': 'Dr. Smith',
-      'status': 'Completed',
-    },
-    {
-      'date': '2026-01-15',
-      'diagnosis': 'Hypertension Follow-up',
-      'doctor': 'Dr. Johnson',
-      'status': 'Completed',
-    },
-    {
-      'date': '2025-12-20',
-      'diagnosis': 'Diabetes Check',
-      'doctor': 'Dr. Williams',
-      'status': 'Completed',
-    },
-  ];
-
-  final List<Map<String, dynamic>> _medications = [
-    {
-      'name': 'Metformin 850mg',
-      'dosage': '1 tablet twice daily',
-      'startDate': '2025-06-01',
-      'status': 'Active',
-    },
-    {
-      'name': 'Lisinopril 10mg',
-      'dosage': '1 tablet daily',
-      'startDate': '2025-08-15',
-      'status': 'Active',
-    },
-  ];
-
-  final List<Map<String, dynamic>> _pharmacyData = [
-    {
-      'name': 'Kigali Pharmacy',
-      'distance': '2.5 km',
-      'stock': ['Metformin 850mg', 'Lisinopril 10mg', 'Amoxicillin'],
-    },
-    {
-      'name': 'Unity Pharmacy',
-      'distance': '3.1 km',
-      'stock': ['Lisinopril 10mg', 'Ibuprofen'],
-    },
-  ];
+  bool _isLoading = true;
+  String? _error;
+  Map<String, dynamic>? _patient;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
+    _loadPatient();
   }
 
   @override
@@ -92,22 +35,98 @@ class _PatientDetailPageState extends State<PatientDetailPage>
     super.dispose();
   }
 
+  Future<void> _loadPatient() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    final result = await _patientService.getPatientById(widget.patientId);
+    if (!mounted) return;
+    setState(() {
+      _isLoading = false;
+      if (result['success'] == true) {
+        _patient = result['data'] as Map<String, dynamic>;
+      } else {
+        _error = result['message'];
+      }
+    });
+  }
+
+  String _getAge() {
+    final dob = _patient?['dateOfBirth'];
+    if (dob == null) return '—';
+    try {
+      final birth = DateTime.parse(dob.toString());
+      return '${DateTime.now().difference(birth).inDays ~/ 365} yrs';
+    } catch (_) {
+      return '—';
+    }
+  }
+
+  String _initials() {
+    final first = (_patient?['firstName'] ?? '').toString();
+    final last = (_patient?['lastName'] ?? '').toString();
+    return '${first.isNotEmpty ? first[0] : ''}${last.isNotEmpty ? last[0] : ''}'
+        .toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppHeader(title: 'Patient Details', subtitle: ''),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_error != null || _patient == null) {
+      return Scaffold(
+        appBar: AppHeader(title: 'Patient Details', subtitle: ''),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.error_outline,
+                size: 64,
+                color: AppTheme.errorColor,
+              ),
+              const SizedBox(height: 16),
+              Text(_error ?? 'Patient not found'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadPatient,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final name =
+        '${_patient!['firstName'] ?? ''} ${_patient!['lastName'] ?? ''}'.trim();
+
     return Scaffold(
       appBar: AppHeader(
-        title: _patientData['name'],
-        subtitle: 'Patient ID: ${widget.patientId}',
+        title: name,
+        subtitle: 'ID: ${_patient!['patientId'] ?? widget.patientId}',
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
-            onPressed: () {
-              context.go(
+            onPressed: () async {
+              await context.push(
                 '/patient/${widget.patientId}/edit',
-                extra: _patientData,
+                extra: _patient,
               );
+              _loadPatient();
             },
-            tooltip: 'Edit Patient',
+            tooltip: 'Edit',
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadPatient,
+            tooltip: 'Refresh',
           ),
         ],
         bottom: TabBar(
@@ -117,47 +136,45 @@ class _PatientDetailPageState extends State<PatientDetailPage>
           indicatorColor: Colors.white,
           tabs: const [
             Tab(text: 'Overview'),
+            Tab(text: 'Medical'),
             Tab(text: 'History'),
-            Tab(text: 'Medications'),
-            Tab(text: 'Pharmacy'),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildOverviewTab(),
+          _buildOverviewTab(name),
+          _buildMedicalTab(),
           _buildHistoryTab(),
-          _buildMedicationsTab(),
-          _buildPharmacyTab(),
         ],
       ),
     );
   }
 
-  Widget _buildOverviewTab() {
+  Widget _buildOverviewTab(String name) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Patient Info Card
+          // Profile card
           Card(
             elevation: 2,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
                   CircleAvatar(
-                    radius: 50,
+                    radius: 48,
                     backgroundColor: AppTheme.primaryColor.withAlpha(26),
                     child: Text(
-                      _patientData['name'].toString().substring(0, 1),
+                      _initials(),
                       style: const TextStyle(
-                        fontSize: 40,
+                        fontSize: 36,
                         fontWeight: FontWeight.bold,
                         color: AppTheme.primaryColor,
                       ),
@@ -165,25 +182,23 @@ class _PatientDetailPageState extends State<PatientDetailPage>
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    _patientData['name'],
+                    name,
                     style: const TextStyle(
-                      fontSize: 24,
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  Wrap(
+                    spacing: 8,
                     children: [
-                      _buildInfoChip(
-                        '${_patientData['age']} years',
-                        Icons.cake,
+                      _chip(_getAge(), Icons.cake),
+                      _chip(
+                        (_patient!['gender'] ?? '—').toString(),
+                        Icons.person,
                       ),
-                      const SizedBox(width: 8),
-                      _buildInfoChip(_patientData['gender'], Icons.person),
-                      const SizedBox(width: 8),
-                      _buildInfoChip(
-                        _patientData['bloodType'],
+                      _chip(
+                        (_patient!['bloodType'] ?? '—').toString(),
                         Icons.bloodtype,
                       ),
                     ],
@@ -194,12 +209,50 @@ class _PatientDetailPageState extends State<PatientDetailPage>
           ),
           const SizedBox(height: 16),
 
-          // Quick Actions
-          _buildQuickActions(),
+          // Quick actions
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => context.push('/diagnosis'),
+                  icon: const Icon(Icons.psychology, size: 18),
+                  label: const Text('New Diagnosis'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppTheme.primaryColor,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    await context.push(
+                      '/patient/${widget.patientId}/edit',
+                      extra: _patient,
+                    );
+                    _loadPatient();
+                  },
+                  icon: const Icon(Icons.edit, size: 18),
+                  label: const Text('Edit Patient'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppTheme.secondaryColor,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 16),
 
-          // Contact Information
-          _buildSectionTitle('Contact Information'),
+          // Contact info
+          _sectionTitle('Contact Information'),
           Card(
             elevation: 2,
             shape: RoundedRectangleBorder(
@@ -209,14 +262,18 @@ class _PatientDetailPageState extends State<PatientDetailPage>
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  _buildDetailRow(Icons.phone, 'Phone', _patientData['phone']),
+                  _detailRow(
+                    Icons.phone,
+                    'Phone',
+                    _patient!['phoneNumber'] ?? '—',
+                  ),
                   const Divider(),
-                  _buildDetailRow(Icons.email, 'Email', _patientData['email']),
+                  _detailRow(Icons.email, 'Email', _patient!['email'] ?? '—'),
                   const Divider(),
-                  _buildDetailRow(
+                  _detailRow(
                     Icons.location_on,
                     'Address',
-                    _patientData['address'],
+                    _formatAddress(_patient!['address']),
                   ),
                 ],
               ),
@@ -224,8 +281,8 @@ class _PatientDetailPageState extends State<PatientDetailPage>
           ),
           const SizedBox(height: 16),
 
-          // Physical Information
-          _buildSectionTitle('Physical Information'),
+          // Physical info
+          _sectionTitle('Physical Information'),
           Card(
             elevation: 2,
             shape: RoundedRectangleBorder(
@@ -235,25 +292,47 @@ class _PatientDetailPageState extends State<PatientDetailPage>
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  _buildDetailRow(
+                  _detailRow(
                     Icons.monitor_weight,
                     'Weight',
-                    _patientData['weight'],
+                    _patient!['weight'] != null
+                        ? '${_patient!['weight']} kg'
+                        : '—',
                   ),
                   const Divider(),
-                  _buildDetailRow(
+                  _detailRow(
                     Icons.height,
                     'Height',
-                    _patientData['height'],
+                    _patient!['height'] != null
+                        ? '${_patient!['height']} cm'
+                        : '—',
+                  ),
+                  const Divider(),
+                  _detailRow(
+                    Icons.calendar_today,
+                    'Date of Birth',
+                    _patient!['dateOfBirth']?.toString().split('T')[0] ?? '—',
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
 
-          // Medical Information
-          _buildSectionTitle('Medical Information'),
+  Widget _buildMedicalTab() {
+    final allergies = (_patient!['allergies'] as List?) ?? [];
+    final chronic = (_patient!['chronicConditions'] as List?) ?? [];
+    final medications = (_patient!['currentMedications'] as List?) ?? [];
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionTitle('Allergies'),
           Card(
             elevation: 2,
             shape: RoundedRectangleBorder(
@@ -261,50 +340,95 @@ class _PatientDetailPageState extends State<PatientDetailPage>
             ),
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Allergies',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children:
-                        (_patientData['allergies'] as List)
-                            .map(
-                              (allergy) => Chip(
-                                label: Text(allergy),
-                                backgroundColor: Colors.red[100],
-                                labelStyle: const TextStyle(color: Colors.red),
-                              ),
-                            )
-                            .toList(),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Chronic Conditions',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children:
-                        (_patientData['chronicConditions'] as List)
-                            .map(
-                              (condition) => Chip(
-                                label: Text(condition),
-                                backgroundColor: Colors.orange[100],
-                                labelStyle: const TextStyle(
-                                  color: Colors.orange,
-                                ),
-                              ),
-                            )
-                            .toList(),
-                  ),
-                ],
-              ),
+              child:
+                  allergies.isEmpty
+                      ? const Text(
+                        'No allergies recorded',
+                        style: TextStyle(color: AppTheme.textSecondary),
+                      )
+                      : Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children:
+                            allergies
+                                .map(
+                                  (a) => Chip(
+                                    label: Text(a.toString()),
+                                    backgroundColor: Colors.red.shade50,
+                                    labelStyle: const TextStyle(
+                                      color: Colors.red,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                      ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          _sectionTitle('Chronic Conditions'),
+          Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child:
+                  chronic.isEmpty
+                      ? const Text(
+                        'No chronic conditions recorded',
+                        style: TextStyle(color: AppTheme.textSecondary),
+                      )
+                      : Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children:
+                            chronic
+                                .map(
+                                  (c) => Chip(
+                                    label: Text(c.toString()),
+                                    backgroundColor: Colors.orange.shade50,
+                                    labelStyle: const TextStyle(
+                                      color: Colors.orange,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                      ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          _sectionTitle('Current Medications'),
+          Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child:
+                  medications.isEmpty
+                      ? const Text(
+                        'No current medications',
+                        style: TextStyle(color: AppTheme.textSecondary),
+                      )
+                      : Column(
+                        children:
+                            medications
+                                .map(
+                                  (m) => ListTile(
+                                    leading: const Icon(
+                                      Icons.medication,
+                                      color: AppTheme.secondaryColor,
+                                    ),
+                                    title: Text(m.toString()),
+                                    contentPadding: EdgeInsets.zero,
+                                  ),
+                                )
+                                .toList(),
+                      ),
             ),
           ),
         ],
@@ -313,270 +437,136 @@ class _PatientDetailPageState extends State<PatientDetailPage>
   }
 
   Widget _buildHistoryTab() {
-    return ListView.builder(
+    final lastVisit = _patient!['lastVisit'];
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      itemCount: _recentVisits.length,
-      itemBuilder: (context, index) {
-        final visit = _recentVisits[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: AppTheme.primaryColor.withAlpha(26),
-              child: const Icon(
-                Icons.medical_services,
-                color: AppTheme.primaryColor,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionTitle('Visit Information'),
+          Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  _detailRow(
+                    Icons.access_time,
+                    'Last Visit',
+                    lastVisit?.toString().split('T')[0] ?? 'No visits recorded',
+                  ),
+                  const Divider(),
+                  _detailRow(
+                    Icons.calendar_today,
+                    'Registered',
+                    _patient!['createdAt']?.toString().split('T')[0] ?? '—',
+                  ),
+                ],
               ),
             ),
-            title: Text(
-              visit['diagnosis'],
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          ),
+          const SizedBox(height: 24),
+          Center(
+            child: Column(
               children: [
-                const SizedBox(height: 4),
-                Text('Doctor: ${visit['doctor']}'),
-                Text('Date: ${visit['date']}'),
+                const Icon(
+                  Icons.history,
+                  size: 64,
+                  color: AppTheme.textSecondary,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Full diagnosis history coming soon',
+                  style: TextStyle(color: AppTheme.textSecondary),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () => context.push('/diagnosis'),
+                  icon: const Icon(Icons.psychology),
+                  label: const Text('Start New Diagnosis'),
+                ),
               ],
             ),
-            trailing: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.green[100],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                visit['status'],
-                style: const TextStyle(
-                  color: Colors.green,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            onTap: () {
-              // View visit details
-            },
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
-  Widget _buildMedicationsTab() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _medications.length,
-      itemBuilder: (context, index) {
-        final medication = _medications[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: AppTheme.secondaryColor.withAlpha(26),
-              child: const Icon(
-                Icons.medication,
-                color: AppTheme.secondaryColor,
-              ),
-            ),
-            title: Text(
-              medication['name'],
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 4),
-                Text('Dosage: ${medication['dosage']}'),
-                Text('Since: ${medication['startDate']}'),
-              ],
-            ),
-            trailing: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.green[100],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                medication['status'],
-                style: const TextStyle(
-                  color: Colors.green,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
+  String _formatAddress(dynamic address) {
+    if (address == null) return '—';
+    if (address is Map) {
+      final parts =
+          [
+            address['street'],
+            address['city'],
+            address['country'],
+          ].where((e) => e != null && e.toString().isNotEmpty).toList();
+      return parts.isEmpty ? '—' : parts.join(', ');
+    }
+    return address.toString();
   }
 
-  Widget _buildPharmacyTab() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _pharmacyData.length,
-      itemBuilder: (context, index) {
-        final pharmacy = _pharmacyData[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.teal.withAlpha(26),
-              child: const Icon(Icons.local_pharmacy, color: Colors.teal),
-            ),
-            title: Text(
-              pharmacy['name'],
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Text('${pharmacy['distance']} away'),
-            trailing: const Icon(Icons.arrow_forward_ios),
-            onTap: () {
-              // TODO: Navigate to pharmacy details page
-            },
-          ),
-        );
-      },
-    );
-  }
+  Widget _sectionTitle(String title) => Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: Text(
+      title,
+      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+    ),
+  );
 
-  Widget _buildQuickActions() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _chip(String label, IconData icon) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    decoration: BoxDecoration(
+      color: AppTheme.primaryColor.withAlpha(26),
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        _buildSectionTitle('Quick Actions'),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            _buildActionButton(
-              icon: Icons.playlist_add_check,
-              label: 'New Diagnosis',
-              onPressed: () {
-                // TODO: Navigate to new diagnosis page
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('New Diagnosis not implemented yet.'),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(width: 12),
-            _buildActionButton(
-              icon: Icons.mic,
-              label: 'Voice Input',
-              onPressed: () {
-                // TODO: Implement voice input functionality
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Voice input not implemented yet.'),
-                  ),
-                );
-              },
-            ),
-          ],
+        Icon(icon, size: 14, color: AppTheme.primaryColor),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: AppTheme.primaryColor,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ],
-    );
-  }
+    ),
+  );
 
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onPressed,
-  }) {
-    return Expanded(
-      child: OutlinedButton.icon(
-        onPressed: onPressed,
-        icon: Icon(icon, size: 18),
-        label: Text(label),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: AppTheme.primaryColor,
-          side: BorderSide(color: AppTheme.primaryColor.withAlpha(50)),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+  Widget _detailRow(IconData icon, String label, String value) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Row(
+      children: [
+        Icon(icon, size: 20, color: Colors.grey.shade600),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
-          padding: const EdgeInsets.symmetric(vertical: 12),
         ),
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        title,
-        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-
-  Widget _buildInfoChip(String label, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppTheme.primaryColor.withAlpha(26),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: AppTheme.primaryColor),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.primaryColor,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: Colors.grey[600]),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+      ],
+    ),
+  );
 }
