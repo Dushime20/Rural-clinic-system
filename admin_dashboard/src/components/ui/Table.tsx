@@ -53,7 +53,7 @@ export function Table<T>({
                 ))}
               </tr>
             ))
-          ) : data.length === 0 ? (
+          ) : !Array.isArray(data) || data.length === 0 ? (
             <tr>
               <td
                 colSpan={columns.length}

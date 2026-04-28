@@ -6,6 +6,9 @@ import 'package:go_router/go_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
 import 'features/auth/presentation/pages/login_page.dart';
+import 'features/auth/presentation/pages/forgot_password_page.dart';
+import 'features/auth/presentation/pages/reset_password_page.dart';
+import 'features/auth/presentation/pages/change_password_page.dart';
 import 'features/diagnosis/presentation/pages/diagnosis_page.dart';
 import 'features/diagnosis/presentation/pages/diagnosis_result_page.dart';
 import 'features/diagnosis/presentation/pages/diagnosis_history_page.dart';
@@ -51,6 +54,24 @@ final GoRouter _router = GoRouter(
   routes: [
     GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
     GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
+    GoRoute(
+      path: '/forgot-password',
+      builder: (context, state) => const ForgotPasswordPage(),
+    ),
+    GoRoute(
+      path: '/reset-password',
+      builder: (context, state) {
+        final token = state.uri.queryParameters['token'];
+        return ResetPasswordPage(token: token);
+      },
+    ),
+    GoRoute(
+      path: '/change-password',
+      builder: (context, state) {
+        final isFirstTime = state.uri.queryParameters['firstTime'] == 'true';
+        return ChangePasswordPage(isFirstTime: isFirstTime);
+      },
+    ),
     GoRoute(
       path: '/home',
       builder:

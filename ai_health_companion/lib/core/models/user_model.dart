@@ -49,23 +49,27 @@ class UserModel {
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json['id'] as String,
-      email: json['email'] as String,
-      firstName: json['firstName'] as String,
-      lastName: json['lastName'] as String,
+      id: json['id']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      firstName: json['firstName']?.toString() ?? '',
+      lastName: json['lastName']?.toString() ?? '',
       role: UserRole.values.firstWhere(
         (e) => e.name == json['role'],
         orElse: () => UserRole.clinicStaff,
       ),
-      clinicId: json['clinicId'] as String?,
-      clinicName: json['clinicName'] as String?,
-      phoneNumber: json['phoneNumber'] as String?,
-      profileImage: json['profileImage'] as String?,
+      clinicId: json['clinicId']?.toString(),
+      clinicName: json['clinicName']?.toString(),
+      phoneNumber: json['phoneNumber']?.toString(),
+      profileImage: json['profileImage']?.toString(),
       isActive: json['isActive'] as bool? ?? true,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      createdAt:
+          json['createdAt'] != null
+              ? DateTime.tryParse(json['createdAt'].toString()) ??
+                  DateTime.now()
+              : DateTime.now(),
       lastLoginAt:
           json['lastLoginAt'] != null
-              ? DateTime.parse(json['lastLoginAt'] as String)
+              ? DateTime.tryParse(json['lastLoginAt'].toString())
               : null,
       metadata: json['metadata'] as Map<String, dynamic>?,
     );

@@ -1,62 +1,226 @@
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../models/user_model.dart';
 import '../constants/user_roles.dart';
+import '../constants/app_constants.dart';
+
+// any change
 
 class AuthService extends ChangeNotifier {
+  // Singleton instance
+  static final AuthService _instance = AuthService._internal();
+  factory AuthService() => _instance;
+  AuthService._internal();
+
   UserModel? _currentUser;
   String? _token;
+  String? _refreshToken;
   bool _isAuthenticated = false;
+  bool _mustChangePassword = false;
 
   UserModel? get currentUser => _currentUser;
   String? get token => _token;
+  String? get refreshToken => _refreshToken;
   bool get isAuthenticated => _isAuthenticated;
+  bool get mustChangePassword => _mustChangePassword;
   UserRole? get userRole => _currentUser?.role;
 
-  // Mock login - Replace with actual API call
-  Future<bool> login(String email, String password) async {
+  final String baseUrl = AppConstants.baseUrl;
+
+  // Login with API
+  Future<Map<String, dynamic>> login(String email, String password) async {
     try {
-      // Simulate API call
-      await Future.delayed(const Duration(seconds: 1));
-
-      // Mock user data based on email
-      UserRole role;
-      if (email.contains('admin')) {
-        role = UserRole.admin;
-      } else if (email.contains('supervisor')) {
-        role = UserRole.supervisor;
-      } else if (email.contains('staff')) {
-        role = UserRole.clinicStaff;
-      } else {
-        role = UserRole.healthWorker;
-      }
-
-      _currentUser = UserModel(
-        id: 'user_${DateTime.now().millisecondsSinceEpoch}',
-        email: email,
-        firstName: 'John',
-        lastName: 'Doe',
-        role: role,
-        clinicId: 'clinic_001',
-        clinicName: 'Kigali Health Center',
-        phoneNumber: '+250788123456',
-        createdAt: DateTime.now(),
-        lastLoginAt: DateTime.now(),
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'password': password}),
       );
 
-      _token = 'mock_jwt_token_${DateTime.now().millisecondsSinceEpoch}';
-      _isAuthenticated = true;
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
 
-      notifyListeners();
-      return true;
+        if (data['success'] == true) {
+          final userData = data['data']['user'];
+          final accessToken = data['data']['accessToken'];
+          final refreshToken = data['data']['refreshToken'];
+
+          _currentUser = UserModel.fromJson(userData);
+          _token = accessToken;
+          _refreshToken = refreshToken;
+          _isAuthenticated = true;
+          _mustChangePassword = userData['mustChangePassword'] ?? false;
+
+          notifyListeners();
+
+          return {
+            'success': true,
+            'mustChangePassword': _mustChangePassword,
+            'user': _currentUser,
+          };
+        }
+      }
+
+      final errorData = jsonDecode(response.body);
+      final serverMessage = errorData['message'] as String? ?? '';
+
+      // Map specific status codes to clear messages
+      String userMessage;
+      if (response.statusCode == 401) {
+        userMessage =
+            serverMessage.isNotEmpty
+                ? serverMessage
+                : 'Invalid email or password. Please try again.';
+      } else if (response.statusCode == 400) {
+        userMessage =
+            serverMessage.isNotEmpty
+                ? serverMessage
+                : 'Please check your input and try again.';
+      } else if (response.statusCode >= 500) {
+        userMessage = 'Server error. Please try again later.';
+      } else {
+        userMessage =
+            serverMessage.isNotEmpty
+                ? serverMessage
+                : 'Login failed. Please try again.';
+      }
+
+      return {'success': false, 'message': userMessage};
     } catch (e) {
-      return false;
+      final msg = e.toString();
+      if (msg.contains('SocketException') || msg.contains('ClientException')) {
+        return {
+          'success': false,
+          'message': 'Cannot connect to server. Please check your connection.',
+        };
+      }
+      return {
+        'success': false,
+        'message': 'An unexpected error occurred. Please try again.',
+      };
+    }
+  }
+
+  // Forgot Password - Request reset
+  Future<Map<String, dynamic>> forgotPassword(String email) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/forgot-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && data['success'] == true) {
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Password reset email sent',
+        };
+      }
+
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Failed to send reset email',
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: ${e.toString()}'};
+    }
+  }
+
+  // Reset Password with token
+  Future<Map<String, dynamic>> resetPassword(
+    String token,
+    String newPassword,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/reset-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'token': token, 'newPassword': newPassword}),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && data['success'] == true) {
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Password reset successful',
+        };
+      }
+
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Failed to reset password',
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: ${e.toString()}'};
+    }
+  }
+
+  // Change Password (for authenticated users)
+  Future<Map<String, dynamic>> changePassword(
+    String currentPassword,
+    String newPassword,
+  ) async {
+    if (_token == null) {
+      return {'success': false, 'message': 'Not authenticated'};
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/change-password'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_token',
+        },
+        body: jsonEncode({
+          'currentPassword': currentPassword,
+          'newPassword': newPassword,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && data['success'] == true) {
+        _mustChangePassword = false;
+        notifyListeners();
+
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Password changed successfully',
+        };
+      }
+
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Failed to change password',
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: ${e.toString()}'};
     }
   }
 
   Future<void> logout() async {
+    try {
+      if (_token != null) {
+        await http.post(
+          Uri.parse('$baseUrl/auth/logout'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $_token',
+          },
+        );
+      }
+    } catch (e) {
+      // Ignore logout errors
+    }
+
     _currentUser = null;
     _token = null;
+    _refreshToken = null;
     _isAuthenticated = false;
+    _mustChangePassword = false;
     notifyListeners();
   }
 

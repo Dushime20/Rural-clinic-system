@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import authRoutes from './auth.routes';
+import userRoutes from './user.routes';
 import patientRoutes from './patient.routes';
 import diagnosisRoutes from './diagnosis.routes';
 import syncRoutes from './sync.routes';
@@ -18,6 +19,7 @@ const router = Router();
 
 // Mount routes
 router.use('/auth', authRoutes);
+router.use('/users', userRoutes);
 router.use('/patients', patientRoutes);
 router.use('/diagnosis', diagnosisRoutes);
 router.use('/sync', syncRoutes);

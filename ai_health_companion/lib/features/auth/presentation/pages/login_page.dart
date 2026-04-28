@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/services/auth_service.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -17,12 +18,12 @@ class _LoginPageState extends ConsumerState<LoginPage>
   late AnimationController _backgroundController;
   late AnimationController _formController;
   late AnimationController _logoController;
-  
+
   late Animation<double> _backgroundAnimation;
   late Animation<double> _formFadeAnimation;
   late Animation<double> _formSlideAnimation;
   late Animation<double> _logoScaleAnimation;
-  
+
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -40,48 +41,38 @@ class _LoginPageState extends ConsumerState<LoginPage>
       duration: const Duration(seconds: 20),
       vsync: this,
     );
-    
-    _backgroundAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _backgroundController,
-      curve: Curves.linear,
-    ));
+
+    _backgroundAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _backgroundController, curve: Curves.linear),
+    );
 
     _formController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
-    
-    _formFadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _formController,
-      curve: const Interval(0.0, 0.8, curve: Curves.easeIn),
-    ));
-    
-    _formSlideAnimation = Tween<double>(
-      begin: 100.0,
-      end: 0.0,
-    ).animate(CurvedAnimation(
-      parent: _formController,
-      curve: const Interval(0.2, 1.0, curve: Curves.easeOut),
-    ));
+
+    _formFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _formController,
+        curve: const Interval(0.0, 0.8, curve: Curves.easeIn),
+      ),
+    );
+
+    _formSlideAnimation = Tween<double>(begin: 100.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _formController,
+        curve: const Interval(0.2, 1.0, curve: Curves.easeOut),
+      ),
+    );
 
     _logoController = AnimationController(
       duration: const Duration(milliseconds: 2000),
       vsync: this,
     );
-    
-    _logoScaleAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _logoController,
-      curve: Curves.elasticOut,
-    ));
+
+    _logoScaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _logoController, curve: Curves.elasticOut),
+    );
   }
 
   void _startAnimations() {
@@ -106,14 +97,12 @@ class _LoginPageState extends ConsumerState<LoginPage>
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppTheme.primaryGradient,
-        ),
+        decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
         child: Stack(
           children: [
             // Animated background
             _buildAnimatedBackground(),
-            
+
             // Main content
             SafeArea(
               child: Center(
@@ -124,14 +113,14 @@ class _LoginPageState extends ConsumerState<LoginPage>
                     children: [
                       // Logo section
                       _buildLogoSection(),
-                      
+
                       const SizedBox(height: 60),
-                      
+
                       // Login form
                       _buildLoginForm(),
-                      
+
                       const SizedBox(height: 40),
-                      
+
                       // Additional options
                       _buildAdditionalOptions(),
                     ],
@@ -230,10 +219,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
               decoration: BoxDecoration(
                 color: Colors.white.withAlpha(26),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: Colors.white.withAlpha(51),
-                  width: 1,
-                ),
+                border: Border.all(color: Colors.white.withAlpha(51), width: 1),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withAlpha(26),
@@ -249,7 +235,9 @@ class _LoginPageState extends ConsumerState<LoginPage>
                   children: [
                     Text(
                       'Welcome Back',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      style: Theme.of(
+                        context,
+                      ).textTheme.headlineMedium?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
                       ),
@@ -264,7 +252,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // Email field
                     _buildInputField(
                       controller: _emailController,
@@ -272,18 +260,33 @@ class _LoginPageState extends ConsumerState<LoginPage>
                       icon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your email';
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Email is required';
                         }
-                        if (!value.contains('@')) {
-                          return 'Please enter a valid email';
+                        final trimmed = value.trim();
+                        // Full RFC-compliant-ish email regex
+                        final emailRegex = RegExp(
+                          r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$',
+                        );
+                        if (!emailRegex.hasMatch(trimmed)) {
+                          if (!trimmed.contains('@')) {
+                            return 'Email must contain @';
+                          }
+                          final parts = trimmed.split('@');
+                          if (parts.length != 2 || parts[1].isEmpty) {
+                            return 'Enter a valid domain (e.g. gmail.com)';
+                          }
+                          if (!parts[1].contains('.')) {
+                            return 'Domain must contain a dot (e.g. .com, .org)';
+                          }
+                          return 'Please enter a valid email address';
                         }
                         return null;
                       },
                     ),
-                    
+
                     const SizedBox(height: 20),
-                    
+
                     // Password field
                     _buildInputField(
                       controller: _passwordController,
@@ -312,18 +315,18 @@ class _LoginPageState extends ConsumerState<LoginPage>
                         return null;
                       },
                     ),
-                    
+
                     const SizedBox(height: 24),
-                    
+
                     // Login button
                     _buildLoginButton(),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     // Forgot password
                     TextButton(
                       onPressed: () {
-                        // TODO: Implement forgot password
+                        context.push('/forgot-password');
                       },
                       child: Text(
                         'Forgot Password?',
@@ -357,47 +360,32 @@ class _LoginPageState extends ConsumerState<LoginPage>
       keyboardType: keyboardType,
       obscureText: obscureText,
       validator: validator,
-      style: const TextStyle(
-        color: Colors.white,
-        fontWeight: FontWeight.w500,
-      ),
+      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
       decoration: InputDecoration(
         labelText: label,
         labelStyle: TextStyle(
           color: Colors.white.withAlpha(179),
           fontWeight: FontWeight.w500,
         ),
-        prefixIcon: Icon(
-          icon,
-          color: Colors.white.withAlpha(179),
-        ),
+        prefixIcon: Icon(icon, color: Colors.white.withAlpha(179)),
         suffixIcon: suffixIcon,
         filled: true,
         fillColor: Colors.white.withAlpha(26),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: Colors.white.withAlpha(77),
-          ),
+          borderSide: BorderSide(color: Colors.white.withAlpha(77)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: Colors.white.withAlpha(77),
-          ),
+          borderSide: BorderSide(color: Colors.white.withAlpha(77)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(
-            color: Colors.white,
-            width: 2,
-          ),
+          borderSide: const BorderSide(color: Colors.white, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(
-            color: AppTheme.errorColor,
-          ),
+          borderSide: const BorderSide(color: AppTheme.errorColor),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 20,
@@ -446,118 +434,91 @@ class _LoginPageState extends ConsumerState<LoginPage>
   }
 
   Widget _buildAdditionalOptions() {
-    return AnimatedBuilder(
-      animation: _formController,
-      builder: (context, child) {
-        return Opacity(
-          opacity: _formFadeAnimation.value,
-          child: Column(
+    return const SizedBox.shrink(); // Removed demo button
+  }
+
+  void _handleLogin() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => const Center(
+            child: CircularProgressIndicator(color: Colors.white),
+          ),
+    );
+
+    final authService = AuthService();
+    final result = await authService.login(
+      _emailController.text.trim(),
+      _passwordController.text,
+    );
+
+    if (!mounted) return;
+
+    // Close loading dialog
+    Navigator.of(context).pop();
+
+    if (result['success'] == true) {
+      // Check if user must change password
+      if (result['mustChangePassword'] == true) {
+        context.go('/change-password?firstTime=true');
+      } else {
+        context.go('/home');
+      }
+    } else {
+      // Show error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      height: 1,
-                      color: Colors.white.withAlpha(77),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      'OR',
-                      style: TextStyle(
-                        color: Colors.white.withAlpha(179),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Container(
-                      height: 1,
-                      color: Colors.white.withAlpha(77),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              
-              // Demo login button
-              Container(
-                height: 56,
-                decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(26),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Colors.white.withAlpha(77),
-                  ),
-                ),
-                child: ElevatedButton(
-                  onPressed: () {
-                    context.go('/home');
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.play_circle_outline,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Demo Login',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
+              const Icon(Icons.error_outline, color: Colors.white, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  result['message'] ?? 'Login failed. Please try again.',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
             ],
           ),
-        );
-      },
-    );
-  }
-
-  void _handleLogin() {
-    if (_formKey.currentState!.validate()) {
-      context.go('/home');
+          backgroundColor: AppTheme.errorColor,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          duration: const Duration(seconds: 5),
+        ),
+      );
     }
   }
 }
 
 class BackgroundPainter extends CustomPainter {
   final double animationValue;
-  
+
   BackgroundPainter(this.animationValue);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withAlpha(13)
-      ..style = PaintingStyle.fill;
+    final paint =
+        Paint()
+          ..color = Colors.white.withAlpha(13)
+          ..style = PaintingStyle.fill;
 
     // Draw floating circles
     for (int i = 0; i < 15; i++) {
       final x = (size.width * (i / 15.0) + animationValue * 200) % size.width;
       final y = size.height * 0.2 + (i * 50.0) % (size.height * 0.6);
       final radius = 20.0 + (i % 5) * 10;
-      
-      canvas.drawCircle(
-        Offset(x, y),
-        radius,
-        paint,
-      );
+
+      canvas.drawCircle(Offset(x, y), radius, paint);
     }
   }
 

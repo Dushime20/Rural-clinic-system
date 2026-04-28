@@ -3,15 +3,32 @@ import { logger } from '../utils/logger';
 
 export interface FlaskPredictionRequest {
     symptoms: string[];
+    vitalSigns?: {
+        temperature?: number;
+        bloodPressureSystolic?: number;
+        bloodPressureDiastolic?: number;
+        heartRate?: number;
+        respiratoryRate?: number;
+        oxygenSaturation?: number;
+        weight?: number;
+        height?: number;
+    };
+    demographics?: {
+        age?: number;
+        gender?: string;
+    };
 }
 
 export interface FlaskPredictionResponse {
     success: boolean;
     prediction: {
         disease: string;
+        icd10Code: string;
         confidence: number;
         symptoms_used: string[];
         invalid_symptoms: string[];
+        vital_signs_used: boolean;
+        demographics_used: boolean;
     };
     information: {
         description: string;
@@ -102,19 +119,45 @@ export class FlaskMLService {
     }
 
     /**
-     * Predict disease from symptoms
+     * Predict disease from symptoms with optional vital signs and demographics
      */
-    async predictDisease(symptoms: string[]): Promise<FlaskPredictionResponse> {
+    async predictDisease(
+        symptoms: string[],
+        vitalSigns?: {
+            temperature?: number;
+            bloodPressureSystolic?: number;
+            bloodPressureDiastolic?: number;
+            heartRate?: number;
+            respiratoryRate?: number;
+            oxygenSaturation?: number;
+            weight?: number;
+            height?: number;
+        },
+        demographics?: {
+            age?: number;
+            gender?: string;
+        }
+    ): Promise<FlaskPredictionResponse> {
         return this.retryRequest(async () => {
             try {
+                const requestBody: FlaskPredictionRequest = {
+                    symptoms,
+                    ...(vitalSigns && { vitalSigns }),
+                    ...(demographics && { demographics })
+                };
+
+                logger.info(`Predicting disease with ${symptoms.length} symptoms, vitals: ${!!vitalSigns}, demographics: ${!!demographics}`);
+
                 const response = await this.client.post<FlaskPredictionResponse>(
                     '/api/v1/predict',
-                    { symptoms }
+                    requestBody
                 );
 
                 if (!response.data.success) {
                     throw new Error('Flask ML prediction failed');
                 }
+
+                logger.info(`Prediction successful: ${response.data.prediction.disease} (confidence: ${response.data.prediction.confidence})`);
 
                 return response.data;
             } catch (error) {

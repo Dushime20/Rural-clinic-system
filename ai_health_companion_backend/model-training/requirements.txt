@@ -1,3 +1,4 @@
+# Flask API Requirements (Required for running api.py)
 Flask>=2.3.0
 flask-cors>=4.0.0
 numpy>=1.24.0
@@ -8,5 +9,9 @@ python-Levenshtein>=0.21.0
 gunicorn>=21.0.0
 setuptools>=65.0.0
 python-dotenv>=1.0.0
-tensorflow>=2.13.0
-tensorflowjs>=4.0.0
+
+# TensorFlow Requirements (Only needed for training TFLite models)
+# Note: TensorFlow requires Python 3.9-3.11, not compatible with Python 3.14
+# Uncomment these lines if you need to train TensorFlow models:
+# tensorflow>=2.13.0
+# tensorflowjs>=4.0.0

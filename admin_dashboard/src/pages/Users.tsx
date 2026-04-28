@@ -20,18 +20,18 @@ import toast from 'react-hot-toast';
 
 const createSchema = z.object({
   email: z.string().email('Valid email required'),
-  password: z.string().min(8, 'Min 8 characters').regex(/[A-Z]/, 'Must contain uppercase').regex(/[0-9]/, 'Must contain number'),
   firstName: z.string().min(2, 'Required'),
   lastName: z.string().min(2, 'Required'),
   role: z.enum(['admin', 'health_worker', 'clinic_staff', 'supervisor']),
   clinicId: z.string().optional(),
   phoneNumber: z.string().optional(),
+  sendEmail: z.boolean().default(true),
 });
 
 type CreateForm = z.infer<typeof createSchema>;
 
 const ROLE_OPTIONS = [
-  { value: 'admin', label: 'Admin' },
+  { value: 'admin', label: 'Administrator' },
   { value: 'health_worker', label: 'Health Worker' },
   { value: 'clinic_staff', label: 'Clinic Staff' },
   { value: 'supervisor', label: 'Supervisor' },
@@ -55,17 +55,24 @@ export function Users() {
         const { data } = await api.get(`/users?${params}`);
         return data;
       } catch {
-        return { data: [], total: 0 };
+        return { data: { users: [], pagination: { total: 0 } } };
       }
     },
   });
 
   const createMutation = useMutation({
-    mutationFn: (body: CreateForm) => api.post('/auth/register', body),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['users'] });
+    mutationFn: (body: CreateForm) => api.post('/users', body),
+    onSuccess: (response) => {
+      const emailStatus = response?.data?.data?.emailSent ? ' Email sent successfully!' : ' (Email not sent)';
+      toast.success('User created successfully' + emailStatus);
+      
+      // Close modal and reset form
       setShowCreate(false);
-      toast.success('User created successfully');
+      reset();
+      
+      // Refresh users list and go to first page to see new user
+      setPage(1);
+      qc.invalidateQueries({ queryKey: ['users'] });
     },
     onError: (err: unknown) => {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to create user';
@@ -92,8 +99,8 @@ export function Users() {
 
   const onSubmit = (data: CreateForm) => createMutation.mutate(data);
 
-  const users: User[] = data?.data ?? [];
-  const total: number = data?.total ?? 0;
+  const users: User[] = data?.data?.users ?? [];
+  const total: number = data?.data?.pagination?.total ?? 0;
 
   const columns: Column[] = [
     {
@@ -217,13 +224,20 @@ export function Users() {
         size="lg"
         footer={
           <>
-            <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowCreate(false)}
+              disabled={createMutation.isPending}
+            >
+              Cancel
+            </Button>
             <Button
               onClick={handleSubmit(onSubmit)}
-              isLoading={isSubmitting}
-              leftIcon={<Plus className="w-4 h-4" />}
+              isLoading={createMutation.isPending}
+              disabled={createMutation.isPending}
+              leftIcon={!createMutation.isPending && <Plus className="w-4 h-4" />}
             >
-              Create User
+              {createMutation.isPending ? 'Creating User...' : 'Create User'}
             </Button>
           </>
         }
@@ -234,14 +248,13 @@ export function Users() {
             <Input label="Last Name" required error={errors.lastName?.message} {...register('lastName')} />
           </div>
           <Input label="Email Address" type="email" required error={errors.email?.message} {...register('email')} />
-          <Input
-            label="Password"
-            type="password"
-            required
-            error={errors.password?.message}
-            hint="Min 8 chars, 1 uppercase, 1 number"
-            {...register('password')}
-          />
+          
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-xs text-amber-800">
+              <strong>Note:</strong> A secure temporary password will be generated automatically and sent to the user's email.
+            </p>
+          </div>
+          
           <div className="grid grid-cols-2 gap-4">
             <Select
               label="Role"
@@ -253,6 +266,22 @@ export function Users() {
             <Input label="Clinic ID" placeholder="CLINIC-001" error={errors.clinicId?.message} {...register('clinicId')} />
           </div>
           <Input label="Phone Number" placeholder="+250788123456" error={errors.phoneNumber?.message} {...register('phoneNumber')} />
+          
+          <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <input
+              type="checkbox"
+              id="sendEmail"
+              defaultChecked={true}
+              className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              {...register('sendEmail')}
+            />
+            <label htmlFor="sendEmail" className="flex-1 cursor-pointer">
+              <p className="text-sm font-medium text-gray-900">Send welcome email</p>
+              <p className="text-xs text-gray-600 mt-0.5">
+                User will receive an email with their login credentials and instructions to access the mobile app
+              </p>
+            </label>
+          </div>
         </form>
       </Modal>
 

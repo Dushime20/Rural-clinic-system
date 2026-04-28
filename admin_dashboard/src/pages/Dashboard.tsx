@@ -14,30 +14,6 @@ import api from '../lib/api';
 import { formatDateTime } from '../lib/utils';
 
 // Mock data for charts (replace with real API calls)
-const diagnosisData = [
-  { month: 'Oct', malaria: 45, cold: 78, hypertension: 23 },
-  { month: 'Nov', malaria: 52, cold: 65, hypertension: 28 },
-  { month: 'Dec', malaria: 38, cold: 90, hypertension: 31 },
-  { month: 'Jan', malaria: 61, cold: 55, hypertension: 25 },
-  { month: 'Feb', malaria: 48, cold: 72, hypertension: 29 },
-  { month: 'Mar', malaria: 55, cold: 68, hypertension: 33 },
-  { month: 'Apr', malaria: 42, cold: 81, hypertension: 27 },
-];
-
-const roleData = [
-  { name: 'Health Workers', value: 12, color: '#3b82f6' },
-  { name: 'Clinic Staff', value: 8, color: '#10b981' },
-  { name: 'Supervisors', value: 3, color: '#f59e0b' },
-  { name: 'Admins', value: 2, color: '#8b5cf6' },
-];
-
-const appointmentData = [
-  { day: 'Mon', scheduled: 24, completed: 20, cancelled: 4 },
-  { day: 'Tue', scheduled: 31, completed: 28, cancelled: 3 },
-  { day: 'Wed', scheduled: 18, completed: 16, cancelled: 2 },
-  { day: 'Thu', scheduled: 27, completed: 25, cancelled: 2 },
-  { day: 'Fri', scheduled: 35, completed: 30, cancelled: 5 },
-];
 
 export function Dashboard() {
   const { data: stats, isLoading } = useQuery({
@@ -47,18 +23,21 @@ export function Dashboard() {
         const { data } = await api.get('/analytics/dashboard');
         return data.data;
       } catch {
-        // Return mock data if API not available
         return {
-          totalUsers: 25,
-          totalPatients: 1842,
-          totalDiagnoses: 3210,
-          totalAppointments: 892,
-          totalMedications: 156,
-          lowStockCount: 8,
-          pendingPrescriptions: 23,
-          criticalLabResults: 3,
-          activeUsers: 18,
-          todayAppointments: 35,
+          totalUsers: 0,
+          totalPatients: 0,
+          totalDiagnoses: 0,
+          totalAppointments: 0,
+          totalMedications: 0,
+          lowStockCount: 0,
+          pendingPrescriptions: 0,
+          criticalLabResults: 0,
+          activeUsers: 0,
+          todayAppointments: 0,
+          diseaseTrends: [],
+          topDiseases: [],
+          roleDistribution: [],
+          appointmentTrends: [],
         };
       }
     },
@@ -158,15 +137,22 @@ export function Dashboard() {
             <TrendingUp className="w-4 h-4 text-gray-400" />
           </CardHeader>
           <ResponsiveContainer width="100%" height={240}>
-            <AreaChart data={diagnosisData}>
+            <AreaChart data={stats?.diseaseTrends ?? []}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="month" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 12 }} />
               <Tooltip />
               <Legend />
-              <Area type="monotone" dataKey="malaria" stroke="#ef4444" fill="#fee2e2" name="Malaria" />
-              <Area type="monotone" dataKey="cold" stroke="#3b82f6" fill="#dbeafe" name="Common Cold" />
-              <Area type="monotone" dataKey="hypertension" stroke="#8b5cf6" fill="#ede9fe" name="Hypertension" />
+              {(stats?.topDiseases ?? []).map((disease: { name: string; key: string }, i: number) => (
+                <Area
+                  key={disease.key}
+                  type="monotone"
+                  dataKey={disease.key}
+                  stroke={i === 0 ? '#ef4444' : i === 1 ? '#3b82f6' : '#8b5cf6'}
+                  fill={i === 0 ? '#fee2e2' : i === 1 ? '#dbeafe' : '#ede9fe'}
+                  name={disease.name}
+                />
+              ))}
             </AreaChart>
           </ResponsiveContainer>
         </Card>
@@ -180,7 +166,7 @@ export function Dashboard() {
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie
-                data={roleData}
+                data={stats?.roleDistribution ?? []}
                 cx="50%"
                 cy="50%"
                 innerRadius={55}
@@ -188,7 +174,7 @@ export function Dashboard() {
                 paddingAngle={3}
                 dataKey="value"
               >
-                {roleData.map((entry, i) => (
+                {(stats?.roleDistribution ?? []).map((entry: any, i: number) => (
                   <Cell key={i} fill={entry.color} />
                 ))}
               </Pie>
@@ -196,7 +182,7 @@ export function Dashboard() {
             </PieChart>
           </ResponsiveContainer>
           <div className="space-y-2 mt-2">
-            {roleData.map((r) => (
+            {(stats?.roleDistribution ?? []).map((r: any) => (
               <div key={r.name} className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: r.color }} />
@@ -217,7 +203,7 @@ export function Dashboard() {
             <Calendar className="w-4 h-4 text-gray-400" />
           </CardHeader>
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={appointmentData}>
+            <BarChart data={stats?.appointmentTrends ?? []}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="day" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 12 }} />

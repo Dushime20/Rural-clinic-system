@@ -49,6 +49,15 @@ export class User {
     @Column({ type: 'boolean', default: false })
     isEmailVerified!: boolean;
 
+    @Column({ type: 'boolean', default: true })
+    mustChangePassword!: boolean;
+
+    @Column({ type: 'varchar', length: 255, nullable: true, select: false })
+    passwordResetToken?: string;
+
+    @Column({ type: 'timestamp', nullable: true })
+    passwordResetExpires?: Date;
+
     @Column({ type: 'timestamp', nullable: true })
     lastLogin?: Date;
 
@@ -65,15 +74,22 @@ export class User {
     @BeforeInsert()
     @BeforeUpdate()
     async hashPassword() {
-        if (this.password && !this.password.startsWith('$2')) {
+        // Only hash if password field was explicitly changed and is not already hashed
+        if (this.password && !this.password.startsWith('$2a$') && !this.password.startsWith('$2b$')) {
+            console.log(`[HASH] Hashing password, length before: ${this.password.length}`);
             const salt = await bcrypt.genSalt(config.bcryptRounds);
             this.password = await bcrypt.hash(this.password, salt);
+            console.log(`[HASH] Password hashed, stored hash starts with: ${this.password.substring(0, 7)}`);
         }
     }
 
     // Compare password method
     async comparePassword(candidatePassword: string): Promise<boolean> {
-        return bcrypt.compare(candidatePassword, this.password);
+        console.log(`[COMPARE] candidate length: ${candidatePassword?.length}, hash length: ${this.password?.length}`);
+        console.log(`[COMPARE] hash starts with: ${this.password?.substring(0, 7)}`);
+        const result = await bcrypt.compare(candidatePassword, this.password);
+        console.log(`[COMPARE] bcrypt result: ${result}`);
+        return result;
     }
 
     // Get full name method

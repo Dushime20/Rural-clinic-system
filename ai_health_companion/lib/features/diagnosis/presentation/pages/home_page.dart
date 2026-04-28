@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/services/auth_service.dart';
+import '../../../../core/services/dashboard_service.dart';
 import '../../../../shared/widgets/feature_card.dart';
 import '../../../../shared/widgets/quick_action_button.dart';
 import '../../../../shared/widgets/animated_counter.dart';
@@ -23,7 +25,12 @@ class _HomePageState extends ConsumerState<HomePage>
 
   late Animation<double> _headerAnimation;
   late Animation<double> _cardsAnimation;
-  late Animation<double> _floatingAnimation;
+
+  final _auth = AuthService();
+  final _dashboardService = DashboardService();
+
+  bool _statsLoading = true;
+  Map<String, dynamic> _stats = {};
 
   @override
   void initState() {
@@ -55,10 +62,6 @@ class _HomePageState extends ConsumerState<HomePage>
       duration: const Duration(seconds: 3),
       vsync: this,
     );
-
-    _floatingAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _floatingController, curve: Curves.easeInOut),
-    );
   }
 
   void _startAnimations() {
@@ -67,6 +70,19 @@ class _HomePageState extends ConsumerState<HomePage>
       _cardsController.forward();
     });
     _floatingController.repeat(reverse: true);
+    _loadStats();
+  }
+
+  Future<void> _loadStats() async {
+    setState(() => _statsLoading = true);
+    final result = await _dashboardService.getDashboardStats();
+    if (!mounted) return;
+    setState(() {
+      _statsLoading = false;
+      if (result['success'] == true) {
+        _stats = result['data'] as Map<String, dynamic>;
+      }
+    });
   }
 
   @override
@@ -157,10 +173,15 @@ class _HomePageState extends ConsumerState<HomePage>
                             borderRadius: BorderRadius.circular(25),
                             boxShadow: AppTheme.softShadow,
                           ),
-                          child: const Icon(
-                            Icons.person,
-                            color: AppTheme.primaryColor,
-                            size: 28,
+                          child: Center(
+                            child: Text(
+                              _auth.currentUser?.initials ?? '?',
+                              style: const TextStyle(
+                                color: AppTheme.primaryColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
                           ),
                         ),
                       );
@@ -187,11 +208,11 @@ class _HomePageState extends ConsumerState<HomePage>
                                   style: Theme.of(
                                     context,
                                   ).textTheme.bodyMedium?.copyWith(
-                                    color: Colors.white.withOpacity(0.9),
+                                    color: Colors.white.withAlpha(230),
                                   ),
                                 ),
                                 Text(
-                                  'Dr. John Smith',
+                                  _auth.currentUser?.fullName ?? 'Welcome',
                                   style: Theme.of(
                                     context,
                                   ).textTheme.titleLarge?.copyWith(
@@ -350,6 +371,10 @@ class _HomePageState extends ConsumerState<HomePage>
   }
 
   Widget _buildStatsSection() {
+    final totalPatients = _stats['totalPatients'] ?? 0;
+    final totalDiagnoses = _stats['totalDiagnoses'] ?? 0;
+    final todayAppointments = _stats['todayAppointments'] ?? 0;
+
     return AnimatedBuilder(
       animation: _cardsAnimation,
       builder: (context, child) {
@@ -357,36 +382,39 @@ class _HomePageState extends ConsumerState<HomePage>
           offset: Offset(0, 40 * (1 - _cardsAnimation.value)),
           child: Opacity(
             opacity: _cardsAnimation.value,
-            child: Row(
-              children: [
-                Expanded(
-                  child: _buildStatCard(
-                    'Patients Today',
-                    '24',
-                    Icons.people,
-                    AppTheme.primaryColor,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildStatCard(
-                    'Diagnoses',
-                    '18',
-                    Icons.psychology,
-                    AppTheme.secondaryColor,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildStatCard(
-                    'Success Rate',
-                    '94%',
-                    Icons.trending_up,
-                    AppTheme.successColor,
-                  ),
-                ),
-              ],
-            ),
+            child:
+                _statsLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : Row(
+                      children: [
+                        Expanded(
+                          child: _buildStatCard(
+                            'Patients',
+                            '$totalPatients',
+                            Icons.people,
+                            AppTheme.primaryColor,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildStatCard(
+                            'Diagnoses',
+                            '$totalDiagnoses',
+                            Icons.psychology,
+                            AppTheme.secondaryColor,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildStatCard(
+                            'Appts Today',
+                            '$todayAppointments',
+                            Icons.calendar_today,
+                            AppTheme.successColor,
+                          ),
+                        ),
+                      ],
+                    ),
           ),
         );
       },
@@ -601,6 +629,31 @@ class _HomePageState extends ConsumerState<HomePage>
   }
 
   Widget _buildRecentActivitySection() {
+    final recentDiagnoses = (_stats['recentDiagnoses'] as List?) ?? [];
+    final recentPatients = (_stats['recentPatients'] as List?) ?? [];
+
+    // Build activity items from real data
+    final activities = <Map<String, dynamic>>[];
+    for (final d in recentDiagnoses.take(2)) {
+      activities.add({
+        'title': 'Diagnosis recorded',
+        'subtitle':
+            d['disease'] ?? d['selectedDiagnosis']?['disease'] ?? 'Unknown',
+        'time': _formatTime(d['diagnosisDate'] ?? d['createdAt']),
+        'icon': Icons.psychology,
+        'color': AppTheme.primaryColor,
+      });
+    }
+    for (final p in recentPatients.take(2)) {
+      activities.add({
+        'title': 'Patient added',
+        'subtitle': '${p['firstName'] ?? ''} ${p['lastName'] ?? ''}'.trim(),
+        'time': _formatTime(p['createdAt']),
+        'icon': Icons.person_add,
+        'color': AppTheme.secondaryColor,
+      });
+    }
+
     return AnimatedBuilder(
       animation: _cardsAnimation,
       builder: (context, child) {
@@ -620,12 +673,7 @@ class _HomePageState extends ConsumerState<HomePage>
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    TextButton(
-                      onPressed: () {
-                        // TODO: Navigate to full activity log
-                      },
-                      child: const Text('View All'),
-                    ),
+                    TextButton(onPressed: () {}, child: const Text('View All')),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -636,33 +684,38 @@ class _HomePageState extends ConsumerState<HomePage>
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: AppTheme.softShadow,
                   ),
-                  child: Column(
-                    children: [
-                      _buildActivityItem(
-                        'Diagnosed John Doe',
-                        'Common Cold',
-                        '2 hours ago',
-                        Icons.psychology,
-                        AppTheme.primaryColor,
-                      ),
-                      const Divider(),
-                      _buildActivityItem(
-                        'Added new patient',
-                        'Mary Johnson',
-                        '4 hours ago',
-                        Icons.person_add,
-                        AppTheme.secondaryColor,
-                      ),
-                      const Divider(),
-                      _buildActivityItem(
-                        'Synced data',
-                        '15 records',
-                        '6 hours ago',
-                        Icons.sync,
-                        AppTheme.successColor,
-                      ),
-                    ],
-                  ),
+                  child:
+                      activities.isEmpty
+                          ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Text(
+                                'No recent activity',
+                                style: TextStyle(color: AppTheme.textSecondary),
+                              ),
+                            ),
+                          )
+                          : Column(
+                            children:
+                                activities
+                                    .asMap()
+                                    .entries
+                                    .map(
+                                      (e) => Column(
+                                        children: [
+                                          if (e.key > 0) const Divider(),
+                                          _buildActivityItem(
+                                            e.value['title'],
+                                            e.value['subtitle'],
+                                            e.value['time'],
+                                            e.value['icon'],
+                                            e.value['color'],
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                    .toList(),
+                          ),
                 ),
               ],
             ),
@@ -670,6 +723,19 @@ class _HomePageState extends ConsumerState<HomePage>
         );
       },
     );
+  }
+
+  String _formatTime(dynamic dateStr) {
+    if (dateStr == null) return '';
+    try {
+      final date = DateTime.parse(dateStr.toString());
+      final diff = DateTime.now().difference(date);
+      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+      if (diff.inHours < 24) return '${diff.inHours}h ago';
+      return '${diff.inDays}d ago';
+    } catch (_) {
+      return '';
+    }
   }
 
   Widget _buildActivityItem(
