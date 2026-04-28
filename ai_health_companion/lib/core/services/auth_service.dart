@@ -201,6 +201,20 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  /// Update local user profile cache without re-fetching from server
+  void updateLocalProfile({
+    String? firstName,
+    String? lastName,
+    String? phoneNumber,
+  }) {
+    if (_currentUser == null) return;
+    _currentUser = _currentUser!.copyWith(
+      firstName: firstName ?? _currentUser!.firstName,
+      lastName: lastName ?? _currentUser!.lastName,
+    );
+    notifyListeners();
+  }
+
   Future<void> logout() async {
     try {
       if (_token != null) {
