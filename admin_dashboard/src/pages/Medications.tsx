@@ -14,7 +14,7 @@ import type { Column } from '../components/ui/Table';
 import { Pagination } from '../components/ui/Pagination';
 import { Modal } from '../components/ui/Modal';
 import api, { getErrorMessage } from '../lib/api';
-import { formatDate, formatCurrency } from '../lib/utils';
+import { formatDate, formatCurrency, capitalize } from '../lib/utils';
 import type { Medication } from '../types';
 import toast from 'react-hot-toast';
 
@@ -39,10 +39,10 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 const FORM_OPTIONS = ['tablet','capsule','syrup','injection','cream','ointment','drops','inhaler','patch','suppository']
-  .map((v) => ({ value: v, label: v.charAt(0).toUpperCase() + v.slice(1) }));
+  .map((v) => ({ value: v, label: capitalize(v) }));
 
 const CATEGORY_OPTIONS = ['antibiotic','analgesic','antihypertensive','antidiabetic','antimalarial','antiretroviral','vitamin','vaccine','other']
-  .map((v) => ({ value: v, label: v.charAt(0).toUpperCase() + v.slice(1) }));
+  .map((v) => ({ value: v, label: capitalize(v) }));
 
 export function Medications() {
   const qc = useQueryClient();

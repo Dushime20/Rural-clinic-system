@@ -18,12 +18,16 @@ export function timeAgo(date: string | Date) {
   return formatDistanceToNow(new Date(date), { addSuffix: true });
 }
 
-export function capitalize(str: string) {
+export function capitalize(str: string | undefined | null) {
+  if (!str) return '';
   return str.charAt(0).toUpperCase() + str.slice(1).replace(/_/g, ' ');
 }
 
-export function getInitials(firstName: string, lastName: string) {
-  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+export function getInitials(firstName?: string | null, lastName?: string | null) {
+  const f = firstName?.charAt(0) || '';
+  const l = lastName?.charAt(0) || '';
+  const initials = `${f}${l}`.toUpperCase();
+  return initials || '?';
 }
 
 export function formatCurrency(amount: number, currency = 'RWF') {
