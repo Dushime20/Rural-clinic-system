@@ -9,7 +9,6 @@ import {
   MapContainer, TileLayer, Marker, useMapEvents, useMap,
 } from 'react-leaflet';
 import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 import api from '../../lib/api';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
@@ -284,11 +283,14 @@ export function PharmacyProfile() {
               </div>
 
               {/* Map */}
-              <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm" style={{ height: '320px' }}>
+              <div
+                className="rounded-xl overflow-hidden border border-gray-200 shadow-sm"
+                style={{ height: '320px', minHeight: '320px', position: 'relative' }}
+              >
                 <MapContainer
                   center={markerPos ?? DEFAULT_CENTER}
                   zoom={DEFAULT_ZOOM}
-                  style={{ height: '100%', width: '100%' }}
+                  style={{ height: '100%', width: '100%', minHeight: '320px' }}
                   scrollWheelZoom={true}
                 >
                   <TileLayer
