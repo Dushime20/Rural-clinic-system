@@ -125,7 +125,7 @@ class _AddPatientPageState extends ConsumerState<AddPatientPage> {
           backgroundColor: AppTheme.successColor,
         ),
       );
-      context.pop();
+      context.go('/patients');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
