@@ -96,25 +96,25 @@ export function PharmacyDashboard() {
         <StatCard
           title="Total Medicines"
           value={total}
-          icon={<Pill className="w-5 h-5" />}
+          icon={Pill}
           color="blue"
         />
         <StatCard
           title="Available"
           value={available}
-          icon={<CheckCircle className="w-5 h-5" />}
+          icon={CheckCircle}
           color="green"
         />
         <StatCard
           title="Low Stock"
           value={lowStock}
-          icon={<AlertTriangle className="w-5 h-5" />}
+          icon={AlertTriangle}
           color="yellow"
         />
         <StatCard
           title="Out of Stock"
           value={outOfStock}
-          icon={<XCircle className="w-5 h-5" />}
+          icon={XCircle}
           color="red"
         />
       </div>

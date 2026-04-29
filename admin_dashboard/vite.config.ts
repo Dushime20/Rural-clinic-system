@@ -7,6 +7,9 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  optimizeDeps: {
+    exclude: ['react-leaflet', '@react-leaflet/core']
+  },
   server: {
     port: 3000,
     proxy: {
