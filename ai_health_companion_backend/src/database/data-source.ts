@@ -16,7 +16,7 @@ import { PharmacyMedicine } from '../models/PharmacyMedicine';
 export const AppDataSource = new DataSource({
     type: 'postgres',
     url: config.nodeEnv === 'test' ? config.databaseTestUrl : config.databaseUrl,
-    synchronize: false,
+    synchronize: true, // TODO: set back to false after tables are created
     logging: config.nodeEnv === 'development' ? ['error'] : ['error'],
     entities: [
         User,
