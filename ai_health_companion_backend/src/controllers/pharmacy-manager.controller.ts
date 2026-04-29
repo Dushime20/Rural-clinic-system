@@ -11,8 +11,9 @@ import { logger } from '../utils/logger';
 import { Pharmacy } from '../models/Pharmacy';
 import { PharmacyMedicine } from '../models/PharmacyMedicine';
 
-const pharmacyRepo = AppDataSource.getRepository(Pharmacy);
-const medicineRepo = AppDataSource.getRepository(PharmacyMedicine);
+// Lazy getters — called inside handlers after DB is initialized
+const pharmacyRepo = () => AppDataSource.getRepository(Pharmacy);
+const medicineRepo = () => AppDataSource.getRepository(PharmacyMedicine);
 
 // ─── Pharmacy Profile ─────────────────────────────────────────────────────────
 
@@ -25,7 +26,7 @@ export const getMyPharmacy = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        const pharmacy = await pharmacyRepo.findOne({
+        const pharmacy = await pharmacyRepo().findOne({
             where: { managerId: req.user!.id },
             relations: ['medicines'],
         });
@@ -48,7 +49,7 @@ export const registerPharmacy = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        const existing = await pharmacyRepo.findOne({ where: { managerId: req.user!.id } });
+        const existing = await pharmacyRepo().findOne({ where: { managerId: req.user!.id } });
         if (existing) {
             throw new AppError('You already have a pharmacy registered. Use update instead.', 400);
         }
@@ -62,9 +63,9 @@ export const registerPharmacy = async (
             throw new AppError('Pharmacy name and GPS coordinates (latitude, longitude) are required', 400);
         }
 
-        const pharmacy = pharmacyRepo.create({
+        const pharmacy = pharmacyRepo().create({
             managerId: req.user!.id,
-            managerName: `${req.user!.firstName} ${req.user!.lastName}`,
+            managerName: `${(req.user as any).firstName ?? ''} ${(req.user as any).lastName ?? ''}`.trim(),
             name,
             phoneNumber,
             address,
@@ -77,7 +78,7 @@ export const registerPharmacy = async (
             isActive: true,
         });
 
-        await pharmacyRepo.save(pharmacy);
+        await pharmacyRepo().save(pharmacy);
         logger.info(`Pharmacy registered: ${pharmacy.name} by user ${req.user!.id}`);
 
         res.status(201).json({
@@ -99,7 +100,7 @@ export const updatePharmacy = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        const pharmacy = await pharmacyRepo.findOne({ where: { managerId: req.user!.id } });
+        const pharmacy = await pharmacyRepo().findOne({ where: { managerId: req.user!.id } });
         if (!pharmacy) {
             throw new AppError('Pharmacy not found. Please register your pharmacy first.', 404);
         }
@@ -119,7 +120,7 @@ export const updatePharmacy = async (
         if (country !== undefined) pharmacy.country = country;
         if (openingHours !== undefined) pharmacy.openingHours = openingHours;
 
-        await pharmacyRepo.save(pharmacy);
+        await pharmacyRepo().save(pharmacy);
         logger.info(`Pharmacy updated: ${pharmacy.id}`);
 
         res.status(200).json({
@@ -143,14 +144,14 @@ export const getMedicines = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        const pharmacy = await pharmacyRepo.findOne({ where: { managerId: req.user!.id } });
+        const pharmacy = await pharmacyRepo().findOne({ where: { managerId: req.user!.id } });
         if (!pharmacy) {
             throw new AppError('Please register your pharmacy first', 404);
         }
 
         const { search, isAvailable, page = 1, limit = 20 } = req.query;
 
-        const qb = medicineRepo.createQueryBuilder('m')
+        const qb = medicineRepo().createQueryBuilder('m')
             .where('m.pharmacyId = :pharmacyId', { pharmacyId: pharmacy.id });
 
         if (search) {
@@ -190,7 +191,7 @@ export const addMedicine = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        const pharmacy = await pharmacyRepo.findOne({ where: { managerId: req.user!.id } });
+        const pharmacy = await pharmacyRepo().findOne({ where: { managerId: req.user!.id } });
         if (!pharmacy) {
             throw new AppError('Please register your pharmacy first', 404);
         }
@@ -204,7 +205,7 @@ export const addMedicine = async (
             throw new AppError('Medicine name and price are required', 400);
         }
 
-        const medicine = medicineRepo.create({
+        const medicine = medicineRepo().create({
             pharmacyId: pharmacy.id,
             medicationName,
             genericName,
@@ -219,7 +220,7 @@ export const addMedicine = async (
             notes,
         });
 
-        await medicineRepo.save(medicine);
+        await medicineRepo().save(medicine);
         logger.info(`Medicine added: ${medicine.medicationName} to pharmacy ${pharmacy.id}`);
 
         res.status(201).json({
@@ -241,10 +242,10 @@ export const updateMedicine = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        const pharmacy = await pharmacyRepo.findOne({ where: { managerId: req.user!.id } });
+        const pharmacy = await pharmacyRepo().findOne({ where: { managerId: req.user!.id } });
         if (!pharmacy) throw new AppError('Pharmacy not found', 404);
 
-        const medicine = await medicineRepo.findOne({
+        const medicine = await medicineRepo().findOne({
             where: { id: req.params.id, pharmacyId: pharmacy.id },
         });
         if (!medicine) throw new AppError('Medicine not found', 404);
@@ -266,7 +267,7 @@ export const updateMedicine = async (
         if (isAvailable !== undefined) medicine.isAvailable = isAvailable;
         if (notes !== undefined) medicine.notes = notes;
 
-        await medicineRepo.save(medicine);
+        await medicineRepo().save(medicine);
 
         res.status(200).json({
             success: true,
@@ -287,15 +288,15 @@ export const deleteMedicine = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        const pharmacy = await pharmacyRepo.findOne({ where: { managerId: req.user!.id } });
+        const pharmacy = await pharmacyRepo().findOne({ where: { managerId: req.user!.id } });
         if (!pharmacy) throw new AppError('Pharmacy not found', 404);
 
-        const medicine = await medicineRepo.findOne({
+        const medicine = await medicineRepo().findOne({
             where: { id: req.params.id, pharmacyId: pharmacy.id },
         });
         if (!medicine) throw new AppError('Medicine not found', 404);
 
-        await medicineRepo.remove(medicine);
+        await medicineRepo().remove(medicine);
 
         res.status(200).json({ success: true, message: 'Medicine removed successfully' });
     } catch (error) {
@@ -326,7 +327,7 @@ export const findNearbyPharmaciesWithMedicine = async (
         const radiusKm = parseFloat(radius as string);
 
         // Haversine formula in SQL to find pharmacies within radius
-        const results = await pharmacyRepo
+        const results = await pharmacyRepo()
             .createQueryBuilder('p')
             .innerJoinAndSelect(
                 'p.medicines', 'm',
@@ -373,7 +374,7 @@ export const getAllPharmacies = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        const pharmacies = await pharmacyRepo.find({
+        const pharmacies = await pharmacyRepo().find({
             where: { isActive: true },
             select: ['id', 'name', 'address', 'latitude', 'longitude', 'city', 'district', 'phoneNumber', 'openingHours'],
         });
