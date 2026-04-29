@@ -17,6 +17,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   loginError: string | null;
   isLoginPending: boolean;
+  refreshUser: () => Promise<void>;
 }
 
 // ─── API calls ────────────────────────────────────────────────────────────────
@@ -72,12 +73,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(
     async (payload: LoginPayload) => {
       const result = await loginMutation.mutateAsync(payload);
-      // Guard: only admins may access this dashboard
-      if (result.user.role !== 'admin') {
-        // Clean up any tokens that were stored in onSuccess
+      // Allow admin and pharmacist roles
+      if (result.user.role !== 'admin' && result.user.role !== 'pharmacist') {
         localStorage.clear();
         setUser(null);
-        throw new Error('Access denied. Admin credentials required.');
+        throw new Error('Access denied. This portal is for administrators and pharmacists only.');
       }
     },
     [loginMutation],
@@ -96,6 +96,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await logoutMutation.mutateAsync();
   }, [logoutMutation]);
 
+  const refreshUser = useCallback(async () => {
+    try {
+      const { data } = await api.get('/users/me');
+      const u = data.data.user as User;
+      setUser(u);
+      localStorage.setItem('user', JSON.stringify(u));
+    } catch { /* ignore */ }
+  }, []);
+
   // Derive a clean error string from the login mutation state
   const loginError = loginMutation.error
     ? getErrorMessage(loginMutation.error, 'Login failed. Please try again.')
@@ -111,6 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         logout,
         loginError,
         isLoginPending: loginMutation.isPending,
+        refreshUser,
       }}
     >
       {children}

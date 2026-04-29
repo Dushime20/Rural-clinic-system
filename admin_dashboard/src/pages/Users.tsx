@@ -22,7 +22,7 @@ const createSchema = z.object({
   email: z.string().email('Valid email required'),
   firstName: z.string().min(2, 'Required'),
   lastName: z.string().min(2, 'Required'),
-  role: z.enum(['admin', 'health_worker', 'clinic_staff', 'supervisor']),
+  role: z.enum(['admin', 'health_worker', 'clinic_staff', 'supervisor', 'pharmacist']),
   clinicId: z.string().optional(),
   phoneNumber: z.string().optional(),
   sendEmail: z.boolean().default(true),
@@ -35,6 +35,7 @@ const ROLE_OPTIONS = [
   { value: 'health_worker', label: 'Health Worker' },
   { value: 'clinic_staff', label: 'Clinic Staff' },
   { value: 'supervisor', label: 'Supervisor' },
+  { value: 'pharmacist', label: 'Pharmacist' },
 ];
 
 export function Users() {
@@ -278,7 +279,9 @@ export function Users() {
             <label htmlFor="sendEmail" className="flex-1 cursor-pointer">
               <p className="text-sm font-medium text-gray-900">Send welcome email</p>
               <p className="text-xs text-gray-600 mt-0.5">
-                User will receive an email with their login credentials and instructions to access the mobile app
+                User will receive an email with their login credentials.
+                Pharmacists will receive a link to the Pharmacy Dashboard.
+                Other roles will receive a link to download the mobile app.
               </p>
             </label>
           </div>

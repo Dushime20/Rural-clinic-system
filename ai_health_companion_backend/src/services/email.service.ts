@@ -234,7 +234,9 @@ class EmailService {
      */
     private generateWelcomeEmailTemplate(credentials: UserCredentials): string {
         const appDownloadUrl = process.env.APP_DOWNLOAD_URL || 'https://play.google.com/store';
+        const pharmacyDashboardUrl = process.env.PHARMACY_DASHBOARD_URL || 'http://localhost:5174';
         const supportEmail = process.env.SUPPORT_EMAIL || 'support@clinic.rw';
+        const isPharmacist = credentials.role === 'pharmacist';
 
         return `
             <!DOCTYPE html>
@@ -446,18 +448,30 @@ class EmailService {
 
                         <!-- Getting Started Steps -->
                         <div class="steps">
-                            <h3>📱 Getting Started</h3>
+                            <h3>${isPharmacist ? '💊 Getting Started' : '📱 Getting Started'}</h3>
+                            ${isPharmacist ? `
+                            <div class="step">Visit the Pharmacy Dashboard: <a href="${pharmacyDashboardUrl}" style="color:#667eea;">${pharmacyDashboardUrl}</a></div>
+                            <div class="step">Log in with your email and temporary password</div>
+                            <div class="step">Create a new secure password when prompted</div>
+                            <div class="step">Register your pharmacy (name, address, GPS location)</div>
+                            <div class="step">Add your available medicines with prices and stock</div>
+                            <div class="step">Keep your inventory updated so patients can find you!</div>
+                            ` : `
                             <div class="step">Download the AI Health Companion mobile app from the app store</div>
                             <div class="step">Open the app and tap "Login"</div>
                             <div class="step">Enter your email and temporary password</div>
                             <div class="step">Create a new secure password when prompted</div>
                             <div class="step">Complete your profile setup</div>
                             <div class="step">Start providing healthcare services!</div>
+                            `}
                         </div>
 
-                        <!-- Download Button -->
+                        <!-- Action Button -->
                         <div style="text-align: center;">
-                            <a href="${appDownloadUrl}" class="button">📲 Download Mobile App</a>
+                            ${isPharmacist
+                                ? `<a href="${pharmacyDashboardUrl}" class="button">💊 Open Pharmacy Dashboard</a>`
+                                : `<a href="${appDownloadUrl}" class="button">📲 Download Mobile App</a>`
+                            }
                         </div>
 
                         <!-- Features -->
@@ -530,6 +544,11 @@ class EmailService {
             'CHW': 'Community Health Worker',
             'PHARMACIST': 'Pharmacist',
             'LAB_TECHNICIAN': 'Laboratory Technician',
+            'admin': 'Administrator',
+            'health_worker': 'Health Worker',
+            'clinic_staff': 'Clinic Staff',
+            'supervisor': 'Supervisor',
+            'pharmacist': 'Pharmacist',
         };
         return roleMap[role] || role;
     }
@@ -543,6 +562,113 @@ class EmailService {
             .replace(/<[^>]+>/gm, '')
             .replace(/\s+/g, ' ')
             .trim();
+    }
+
+    /**
+     * Send pharmacy welcome email with credentials
+     */
+    async sendPharmacyWelcomeEmail(data: {
+        email: string;
+        password: string;
+        pharmacyName: string;
+        managerName: string;
+        dashboardUrl: string;
+    }): Promise<boolean> {
+        const subject = `Welcome to AI Health Companion - Pharmacy Dashboard Credentials`;
+        const supportEmail = process.env.SUPPORT_EMAIL || 'support@clinic.rw';
+
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; }
+                    .container { max-width: 600px; margin: 20px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+                    .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 40px 20px; text-align: center; }
+                    .header h1 { margin: 0; font-size: 26px; }
+                    .header p { margin: 10px 0 0 0; opacity: 0.9; }
+                    .content { padding: 40px 30px; }
+                    .credentials-box { background: #f0fdf4; border-left: 4px solid #10b981; padding: 20px; margin: 25px 0; border-radius: 5px; }
+                    .credentials-box h3 { margin-top: 0; color: #059669; }
+                    .credential-item { margin: 15px 0; padding: 10px; background: white; border-radius: 5px; border: 1px solid #d1fae5; }
+                    .credential-label { font-weight: bold; color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+                    .credential-value { font-size: 16px; color: #333; margin-top: 5px; font-family: 'Courier New', monospace; word-break: break-all; }
+                    .button { display: inline-block; padding: 15px 40px; background: #10b981; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+                    .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 5px; }
+                    .steps { background: #ecfdf5; padding: 20px; border-radius: 5px; margin: 25px 0; }
+                    .steps h3 { margin-top: 0; color: #059669; }
+                    .footer { background: #f8f9fa; padding: 30px; text-align: center; color: #666; font-size: 14px; }
+                    .footer a { color: #10b981; text-decoration: none; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>💊 Pharmacy Dashboard Access</h1>
+                        <p>Your pharmacy has been registered on AI Health Companion</p>
+                    </div>
+                    <div class="content">
+                        <p>Hello <strong>${data.managerName}</strong>,</p>
+                        <p>Your pharmacy <strong>${data.pharmacyName}</strong> has been successfully registered on the AI Health Companion platform. You can now manage your medicine inventory and pricing through the pharmacy dashboard.</p>
+
+                        <div class="credentials-box">
+                            <h3>🔐 Your Login Credentials</h3>
+                            <div class="credential-item">
+                                <div class="credential-label">Dashboard URL</div>
+                                <div class="credential-value">${data.dashboardUrl}</div>
+                            </div>
+                            <div class="credential-item">
+                                <div class="credential-label">Email Address</div>
+                                <div class="credential-value">${data.email}</div>
+                            </div>
+                            <div class="credential-item">
+                                <div class="credential-label">Temporary Password</div>
+                                <div class="credential-value">${data.password}</div>
+                            </div>
+                        </div>
+
+                        <div class="warning">
+                            <strong>⚠️ Security Notice:</strong>
+                            <ul style="margin: 10px 0;">
+                                <li>This is a temporary password — change it on first login</li>
+                                <li>Never share your credentials with anyone</li>
+                                <li>Delete this email after saving your credentials securely</li>
+                            </ul>
+                        </div>
+
+                        <div class="steps">
+                            <h3>📋 Getting Started</h3>
+                            <ol>
+                                <li>Visit the dashboard URL above</li>
+                                <li>Log in with your email and temporary password</li>
+                                <li>Change your password when prompted</li>
+                                <li>Add your available medicines and prices</li>
+                                <li>Keep your inventory updated so patients can find you</li>
+                            </ol>
+                        </div>
+
+                        <div style="text-align: center;">
+                            <a href="${data.dashboardUrl}" class="button">🚀 Open Pharmacy Dashboard</a>
+                        </div>
+
+                        <p>Your pharmacy will appear on the map and health workers will be able to see your available medicines and prices when making diagnoses.</p>
+
+                        <p>For support, contact: <a href="mailto:${supportEmail}" style="color: #10b981;">${supportEmail}</a></p>
+
+                        <p>Best regards,<br><strong>AI Health Companion Team</strong></p>
+                    </div>
+                    <div class="footer">
+                        <p><strong>AI Health Companion</strong> — Empowering Rural Healthcare</p>
+                        <p style="font-size: 12px; color: #999;">&copy; 2026 AI Health Companion. All rights reserved.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+
+        return this.sendEmail({ to: data.email, subject, html });
     }
 
     /**

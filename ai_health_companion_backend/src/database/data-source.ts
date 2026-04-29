@@ -10,6 +10,8 @@ import { Prescription } from '../models/Prescription';
 import { Medication } from '../models/Medication';
 import { Notification } from '../models/Notification';
 import { AuditLog } from '../models/AuditLog';
+import { Pharmacy } from '../models/Pharmacy';
+import { PharmacyMedicine } from '../models/PharmacyMedicine';
 
 export const AppDataSource = new DataSource({
     type: 'postgres',
@@ -26,7 +28,9 @@ export const AppDataSource = new DataSource({
         Prescription,
         Medication,
         Notification,
-        AuditLog
+        AuditLog,
+        Pharmacy,
+        PharmacyMedicine
     ],
     migrations: ['src/database/migrations/*.ts'],
     subscribers: [],

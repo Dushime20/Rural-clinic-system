@@ -56,7 +56,7 @@ export function Login() {
         {/* Card */}
         <div className="bg-white rounded-xl border border-gray-200 p-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-1">Sign in</h2>
-          <p className="text-sm text-gray-500 mb-6">Admin access only</p>
+          <p className="text-sm text-gray-500 mb-6">Admin &amp; Pharmacist access</p>
 
           {/* API error banner */}
           {loginError && (
@@ -112,7 +112,7 @@ export function Login() {
               size="lg"
               isLoading={isLoginPending}
             >
-              Sign in to Dashboard
+              Sign in
             </Button>
           </form>
 

@@ -13,17 +13,17 @@ interface SidebarProps {
 }
 
 const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true },
-  { to: '/users', icon: Users, label: 'User Management' },
-  { to: '/patients', icon: UserCheck, label: 'Patients' },
-  { to: '/medications', icon: Pill, label: 'Medications' },
-  { to: '/appointments', icon: Calendar, label: 'Appointments' },
-  { to: '/diagnoses', icon: Activity, label: 'Diagnoses' },
-  { to: '/prescriptions', icon: ClipboardList, label: 'Prescriptions' },
-  { to: '/lab', icon: FlaskConical, label: 'Lab Orders' },
-  { to: '/reports', icon: BarChart3, label: 'Reports' },
-  { to: '/audit', icon: Shield, label: 'Audit Logs' },
-  { to: '/notifications', icon: Bell, label: 'Notifications' },
+  { to: '/admin', icon: LayoutDashboard, label: 'Dashboard', end: true },
+  { to: '/admin/users', icon: Users, label: 'User Management' },
+  { to: '/admin/patients', icon: UserCheck, label: 'Patients' },
+  { to: '/admin/medications', icon: Pill, label: 'Medications' },
+  { to: '/admin/appointments', icon: Calendar, label: 'Appointments' },
+  { to: '/admin/diagnoses', icon: Activity, label: 'Diagnoses' },
+  { to: '/admin/prescriptions', icon: ClipboardList, label: 'Prescriptions' },
+  { to: '/admin/lab', icon: FlaskConical, label: 'Lab Orders' },
+  { to: '/admin/reports', icon: BarChart3, label: 'Reports' },
+  { to: '/admin/audit', icon: Shield, label: 'Audit Logs' },
+  { to: '/admin/notifications', icon: Bell, label: 'Notifications' },
 ];
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
@@ -73,7 +73,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       {/* Settings & Collapse */}
       <div className="border-t border-gray-700 p-2 space-y-1">
         <NavLink
-          to="/settings"
+          to="/admin/settings"
           className={({ isActive }) =>
             cn(
               'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',

@@ -39,6 +39,7 @@ export const ROLE_COLORS: Record<string, string> = {
   health_worker: 'bg-blue-100 text-blue-800',
   clinic_staff: 'bg-green-100 text-green-800',
   supervisor: 'bg-orange-100 text-orange-800',
+  pharmacist: 'bg-teal-100 text-teal-800',
 };
 
 export const STATUS_COLORS: Record<string, string> = {

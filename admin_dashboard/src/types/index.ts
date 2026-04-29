@@ -1,5 +1,5 @@
 // ─── Auth ────────────────────────────────────────────────────────────────────
-export type UserRole = 'admin' | 'health_worker' | 'clinic_staff' | 'supervisor';
+export type UserRole = 'admin' | 'health_worker' | 'clinic_staff' | 'supervisor' | 'pharmacist';
 
 export interface User {
   id: string;
