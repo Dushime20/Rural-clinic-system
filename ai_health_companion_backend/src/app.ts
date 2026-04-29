@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import express, { Application, Request, Response } from 'express';
+import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -11,6 +11,7 @@ import { notFoundHandler } from './middleware/not-found';
 import routes from './routes';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
+import { AppDataSource } from './database/data-source';
 
 class App {
     public app: Application;
@@ -58,6 +59,20 @@ class App {
                 uptime: process.uptime(),
                 environment: config.nodeEnv
             });
+        });
+
+        // DB reconnect middleware — handles Neon serverless cold starts
+        this.app.use(async (_req: Request, _res: Response, next: NextFunction) => {
+            if (!AppDataSource.isInitialized) {
+                try {
+                    logger.warn('DB connection lost, reconnecting...');
+                    await AppDataSource.initialize();
+                    logger.info('DB reconnected successfully');
+                } catch (err) {
+                    logger.error('DB reconnect failed:', err);
+                }
+            }
+            next();
         });
     }
 

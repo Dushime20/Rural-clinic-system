@@ -30,6 +30,11 @@ router.use(authenticate);
  */
 router.get('/dashboard', async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
+        // Ensure DB is connected (handles Neon cold starts)
+        if (!AppDataSource.isInitialized) {
+            await AppDataSource.initialize();
+        }
+
         const clinicId = req.user?.clinicId;
         const userRole = req.user?.role;
         const isAdmin = userRole === 'admin';

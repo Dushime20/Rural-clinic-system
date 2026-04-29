@@ -150,6 +150,11 @@ export const createPatient = async (
     next: NextFunction
 ): Promise<void> => {
     try {
+        // Ensure DB is connected (handles Neon cold starts)
+        if (!AppDataSource.isInitialized) {
+            await AppDataSource.initialize();
+        }
+
         const patientData = {
             ...req.body,
             patientId: `PAT-${uuidv4().slice(0, 8).toUpperCase()}`,

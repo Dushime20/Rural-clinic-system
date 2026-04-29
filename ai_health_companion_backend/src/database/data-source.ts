@@ -14,8 +14,8 @@ import { AuditLog } from '../models/AuditLog';
 export const AppDataSource = new DataSource({
     type: 'postgres',
     url: config.nodeEnv === 'test' ? config.databaseTestUrl : config.databaseUrl,
-    synchronize: false, // Never use synchronize in production
-    logging: config.nodeEnv === 'development' ? ['query', 'error'] : ['error'],
+    synchronize: false,
+    logging: config.nodeEnv === 'development' ? ['error'] : ['error'],
     entities: [
         User,
         Patient,
@@ -31,20 +31,35 @@ export const AppDataSource = new DataSource({
     migrations: ['src/database/migrations/*.ts'],
     subscribers: [],
     extra: {
-        max: 10, // Maximum pool size
-        min: 5,  // Minimum pool size
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 5000,
+        // Neon serverless-friendly pool settings
+        max: 3,                        // Small pool — Neon free tier has connection limits
+        min: 0,                        // Don't keep idle connections (Neon kills them)
+        idleTimeoutMillis: 10000,      // Release idle connections after 10s
+        connectionTimeoutMillis: 30000, // 30s timeout for Neon cold starts
+        keepAlive: true,               // Send TCP keepalive to detect dead connections
+        keepAliveInitialDelayMillis: 10000,
     },
 });
 
 export const initializeDatabase = async (): Promise<void> => {
-    try {
-        await AppDataSource.initialize();
-        console.log('✅ PostgreSQL connected successfully');
-    } catch (error) {
-        console.error('❌ Failed to connect to PostgreSQL:', error);
-        throw error;
+    const maxRetries = 5;
+    let attempt = 0;
+
+    while (attempt < maxRetries) {
+        try {
+            await AppDataSource.initialize();
+            console.log('✅ PostgreSQL connected successfully');
+            return;
+        } catch (error) {
+            attempt++;
+            console.error(`❌ Database connection attempt ${attempt}/${maxRetries} failed:`, error);
+            if (attempt >= maxRetries) {
+                throw error;
+            }
+            const delay = attempt * 3000; // 3s, 6s, 9s, 12s
+            console.log(`⏳ Retrying in ${delay / 1000}s...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
     }
 };
 
