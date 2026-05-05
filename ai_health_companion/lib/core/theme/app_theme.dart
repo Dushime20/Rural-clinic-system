@@ -9,18 +9,18 @@ class AppTheme {
   static const Color successColor = Color(0xFF388E3C); // Success Green
   static const Color warningColor = Color(0xFFF57C00); // Warning Orange
   static const Color infoColor = Color(0xFF2196F3); // Info Blue
-  
+
   // Premium Background Colors
   static const Color backgroundColor = Color(0xFFF8FAFC);
   static const Color surfaceColor = Color(0xFFFFFFFF);
   static const Color cardColor = Color(0xFFFFFFFF);
   static const Color glassColor = Color(0x1AFFFFFF);
-  
+
   // Premium Text Colors
   static const Color textPrimary = Color(0xFF1A202C);
   static const Color textSecondary = Color(0xFF718096);
   static const Color textDisabled = Color(0xFFA0AEC0);
-  
+
   // Premium Gradients
   static const LinearGradient primaryGradient = LinearGradient(
     colors: [Color(0xFF2E7D32), Color(0xFF4CAF50), Color(0xFF66BB6A)],
@@ -28,26 +28,26 @@ class AppTheme {
     end: Alignment.bottomRight,
     stops: [0.0, 0.5, 1.0],
   );
-  
+
   static const LinearGradient secondaryGradient = LinearGradient(
     colors: [Color(0xFF1976D2), Color(0xFF42A5F5), Color(0xFF64B5F6)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     stops: [0.0, 0.5, 1.0],
   );
-  
+
   static const LinearGradient cardGradient = LinearGradient(
     colors: [Color(0xFFFFFFFF), Color(0xFFF8FAFC)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
-  
+
   static const LinearGradient glassGradient = LinearGradient(
     colors: [Color(0x1AFFFFFF), Color(0x0DFFFFFF)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
-  
+
   // Premium Shadows
   static List<BoxShadow> get softShadow => [
     BoxShadow(
@@ -56,7 +56,7 @@ class AppTheme {
       offset: const Offset(0, 2),
     ),
   ];
-  
+
   static List<BoxShadow> get mediumShadow => [
     BoxShadow(
       color: Colors.black.withOpacity(0.1),
@@ -64,7 +64,7 @@ class AppTheme {
       offset: const Offset(0, 4),
     ),
   ];
-  
+
   static List<BoxShadow> get strongShadow => [
     BoxShadow(
       color: Colors.black.withOpacity(0.15),
@@ -72,7 +72,7 @@ class AppTheme {
       offset: const Offset(0, 8),
     ),
   ];
-  
+
   static List<BoxShadow> get glowShadow => [
     BoxShadow(
       color: primaryColor.withOpacity(0.3),
@@ -106,17 +106,13 @@ class AppTheme {
           fontWeight: FontWeight.w700,
           color: textPrimary,
         ),
-        iconTheme: const IconThemeData(
-          color: textPrimary,
-        ),
+        iconTheme: const IconThemeData(color: textPrimary),
       ),
       cardTheme: CardThemeData(
         color: cardColor,
         elevation: 0,
         shadowColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         margin: const EdgeInsets.all(8),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -184,11 +180,11 @@ class AppTheme {
           borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: errorColor),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        labelStyle: const TextStyle(
-          fontFamily: 'Inter',
-          color: textSecondary,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 16,
         ),
+        labelStyle: const TextStyle(fontFamily: 'Inter', color: textSecondary),
       ),
       textTheme: const TextTheme(
         displayLarge: TextStyle(
@@ -283,6 +279,215 @@ class AppTheme {
           fontSize: 10,
           fontWeight: FontWeight.w500,
           color: textSecondary,
+        ),
+      ),
+    );
+  }
+
+  // Dark Theme
+  static ThemeData get darkTheme {
+    return ThemeData(
+      useMaterial3: true,
+      fontFamily: 'Inter',
+      brightness: Brightness.dark,
+      colorScheme: const ColorScheme.dark(
+        primary: Color(0xFF66BB6A),
+        secondary: Color(0xFF64B5F6),
+        surface: Color(0xFF1E1E1E),
+        error: errorColor,
+        onPrimary: Colors.black,
+        onSecondary: Colors.black,
+        onSurface: Color(0xFFE0E0E0),
+        onError: Colors.white,
+      ),
+      scaffoldBackgroundColor: const Color(0xFF121212),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.transparent,
+        foregroundColor: Color(0xFFE0E0E0),
+        elevation: 0,
+        centerTitle: true,
+        titleTextStyle: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+          color: Color(0xFFE0E0E0),
+        ),
+        iconTheme: IconThemeData(color: Color(0xFFE0E0E0)),
+      ),
+      cardTheme: CardThemeData(
+        color: const Color(0xFF1E1E1E),
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        margin: const EdgeInsets.all(8),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF66BB6A),
+          foregroundColor: Colors.black,
+          elevation: 0,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+          textStyle: const TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: const Color(0xFF66BB6A),
+          side: const BorderSide(color: Color(0xFF66BB6A), width: 2),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+          textStyle: const TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: const Color(0xFF66BB6A),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          textStyle: const TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFF2C2C2C),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFF3C3C3C)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFF3C3C3C)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFF66BB6A), width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: errorColor),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 16,
+        ),
+        labelStyle: const TextStyle(
+          fontFamily: 'Inter',
+          color: Color(0xFF9E9E9E),
+        ),
+      ),
+      textTheme: const TextTheme(
+        displayLarge: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 36,
+          fontWeight: FontWeight.w800,
+          color: Color(0xFFE0E0E0),
+          letterSpacing: -0.5,
+        ),
+        displayMedium: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 32,
+          fontWeight: FontWeight.w700,
+          color: Color(0xFFE0E0E0),
+          letterSpacing: -0.5,
+        ),
+        displaySmall: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 28,
+          fontWeight: FontWeight.w700,
+          color: Color(0xFFE0E0E0),
+          letterSpacing: -0.25,
+        ),
+        headlineLarge: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 24,
+          fontWeight: FontWeight.w700,
+          color: Color(0xFFE0E0E0),
+        ),
+        headlineMedium: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 22,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFFE0E0E0),
+        ),
+        headlineSmall: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFFE0E0E0),
+        ),
+        titleLarge: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFFE0E0E0),
+        ),
+        titleMedium: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          color: Color(0xFFE0E0E0),
+        ),
+        titleSmall: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: Color(0xFFE0E0E0),
+        ),
+        bodyLarge: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 16,
+          fontWeight: FontWeight.normal,
+          color: Color(0xFFE0E0E0),
+        ),
+        bodyMedium: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 14,
+          fontWeight: FontWeight.normal,
+          color: Color(0xFFE0E0E0),
+        ),
+        bodySmall: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 12,
+          fontWeight: FontWeight.normal,
+          color: Color(0xFF9E9E9E),
+        ),
+        labelLarge: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: Color(0xFFE0E0E0),
+        ),
+        labelMedium: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: Color(0xFFE0E0E0),
+        ),
+        labelSmall: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 10,
+          fontWeight: FontWeight.w500,
+          color: Color(0xFF9E9E9E),
         ),
       ),
     );

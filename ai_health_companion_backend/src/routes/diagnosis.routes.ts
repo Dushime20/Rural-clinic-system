@@ -3,7 +3,8 @@ import {
     createDiagnosis,
     getDiagnosisById,
     getPatientDiagnoses,
-    updateDiagnosis
+    updateDiagnosis,
+    getDiagnosesWithPrescriptions
 } from '../controllers/diagnosis.controller';
 import { authenticate, authorize } from '../middleware/auth';
 import { UserRole } from '../models/User';
@@ -13,6 +14,13 @@ const router = Router();
 
 // All routes require authentication
 router.use(authenticate);
+
+/**
+ * @route   GET /api/v1/diagnosis/prescriptions
+ * @desc    Get all diagnoses with prescriptions (for pharmacists)
+ * @access  Private (Pharmacist, Health Worker, Admin)
+ */
+router.get('/prescriptions', getDiagnosesWithPrescriptions);
 
 /**
  * @route   POST /api/v1/diagnosis

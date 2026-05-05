@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Pill, Store,
+  LayoutDashboard, Pill, Store, FileText,
   ChevronLeft, ChevronRight, LogOut, User, Cross,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -11,6 +11,7 @@ const navItems = [
   { to: '/pharmacy-portal', icon: LayoutDashboard, label: 'Dashboard', end: true },
   { to: '/pharmacy-portal/profile', icon: Store, label: 'My Pharmacy' },
   { to: '/pharmacy-portal/medicines', icon: Pill, label: 'Medicines & Prices' },
+  { to: '/pharmacy-portal/prescriptions', icon: FileText, label: 'Prescriptions' },
 ];
 
 export function PharmacyLayout() {

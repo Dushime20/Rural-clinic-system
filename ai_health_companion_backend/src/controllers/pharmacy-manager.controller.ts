@@ -366,6 +366,51 @@ export const findNearbyPharmaciesWithMedicine = async (
 };
 
 /**
+ * Get all medicines from all pharmacies (Admin only)
+ */
+export const getAllMedicinesForAdmin = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    try {
+        const { search, category, isAvailable, page = 1, limit = 20 } = req.query;
+
+        const qb = medicineRepo().createQueryBuilder('m')
+            .leftJoinAndSelect('m.pharmacy', 'p');
+
+        if (search) {
+            qb.andWhere(
+                '(LOWER(m.medicationName) LIKE :s OR LOWER(m.genericName) LIKE :s OR LOWER(m.brandName) LIKE :s)',
+                { s: `%${String(search).toLowerCase()}%` }
+            );
+        }
+        if (category) {
+            qb.andWhere('LOWER(m.category) = :category', { category: String(category).toLowerCase() });
+        }
+        if (isAvailable !== undefined) {
+            qb.andWhere('m.isAvailable = :isAvailable', { isAvailable: isAvailable === 'true' });
+        }
+
+        qb.orderBy('m.medicationName', 'ASC')
+            .skip((Number(page) - 1) * Number(limit))
+            .take(Number(limit));
+
+        const [medicines, total] = await qb.getManyAndCount();
+
+        res.status(200).json({
+            success: true,
+            data: {
+                medicines,
+                pagination: { page: Number(page), limit: Number(limit), total, totalPages: Math.ceil(total / Number(limit)) },
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
  * Get all active pharmacies (for map view)
  */
 export const getAllPharmacies = async (

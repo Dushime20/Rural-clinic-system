@@ -187,6 +187,58 @@ export const getPatientDiagnoses = async (
 };
 
 /**
+ * Get all diagnoses with prescriptions (for pharmacists)
+ */
+export const getDiagnosesWithPrescriptions = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    try {
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const search = req.query.search as string;
+        const skip = (page - 1) * limit;
+
+        const qb = diagnosisRepository
+            .createQueryBuilder('diagnosis')
+            .leftJoinAndSelect('diagnosis.patient', 'patient')
+            .leftJoinAndSelect('diagnosis.performedBy', 'performedBy')
+            .where("diagnosis.prescriptions IS NOT NULL")
+            .andWhere("jsonb_array_length(diagnosis.prescriptions) > 0");
+
+        // Search by patient name
+        if (search) {
+            qb.andWhere(
+                "(LOWER(patient.firstName) LIKE :search OR LOWER(patient.lastName) LIKE :search)",
+                { search: `%${search.toLowerCase()}%` }
+            );
+        }
+
+        qb.orderBy('diagnosis.diagnosisDate', 'DESC')
+            .skip(skip)
+            .take(limit);
+
+        const [diagnoses, total] = await qb.getManyAndCount();
+
+        res.status(200).json({
+            success: true,
+            data: {
+                diagnoses,
+                pagination: {
+                    page,
+                    limit,
+                    total,
+                    pages: Math.ceil(total / limit)
+                }
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
  * @swagger
  * /diagnosis/{id}:
  *   put:

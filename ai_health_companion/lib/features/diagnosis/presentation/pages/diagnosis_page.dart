@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/services/location_service.dart';
 import '../../../../shared/widgets/app_header.dart';
+import '../../data/models/diagnosis_models.dart';
+import '../../data/providers/diagnosis_provider.dart';
 
 class DiagnosisPage extends ConsumerStatefulWidget {
   const DiagnosisPage({super.key});
@@ -174,7 +177,7 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
     });
   }
 
-  void _runDiagnosis() {
+  Future<void> _runDiagnosis() async {
     if (_selectedPatient == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -196,27 +199,187 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
       return;
     }
 
-    final diagnosisData = {
-      'patientId': _selectedPatient!['id'],
-      'patientName': _selectedPatient!['name'],
-      'patientAge': _selectedPatient!['age'],
-      'gender': _selectedPatient!['gender'],
-      'symptoms': _selectedSymptoms,
-      'vitalSigns': {
-        'temperature': _temperatureController.text,
-        'bloodPressure': _bloodPressureController.text,
-        'heartRate': _heartRateController.text,
-        'respiratoryRate': _respiratoryRateController.text,
-        'oxygenSaturation': _oxygenSaturationController.text,
-      },
-      'medicalHistory': _selectedMedicalHistory,
-      'notes': _additionalNotesController.text,
-      'voiceNotes': _recordedText,
-      'prediction': 'Malaria',
-      'confidence': 0.85,
-    };
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => const Center(
+            child: Card(
+              margin: EdgeInsets.all(24),
+              child: Padding(
+                padding: EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text(
+                      'Running AI Diagnosis...',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'This may take a few moments',
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+    );
 
-    context.go('/diagnosis/result', extra: diagnosisData);
+    try {
+      // Prepare diagnosis request
+      final symptoms =
+          _selectedSymptoms
+              .map((s) => Symptom(name: s, category: 'general'))
+              .toList();
+
+      // Parse vital signs
+      VitalSigns vitalSigns = VitalSigns(
+        temperature:
+            _temperatureController.text.isNotEmpty
+                ? double.tryParse(_temperatureController.text)
+                : null,
+        heartRate:
+            _heartRateController.text.isNotEmpty
+                ? int.tryParse(_heartRateController.text)
+                : null,
+        respiratoryRate:
+            _respiratoryRateController.text.isNotEmpty
+                ? int.tryParse(_respiratoryRateController.text)
+                : null,
+        oxygenSaturation:
+            _oxygenSaturationController.text.isNotEmpty
+                ? int.tryParse(_oxygenSaturationController.text)
+                : null,
+      );
+
+      // Parse blood pressure if provided
+      if (_bloodPressureController.text.isNotEmpty) {
+        final bpParts = _bloodPressureController.text.split('/');
+        if (bpParts.length == 2) {
+          final systolic = int.tryParse(bpParts[0].trim());
+          final diastolic = int.tryParse(bpParts[1].trim());
+          vitalSigns = VitalSigns(
+            temperature: vitalSigns.temperature,
+            bloodPressureSystolic: systolic,
+            bloodPressureDiastolic: diastolic,
+            heartRate: vitalSigns.heartRate,
+            respiratoryRate: vitalSigns.respiratoryRate,
+            oxygenSaturation: vitalSigns.oxygenSaturation,
+          );
+        }
+      }
+
+      final request = DiagnosisRequest(
+        patientId: _selectedPatient!['id'],
+        symptoms: symptoms,
+        vitalSigns: vitalSigns,
+        age: _selectedPatient!['age'],
+        gender: _selectedPatient!['gender'].toString().toLowerCase(),
+        medicalHistory:
+            _selectedMedicalHistory.isNotEmpty ? _selectedMedicalHistory : null,
+        notes:
+            _additionalNotesController.text.isNotEmpty
+                ? _additionalNotesController.text
+                : null,
+      );
+
+      // Call diagnosis service
+      final diagnosisService = ref.read(diagnosisServiceProvider);
+      final result = await diagnosisService.createDiagnosis(request);
+
+      // Get user location automatically (no dialogs)
+      final locationService = LocationService();
+      final position = await locationService.getCurrentLocation();
+
+      // Find nearby pharmacies with prescribed medicines
+      List<NearbyPharmacy> nearbyPharmacies = [];
+      if (position != null &&
+          result.prescriptions != null &&
+          result.prescriptions!.isNotEmpty) {
+        try {
+          debugPrint('Finding nearby pharmacies...');
+          // Get unique medicine names
+          final medicineNames =
+              result.prescriptions!.map((p) => p.medication).toSet().toList();
+
+          // Search for each medicine
+          for (final medicineName in medicineNames) {
+            final pharmacies = await diagnosisService.findNearbyPharmacies(
+              latitude: position.latitude,
+              longitude: position.longitude,
+              medicineName: medicineName,
+              radius: 50, // 50 km radius
+            );
+            nearbyPharmacies.addAll(pharmacies);
+          }
+
+          // Remove duplicates by pharmacy ID
+          final uniquePharmacies = <String, NearbyPharmacy>{};
+          for (final pharmacy in nearbyPharmacies) {
+            uniquePharmacies[pharmacy.id] = pharmacy;
+          }
+          nearbyPharmacies = uniquePharmacies.values.toList();
+
+          // Sort by distance
+          nearbyPharmacies.sort((a, b) {
+            final distA = a.distance ?? double.infinity;
+            final distB = b.distance ?? double.infinity;
+            return distA.compareTo(distB);
+          });
+
+          debugPrint('Found ${nearbyPharmacies.length} nearby pharmacies');
+        } catch (e) {
+          debugPrint('Pharmacy search error: $e');
+          // Continue without pharmacies
+        }
+      } else {
+        if (position == null) {
+          debugPrint('Location not available, skipping pharmacy search');
+        }
+      }
+
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+
+      // Navigate to result page
+      if (mounted) {
+        context.go(
+          '/diagnosis/result',
+          extra: {
+            'diagnosis': result,
+            'patient': _selectedPatient,
+            'nearbyPharmacies': nearbyPharmacies,
+          },
+        );
+      }
+    } catch (e) {
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+
+      // Show error
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Diagnosis failed: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: _runDiagnosis,
+            ),
+          ),
+        );
+      }
+    }
   }
 
   @override

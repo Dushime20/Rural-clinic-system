@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
   # UI & Icons
   cupertino_icons: ^1.0.8
@@ -66,10 +68,12 @@ dependencies:
   go_router: ^14.6.2
   
   # Utils
-  intl: ^0.19.0
+  intl: ^0.20.2
   shared_preferences: ^2.3.2
   connectivity_plus: ^6.1.0
-  permission_handler: ^11.3.1
+  permission_handler: ^11.4.0
+  geolocator: ^10.1.1
+  url_launcher: ^6.3.2
   
   # Security & Encryption
   encrypt: ^5.0.3
@@ -97,8 +101,6 @@ dev_dependencies:
   
   # Testing
   mockito: ^5.4.4
-  integration_test:
-    sdk: flutter
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -106,6 +108,7 @@ dev_dependencies:
 # The following section is specific to Flutter packages.
 flutter:
   uses-material-design: true
+  generate: true  # Enable code generation for localization
 
   # Assets
   assets:

@@ -9,11 +9,9 @@ import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Users } from './pages/Users';
 import { Patients } from './pages/Patients';
+import { Pharmacies } from './pages/Pharmacies';
 import { Medications } from './pages/Medications';
-import { Appointments } from './pages/Appointments';
 import { Diagnoses } from './pages/Diagnoses';
-import { Prescriptions } from './pages/Prescriptions';
-import { LabOrders } from './pages/LabOrders';
 import { Reports } from './pages/Reports';
 import { AuditLogs } from './pages/AuditLogs';
 import { Notifications } from './pages/Notifications';
@@ -22,6 +20,7 @@ import { Settings } from './pages/Settings';
 import { PharmacyDashboard } from './pages/pharmacy/PharmacyDashboard';
 import { PharmacyProfile } from './pages/pharmacy/PharmacyProfile';
 import { PharmacyMedicines } from './pages/pharmacy/PharmacyMedicines';
+import { PharmacyPrescriptions } from './pages/pharmacy/PharmacyPrescriptions';
 import { ChangePassword } from './pages/pharmacy/ChangePassword';
 
 const queryClient = new QueryClient({
@@ -111,6 +110,7 @@ function AppRoutes() {
         <Route index element={<PharmacyDashboard />} />
         <Route path="profile" element={<PharmacyProfile />} />
         <Route path="medicines" element={<PharmacyMedicines />} />
+        <Route path="prescriptions" element={<PharmacyPrescriptions />} />
       </Route>
 
       {/* ── Admin portal (admin role) ────────────────────────────────────── */}
@@ -125,11 +125,9 @@ function AppRoutes() {
         <Route index element={<Dashboard />} />
         <Route path="users" element={<Users />} />
         <Route path="patients" element={<Patients />} />
+        <Route path="pharmacies" element={<Pharmacies />} />
         <Route path="medications" element={<Medications />} />
-        <Route path="appointments" element={<Appointments />} />
         <Route path="diagnoses" element={<Diagnoses />} />
-        <Route path="prescriptions" element={<Prescriptions />} />
-        <Route path="lab" element={<LabOrders />} />
         <Route path="reports" element={<Reports />} />
         <Route path="audit" element={<AuditLogs />} />
         <Route path="notifications" element={<Notifications />} />

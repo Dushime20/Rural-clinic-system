@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'generated/app_localizations.dart';
 
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
+import 'core/services/location_service.dart';
+import 'core/providers/theme_provider.dart';
+import 'core/providers/language_provider.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/auth/presentation/pages/forgot_password_page.dart';
 import 'features/auth/presentation/pages/reset_password_page.dart';
@@ -32,6 +37,12 @@ void main() async {
   // Initialize Hive for local storage
   await Hive.initFlutter();
 
+  // Initialize location service early to request permission
+  // This ensures location is available when diagnosis runs
+  LocationService().initialize().catchError((e) {
+    debugPrint('Location service initialization failed: $e');
+  });
+
   runApp(const ProviderScope(child: HealthCompanionApp()));
 }
 
@@ -40,11 +51,30 @@ class HealthCompanionApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+    final locale = ref.watch(languageProvider);
+
     return MaterialApp.router(
       title: AppConstants.appName,
       theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeMode,
       debugShowCheckedModeBanner: false,
       routerConfig: _router,
+
+      // Localization configuration
+      locale: locale,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('en'), // English
+        Locale('fr'), // French
+        Locale('rw'), // Kinyarwanda
+      ],
     );
   }
 }
@@ -74,25 +104,20 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/home',
-      builder:
-          (context, state) =>
-              const MainNavigationWrapper(currentIndex: 0, child: HomePage()),
+      builder: (context, state) =>
+          const MainNavigationWrapper(currentIndex: 0, child: HomePage()),
     ),
     GoRoute(
       path: '/diagnosis',
-      builder:
-          (context, state) => const MainNavigationWrapper(
-            currentIndex: 1,
-            child: DiagnosisPage(),
-          ),
+      builder: (context, state) =>
+          const MainNavigationWrapper(currentIndex: 1, child: DiagnosisPage()),
     ),
     GoRoute(
       path: '/patients',
-      builder:
-          (context, state) => const MainNavigationWrapper(
-            currentIndex: 2,
-            child: PatientListPage(),
-          ),
+      builder: (context, state) => const MainNavigationWrapper(
+        currentIndex: 2,
+        child: PatientListPage(),
+      ),
     ),
     GoRoute(
       path: '/patient/add',
@@ -118,27 +143,20 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/analytics',
-      builder:
-          (context, state) => const MainNavigationWrapper(
-            currentIndex: 3,
-            child: AnalyticsDashboardPage(),
-          ),
+      builder: (context, state) => const MainNavigationWrapper(
+        currentIndex: 3,
+        child: AnalyticsDashboardPage(),
+      ),
     ),
     GoRoute(
       path: '/sync',
-      builder:
-          (context, state) => const MainNavigationWrapper(
-            currentIndex: 3,
-            child: SyncStatusPage(),
-          ),
+      builder: (context, state) =>
+          const MainNavigationWrapper(currentIndex: 3, child: SyncStatusPage()),
     ),
     GoRoute(
       path: '/settings',
-      builder:
-          (context, state) => const MainNavigationWrapper(
-            currentIndex: 4,
-            child: SettingsPage(),
-          ),
+      builder: (context, state) =>
+          const MainNavigationWrapper(currentIndex: 4, child: SettingsPage()),
     ),
     GoRoute(
       path: '/diagnosis/result',

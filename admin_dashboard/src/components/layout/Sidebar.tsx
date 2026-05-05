@@ -1,8 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, UserCheck, Pill, Calendar,
-  FlaskConical, ClipboardList, BarChart3,
-  Bell, Shield, Settings, ChevronLeft, ChevronRight,
+  LayoutDashboard, Users, UserCheck, Pill, Store,
+  BarChart3, Bell, Shield, Settings, ChevronLeft, ChevronRight,
   Activity, Heart
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -16,11 +15,9 @@ const navItems = [
   { to: '/admin', icon: LayoutDashboard, label: 'Dashboard', end: true },
   { to: '/admin/users', icon: Users, label: 'User Management' },
   { to: '/admin/patients', icon: UserCheck, label: 'Patients' },
+  { to: '/admin/pharmacies', icon: Store, label: 'Pharmacies' },
   { to: '/admin/medications', icon: Pill, label: 'Medications' },
-  { to: '/admin/appointments', icon: Calendar, label: 'Appointments' },
   { to: '/admin/diagnoses', icon: Activity, label: 'Diagnoses' },
-  { to: '/admin/prescriptions', icon: ClipboardList, label: 'Prescriptions' },
-  { to: '/admin/lab', icon: FlaskConical, label: 'Lab Orders' },
   { to: '/admin/reports', icon: BarChart3, label: 'Reports' },
   { to: '/admin/audit', icon: Shield, label: 'Audit Logs' },
   { to: '/admin/notifications', icon: Bell, label: 'Notifications' },

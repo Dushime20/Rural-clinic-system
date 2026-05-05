@@ -3,8 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
-import '../../../../shared/widgets/animated_counter.dart';
+import '../../../../core/utils/url_launcher_helper.dart';
 import '../../../../shared/widgets/app_header.dart';
+import '../../data/models/diagnosis_models.dart';
 
 class DiagnosisResultPage extends ConsumerStatefulWidget {
   final Map<String, dynamic> diagnosisData;
@@ -23,41 +24,36 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage>
   late Animation<double> _slideAnimation;
 
   int _selectedTab = 0;
-  final List<String> _tabs = ['Results', 'Details', 'Recommendations'];
+  final List<String> _tabs = ['Results', 'Prescriptions', 'Pharmacies'];
 
-  // Mock AI prediction results
-  final List<Map<String, dynamic>> _predictions = [
-    {
-      'disease': 'Common Cold',
-      'confidence': 85.2,
-      'description': 'Viral infection of the upper respiratory tract',
-      'symptoms': ['Runny nose', 'Cough', 'Sore throat'],
-      'severity': 'Mild',
-      'color': AppTheme.primaryColor,
-    },
-    {
-      'disease': 'Influenza',
-      'confidence': 72.8,
-      'description': 'Viral infection affecting the respiratory system',
-      'symptoms': ['Fever', 'Body aches', 'Fatigue'],
-      'severity': 'Moderate',
-      'color': AppTheme.secondaryColor,
-    },
-    {
-      'disease': 'Allergic Rhinitis',
-      'confidence': 68.5,
-      'description': 'Allergic reaction causing nasal inflammation',
-      'symptoms': ['Sneezing', 'Itchy eyes', 'Runny nose'],
-      'severity': 'Mild',
-      'color': AppTheme.accentColor,
-    },
-  ];
+  // Extract data from diagnosisData
+  DiagnosisResponse? _diagnosis;
+  List<NearbyPharmacy> _nearbyPharmacies = [];
 
   @override
   void initState() {
     super.initState();
+    _extractData();
     _setupAnimations();
     _startAnimations();
+  }
+
+  void _extractData() {
+    try {
+      if (widget.diagnosisData['diagnosis'] != null) {
+        _diagnosis = DiagnosisResponse.fromJson(
+          widget.diagnosisData['diagnosis'] as Map<String, dynamic>,
+        );
+      }
+      if (widget.diagnosisData['nearbyPharmacies'] != null) {
+        _nearbyPharmacies =
+            (widget.diagnosisData['nearbyPharmacies'] as List)
+                .map((p) => NearbyPharmacy.fromJson(p as Map<String, dynamic>))
+                .toList();
+      }
+    } catch (e) {
+      debugPrint('Error extracting diagnosis data: $e');
+    }
   }
 
   void _setupAnimations() {
@@ -93,11 +89,27 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage>
 
   @override
   Widget build(BuildContext context) {
+    if (_diagnosis == null) {
+      return Scaffold(
+        backgroundColor: AppTheme.backgroundColor,
+        appBar: AppHeader(title: 'Diagnosis Results', subtitle: 'Loading...'),
+        body: const Center(child: Text('No diagnosis data available')),
+      );
+    }
+
+    final topPrediction =
+        _diagnosis!.aiPredictions.isNotEmpty
+            ? _diagnosis!.aiPredictions.first
+            : null;
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppHeader(
         title: 'AI Diagnosis Results',
-        subtitle: 'Confidence: ${_predictions[0]['confidence']}%',
+        subtitle:
+            topPrediction != null
+                ? 'Confidence: ${topPrediction.confidencePercentage}'
+                : 'No predictions',
         actions: [
           IconButton(
             icon: const Icon(Icons.share),
@@ -141,6 +153,8 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage>
   }
 
   Widget _buildHeaderSection() {
+    final predictionCount = _diagnosis?.aiPredictions.length ?? 0;
+
     return Container(
       margin: const EdgeInsets.all(20),
       padding: const EdgeInsets.all(24),
@@ -163,7 +177,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage>
               borderRadius: BorderRadius.circular(40),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.white.withOpacity(0.3),
+                  color: Colors.white.withValues(alpha: 0.3),
                   blurRadius: 20,
                   offset: const Offset(0, 0),
                 ),
@@ -185,9 +199,9 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage>
           ),
           const SizedBox(height: 8),
           Text(
-            'Analysis completed with ${_predictions.length} possible conditions',
+            'Analysis completed with $predictionCount possible condition${predictionCount != 1 ? 's' : ''}',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.9),
             ),
             textAlign: TextAlign.center,
           ),
@@ -249,39 +263,60 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage>
       case 0:
         return _buildResultsTab();
       case 1:
-        return _buildDetailsTab();
+        return _buildPrescriptionsTab();
       case 2:
-        return _buildRecommendationsTab();
+        return _buildPharmaciesTab();
       default:
         return _buildResultsTab();
     }
   }
 
   Widget _buildResultsTab() {
+    if (_diagnosis == null || _diagnosis!.aiPredictions.isEmpty) {
+      return const Center(child: Text('No AI predictions available'));
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Top Prediction
-          _buildTopPredictionCard(),
+          _buildTopPredictionCard(_diagnosis!.aiPredictions.first),
           const SizedBox(height: 20),
 
           // Other Predictions
-          _buildOtherPredictions(),
+          if (_diagnosis!.aiPredictions.length > 1) ...[
+            Text(
+              'Other Possible Conditions',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 16),
+            ..._diagnosis!.aiPredictions.skip(1).map((prediction) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _buildPredictionCard(prediction),
+              );
+            }),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildTopPredictionCard() {
-    final topPrediction = _predictions[0];
+  Widget _buildTopPredictionCard(AIPrediction prediction) {
+    final color = AppTheme.primaryColor;
+    final confidencePercent = (prediction.confidence * 100).toStringAsFixed(1);
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: AppTheme.mediumShadow,
-        border: Border.all(color: topPrediction['color'], width: 2),
+        border: Border.all(color: color, width: 2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -291,14 +326,10 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: topPrediction['color'].withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(
-                  Icons.medical_services,
-                  color: topPrediction['color'],
-                  size: 24,
-                ),
+                child: Icon(Icons.medical_services, color: color, size: 24),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -306,17 +337,18 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      topPrediction['disease'],
+                      prediction.disease,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    Text(
-                      topPrediction['severity'],
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.textSecondary,
+                    if (prediction.icd10Code != null)
+                      Text(
+                        'ICD-10: ${prediction.icd10Code}',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -326,14 +358,13 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage>
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: topPrediction['color'].withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: AnimatedCounter(
-                  value: topPrediction['confidence'].toInt(),
-                  suffix: '%',
+                child: Text(
+                  '$confidencePercent%',
                   style: TextStyle(
-                    color: topPrediction['color'],
+                    color: color,
                     fontWeight: FontWeight.w700,
                     fontSize: 18,
                   ),
@@ -342,71 +373,76 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage>
             ],
           ),
           const SizedBox(height: 16),
-          Text(
-            topPrediction['description'],
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
+
+          // Confidence Bar
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Confidence Level',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(
+                  value: prediction.confidence,
+                  minHeight: 12,
+                  backgroundColor: color.withValues(alpha: 0.1),
+                  valueColor: AlwaysStoppedAnimation<Color>(color),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          Text(
-            'Key Symptoms:',
-            style: Theme.of(
-              context,
-            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children:
-                (topPrediction['symptoms'] as List<String>).map((symptom) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: topPrediction['color'].withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      symptom,
-                      style: TextStyle(
-                        color: topPrediction['color'],
-                        fontWeight: FontWeight.w500,
+
+          // Recommendations
+          if (prediction.recommendations != null &&
+              prediction.recommendations!.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text(
+              'Recommendations:',
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            ...prediction.recommendations!.map((recommendation) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      margin: const EdgeInsets.only(top: 6, right: 12),
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(3),
                       ),
                     ),
-                  );
-                }).toList(),
-          ),
+                    Expanded(
+                      child: Text(
+                        recommendation,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildOtherPredictions() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Other Possible Conditions',
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 16),
-        ...(_predictions.skip(1).map((prediction) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _buildPredictionCard(prediction),
-          );
-        }).toList()),
-      ],
-    );
-  }
+  Widget _buildPredictionCard(AIPrediction prediction) {
+    final color = AppTheme.secondaryColor;
+    final confidencePercent = (prediction.confidence * 100).toStringAsFixed(1);
 
-  Widget _buildPredictionCard(Map<String, dynamic> prediction) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -420,7 +456,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage>
             width: 12,
             height: 12,
             decoration: BoxDecoration(
-              color: prediction['color'],
+              color: color,
               borderRadius: BorderRadius.circular(6),
             ),
           ),
@@ -430,32 +466,30 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  prediction['disease'],
+                  prediction.disease,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                Text(
-                  prediction['severity'],
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.textSecondary,
+                if (prediction.icd10Code != null)
+                  Text(
+                    'ICD-10: ${prediction.icd10Code}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.textSecondary,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: prediction['color'].withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              '${prediction['confidence'].toStringAsFixed(1)}%',
-              style: TextStyle(
-                color: prediction['color'],
-                fontWeight: FontWeight.w600,
-              ),
+              '$confidencePercent%',
+              style: TextStyle(color: color, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -463,151 +497,55 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage>
     );
   }
 
-  Widget _buildDetailsTab() {
+  Widget _buildPrescriptionsTab() {
+    if (_diagnosis == null ||
+        _diagnosis!.prescriptions == null ||
+        _diagnosis!.prescriptions!.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.medication_outlined,
+              size: 64,
+              color: AppTheme.textSecondary.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No prescriptions available',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(color: AppTheme.textSecondary),
+            ),
+          ],
+        ),
+      );
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Diagnosis Details',
+            'Prescribed Medications',
             style: Theme.of(
               context,
             ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
           ),
-          const SizedBox(height: 20),
-
-          // Patient Information
-          _buildDetailSection('Patient Information', [
-            'Age: ${widget.diagnosisData['age'] ?? 'N/A'}',
-            'Gender: ${widget.diagnosisData['gender'] ?? 'N/A'}',
-            'Weight: ${widget.diagnosisData['weight'] ?? 'N/A'} kg',
-            'Height: ${widget.diagnosisData['height'] ?? 'N/A'} cm',
-          ]),
-
-          const SizedBox(height: 20),
-
-          // Vital Signs
-          _buildDetailSection('Vital Signs', [
-            'Temperature: ${widget.diagnosisData['temperature'] ?? 'N/A'}°C',
-            'Blood Pressure: ${widget.diagnosisData['blood_pressure_systolic'] ?? 'N/A'}/${widget.diagnosisData['blood_pressure_diastolic'] ?? 'N/A'} mmHg',
-            'Heart Rate: ${widget.diagnosisData['heart_rate'] ?? 'N/A'} bpm',
-            'Respiratory Rate: ${widget.diagnosisData['respiratory_rate'] ?? 'N/A'} breaths/min',
-            'Oxygen Saturation: ${widget.diagnosisData['oxygen_saturation'] ?? 'N/A'}%',
-          ]),
-
-          const SizedBox(height: 20),
-
-          // Selected Symptoms
-          _buildDetailSection(
-            'Selected Symptoms',
-            (widget.diagnosisData['symptoms'] as List<String>?)
-                    ?.map((symptom) => '• $symptom')
-                    .toList() ??
-                ['No symptoms selected'],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetailSection(String title, List<String> items) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: AppTheme.softShadow,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: AppTheme.primaryColor,
-            ),
-          ),
-          const SizedBox(height: 12),
-          ...items.map(
-            (item) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(item, style: Theme.of(context).textTheme.bodyMedium),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecommendationsTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Recommendations',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 20),
-
-          // Immediate Actions
-          _buildRecommendationCard(
-            'Immediate Actions',
-            [
-              'Rest and get plenty of sleep',
-              'Stay hydrated by drinking fluids',
-              'Use saline nasal spray for congestion',
-              'Gargle with warm salt water for sore throat',
-            ],
-            Icons.warning,
-            AppTheme.warningColor,
-          ),
-
           const SizedBox(height: 16),
-
-          // Medications
-          _buildRecommendationCard(
-            'Recommended Medications',
-            [
-              'Acetaminophen for fever and pain',
-              'Ibuprofen for inflammation',
-              'Antihistamines for allergy symptoms',
-              'Cough suppressants if needed',
-            ],
-            Icons.medication,
-            AppTheme.primaryColor,
-          ),
-
-          const SizedBox(height: 16),
-
-          // Follow-up
-          _buildRecommendationCard(
-            'Follow-up Care',
-            [
-              'Monitor symptoms for 3-5 days',
-              'Seek medical attention if symptoms worsen',
-              'Return if fever persists beyond 3 days',
-              'Consider allergy testing if symptoms recur',
-            ],
-            Icons.schedule,
-            AppTheme.secondaryColor,
-          ),
+          ..._diagnosis!.prescriptions!.map((prescription) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: _buildPrescriptionCard(prescription),
+            );
+          }),
         ],
       ),
     );
   }
 
-  Widget _buildRecommendationCard(
-    String title,
-    List<String> recommendations,
-    IconData icon,
-    Color color,
-  ) {
+  Widget _buildPrescriptionCard(Prescription prescription) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -621,47 +559,350 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage>
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(icon, color: color, size: 20),
+                child: const Icon(
+                  Icons.medication,
+                  color: AppTheme.primaryColor,
+                  size: 24,
+                ),
               ),
-              const SizedBox(width: 12),
-              Text(
-                title,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  prescription.medication,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          ...recommendations.map(
-            (recommendation) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 6,
-                    height: 6,
-                    margin: const EdgeInsets.only(top: 6, right: 12),
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      recommendation,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ),
-                ],
-              ),
+          _buildPrescriptionDetail(
+            'Dosage',
+            prescription.dosage,
+            Icons.science,
+          ),
+          const SizedBox(height: 12),
+          _buildPrescriptionDetail(
+            'Frequency',
+            prescription.frequency,
+            Icons.schedule,
+          ),
+          const SizedBox(height: 12),
+          _buildPrescriptionDetail(
+            'Duration',
+            prescription.duration,
+            Icons.calendar_today,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPrescriptionDetail(String label, String value, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: AppTheme.textSecondary),
+        const SizedBox(width: 12),
+        Text(
+          '$label: ',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: AppTheme.textSecondary,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPharmaciesTab() {
+    if (_nearbyPharmacies.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.local_pharmacy_outlined,
+              size: 64,
+              color: AppTheme.textSecondary.withValues(alpha: 0.5),
             ),
+            const SizedBox(height: 16),
+            Text(
+              'No nearby pharmacies found',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(color: AppTheme.textSecondary),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Try searching in a different area',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Nearby Pharmacies',
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Pharmacies with your prescribed medicines',
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
+          ),
+          const SizedBox(height: 16),
+          ..._nearbyPharmacies.map((pharmacy) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: _buildPharmacyCard(pharmacy),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPharmacyCard(NearbyPharmacy pharmacy) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: AppTheme.softShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Pharmacy Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.local_pharmacy,
+                  color: AppTheme.primaryColor,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      pharmacy.name,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on,
+                          size: 16,
+                          color: AppTheme.textSecondary,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            pharmacy.distanceText,
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: AppTheme.textSecondary),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Address
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.place, size: 20, color: AppTheme.textSecondary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  pharmacy.fullAddress,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+            ],
+          ),
+
+          // Available Medicines
+          if (pharmacy.medicines.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 12),
+            Text(
+              'Available Medicines',
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            ...pharmacy.medicines.map((medicine) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _buildMedicineItem(medicine),
+              );
+            }),
+          ],
+
+          // Action Buttons
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              if (pharmacy.phoneNumber != null)
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      if (!mounted) return;
+                      UrlLauncherHelper.makePhoneCall(
+                        context,
+                        pharmacy.phoneNumber!,
+                      );
+                    },
+                    icon: const Icon(Icons.phone, size: 20),
+                    label: const Text('Call'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              if (pharmacy.phoneNumber != null) const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    if (!mounted) return;
+                    UrlLauncherHelper.navigateTo(
+                      context,
+                      pharmacy.latitude,
+                      pharmacy.longitude,
+                      destinationName: pharmacy.name,
+                    );
+                  },
+                  icon: const Icon(Icons.navigation, size: 20),
+                  label: const Text('Navigate'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMedicineItem(PharmacyMedicine medicine) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.backgroundColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  medicine.displayName,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                if (medicine.strength != null || medicine.form != null)
+                  Text(
+                    [
+                      medicine.strength,
+                      medicine.form,
+                    ].where((e) => e != null).join(' • '),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                medicine.priceText,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.primaryColor,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color:
+                      medicine.isAvailable
+                          ? Colors.green.withValues(alpha: 0.1)
+                          : Colors.red.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  medicine.stockText,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: medicine.isAvailable ? Colors.green : Colors.red,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

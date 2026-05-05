@@ -11,9 +11,13 @@ import {
     deleteMedicine,
     findNearbyPharmaciesWithMedicine,
     getAllPharmacies,
+    getAllMedicinesForAdmin,
 } from '../controllers/pharmacy-manager.controller';
 
 const router = Router();
+
+// ─── Admin routes ──────────────────────────────────────────────────────────────
+router.get('/admin/medicines', authenticate, authorize(UserRole.ADMIN), getAllMedicinesForAdmin);
 
 // ─── Public / Health Worker routes (authenticated, any role) ─────────────────
 router.get('/map', authenticate, getAllPharmacies);

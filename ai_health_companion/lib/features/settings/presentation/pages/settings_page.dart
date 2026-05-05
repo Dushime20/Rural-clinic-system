@@ -6,6 +6,8 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../../core/services/user_service.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/providers/theme_provider.dart';
+import '../../../../core/providers/language_provider.dart';
 import '../../../../shared/widgets/app_header.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
@@ -289,7 +291,30 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Widget _buildAppSection(BuildContext context) {
+    final isDarkMode = ref.watch(isDarkModeProvider);
+    final currentLanguage = ref.watch(currentLanguageProvider);
+
     return _buildSection('App', [
+      _tile(
+        icon: isDarkMode ? Icons.dark_mode : Icons.light_mode,
+        title: 'Theme',
+        subtitle: isDarkMode ? 'Dark Mode' : 'Light Mode',
+        trailing: Switch(
+          value: isDarkMode,
+          onChanged: (value) {
+            ref.read(themeModeProvider.notifier).toggleTheme();
+          },
+          activeColor: AppTheme.primaryColor,
+        ),
+        onTap: null,
+        showArrow: false,
+      ),
+      _tile(
+        icon: Icons.language,
+        title: 'Language',
+        subtitle: currentLanguage.nativeName,
+        onTap: () => _showLanguageSelector(context),
+      ),
       _tile(
         icon: Icons.sync,
         title: 'Sync Status',
@@ -608,6 +633,123 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     ),
                   ),
                 ),
+          ),
+    );
+  }
+
+  // ── Language Selector Bottom Sheet ────────────────────────────────────────
+
+  void _showLanguageSelector(BuildContext context) {
+    final currentLanguage = ref.read(currentLanguageProvider);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder:
+          (ctx) => Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
+            ),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Handle bar
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Select Language',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Choose your preferred language',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Language options
+                ...AppLanguage.values.map((language) {
+                  final isSelected = currentLanguage == language;
+                  return ListTile(
+                    leading: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color:
+                            isSelected
+                                ? AppTheme.primaryColor.withValues(alpha: 0.1)
+                                : Colors.grey.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        Icons.language,
+                        color:
+                            isSelected
+                                ? AppTheme.primaryColor
+                                : AppTheme.textSecondary,
+                        size: 20,
+                      ),
+                    ),
+                    title: Text(
+                      language.nativeName,
+                      style: TextStyle(
+                        fontWeight:
+                            isSelected ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                    ),
+                    subtitle: Text(
+                      language.englishName,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                    trailing:
+                        isSelected
+                            ? const Icon(
+                              Icons.check_circle,
+                              color: AppTheme.primaryColor,
+                            )
+                            : null,
+                    onTap: () {
+                      ref.read(languageProvider.notifier).setLanguage(language);
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Language changed to ${language.nativeName}',
+                          ),
+                          backgroundColor: AppTheme.successColor,
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  );
+                }),
+                const SizedBox(height: 8),
+              ],
+            ),
           ),
     );
   }

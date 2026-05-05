@@ -99,7 +99,7 @@ export const getLowStockMedications = async (req: AuthRequest, res: Response, ne
         const medications = await medicationRepository
             .createQueryBuilder('medication')
             .where('medication.clinicId = :clinicId', { clinicId: req.user?.clinicId })
-            .andWhere("(medication.stockInfo->>'quantity')::int <= (medication.stockInfo->>'reorderLevel')::int")
+            .andWhere("(medication.\"stockInfo\"->>'quantity')::int <= (medication.\"stockInfo\"->>'reorderLevel')::int")
             .getMany();
 
         res.status(200).json({ success: true, data: { medications, count: medications.length } });
