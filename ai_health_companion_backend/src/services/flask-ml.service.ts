@@ -153,8 +153,16 @@ export class FlaskMLService {
                     requestBody
                 );
 
+                logger.info(`Flask raw response: ${JSON.stringify(response.data).substring(0, 500)}`);
+
                 if (!response.data.success) {
-                    throw new Error('Flask ML prediction failed');
+                    const errMsg = (response.data as any).error || 'unknown';
+                    const hint = (response.data as any).hint || '';
+                    logger.warn(`Flask returned success=false: ${errMsg}${hint ? ' — ' + hint : ''}`);
+                    // Don't retry on a logical failure (bad symptoms) — throw non-retryable signal
+                    const err = new Error(`Flask ML prediction failed: ${errMsg}`) as any;
+                    err.noRetry = true;
+                    throw err;
                 }
 
                 logger.info(`Prediction successful: ${response.data.prediction.disease} (confidence: ${response.data.prediction.confidence})`);
@@ -222,7 +230,11 @@ export class FlaskMLService {
     ): Promise<T> {
         try {
             return await requestFn();
-        } catch (error) {
+        } catch (error: any) {
+            // Don't retry on logical failures (e.g. no valid symptoms matched)
+            if (error?.noRetry) {
+                throw error;
+            }
             if (attempt < this.retryAttempts) {
                 logger.warn(
                     `Flask ML request failed, retrying (${attempt}/${this.retryAttempts})...`

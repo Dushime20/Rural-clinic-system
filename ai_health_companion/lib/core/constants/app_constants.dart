@@ -6,11 +6,13 @@ class AppConstants {
       'AI-powered disease diagnosis for rural clinics';
 
   // API Configuration
-  // For Android Emulator: Use 10.0.2.2
-  // For iOS Simulator: Use localhost
-  // For Physical Device: Use your computer's IP (e.g., 192.168.1.100)
-  // For production: Use your actual API URL
-  static const String baseUrl = 'http://10.0.2.2:5000/api/v1';
+  // 10.0.2.2 = Android emulator → host machine localhost
+  // For physical device: set FLUTTER_API_URL env var or change this to your machine's LAN IP
+  // e.g. 'http://192.168.1.100:5000/api/v1'
+  static const String baseUrl = String.fromEnvironment(
+    'FLUTTER_API_URL',
+    defaultValue: 'http://10.0.2.2:5000/api/v1',
+  );
   static const String apiVersion = 'v1';
   static const Duration apiTimeout = Duration(seconds: 30);
 

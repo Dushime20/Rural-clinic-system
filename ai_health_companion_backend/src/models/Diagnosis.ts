@@ -26,6 +26,11 @@ export interface IPrediction {
     confidence: number;
     icd10Code?: string;
     recommendations?: string[];
+    description?: string;
+    precautions?: string[];
+    medications?: string[];
+    diet?: string[];
+    workout?: string[];
 }
 
 export interface ISelectedDiagnosis {

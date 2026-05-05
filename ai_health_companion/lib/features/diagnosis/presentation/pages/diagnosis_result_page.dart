@@ -1,15 +1,21 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/utils/url_launcher_helper.dart';
 import '../../../../shared/widgets/app_header.dart';
 import '../../data/models/diagnosis_models.dart';
 
 class DiagnosisResultPage extends ConsumerStatefulWidget {
   final Map<String, dynamic> diagnosisData;
-
   const DiagnosisResultPage({super.key, required this.diagnosisData});
 
   @override
@@ -17,339 +23,744 @@ class DiagnosisResultPage extends ConsumerStatefulWidget {
       _DiagnosisResultPageState();
 }
 
-class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage>
-    with TickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _slideAnimation;
-
-  int _selectedTab = 0;
-  final List<String> _tabs = ['Results', 'Prescriptions', 'Pharmacies'];
-
-  // Extract data from diagnosisData
+class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
   DiagnosisResponse? _diagnosis;
+  Map<String, dynamic>? _patient;
   List<NearbyPharmacy> _nearbyPharmacies = [];
+  bool _isGeneratingPdf = false;
 
   @override
   void initState() {
     super.initState();
     _extractData();
-    _setupAnimations();
-    _startAnimations();
   }
 
   void _extractData() {
     try {
-      if (widget.diagnosisData['diagnosis'] != null) {
-        _diagnosis = DiagnosisResponse.fromJson(
-          widget.diagnosisData['diagnosis'] as Map<String, dynamic>,
-        );
+      final diagnosisRaw = widget.diagnosisData['diagnosis'];
+      if (diagnosisRaw is DiagnosisResponse) {
+        _diagnosis = diagnosisRaw;
+      } else if (diagnosisRaw is Map<String, dynamic>) {
+        _diagnosis = DiagnosisResponse.fromJson(diagnosisRaw);
       }
-      if (widget.diagnosisData['nearbyPharmacies'] != null) {
+
+      final patientRaw = widget.diagnosisData['patient'];
+      if (patientRaw is Map<String, dynamic>) {
+        _patient = patientRaw;
+      } else if (patientRaw is Map) {
+        _patient = Map<String, dynamic>.from(patientRaw);
+      }
+
+      final pharmaciesRaw = widget.diagnosisData['nearbyPharmacies'];
+      if (pharmaciesRaw is List) {
         _nearbyPharmacies =
-            (widget.diagnosisData['nearbyPharmacies'] as List)
-                .map((p) => NearbyPharmacy.fromJson(p as Map<String, dynamic>))
-                .toList();
+            pharmaciesRaw.map((p) {
+              if (p is NearbyPharmacy) return p;
+              return NearbyPharmacy.fromJson(p as Map<String, dynamic>);
+            }).toList();
       }
     } catch (e) {
       debugPrint('Error extracting diagnosis data: $e');
     }
   }
 
-  void _setupAnimations() {
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    );
+  // ── helpers ──────────────────────────────────────────────────────────────
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: const Interval(0.0, 0.8, curve: Curves.easeIn),
+  String get _patientName {
+    if (_patient == null) return 'Unknown';
+    return '${_patient!['firstName'] ?? ''} ${_patient!['lastName'] ?? ''}'
+        .trim();
+  }
+
+  int get _patientAge {
+    final dob = _patient?['dateOfBirth'];
+    if (dob == null) return 0;
+    try {
+      return DateTime.now().difference(DateTime.parse(dob.toString())).inDays ~/
+          365;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  String get _patientGender => (_patient?['gender'] ?? '—').toString();
+
+  String get _patientPhone =>
+      (_patient?['phoneNumber'] ?? _patient?['phone'] ?? '—').toString();
+
+  String get _diagnosisDate {
+    if (_diagnosis == null) return '—';
+    return DateFormat('dd MMM yyyy, HH:mm').format(_diagnosis!.diagnosisDate);
+  }
+
+  AIPrediction? get _topPrediction =>
+      _diagnosis?.aiPredictions.isNotEmpty == true
+          ? _diagnosis!.aiPredictions.first
+          : null;
+
+  Color _confidenceColor(double c) {
+    if (c >= 0.7) return Colors.green;
+    if (c >= 0.4) return Colors.orange;
+    return Colors.red;
+  }
+
+  // ── PDF generation ────────────────────────────────────────────────────────
+
+  Future<File> _buildPdf() async {
+    final pdf = pw.Document();
+    final top = _topPrediction;
+    final date = _diagnosisDate;
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(32),
+        header:
+            (_) => pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  'AI Health Companion',
+                  style: pw.TextStyle(
+                    fontSize: 20,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.Text(
+                  'Diagnosis Report — $date',
+                  style: const pw.TextStyle(
+                    fontSize: 11,
+                    color: PdfColors.grey600,
+                  ),
+                ),
+                pw.Divider(),
+              ],
+            ),
+        build:
+            (_) => [
+              // Patient info
+              pw.Text(
+                'Patient Information',
+                style: pw.TextStyle(
+                  fontSize: 14,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.SizedBox(height: 6),
+              pw.Table.fromTextArray(
+                data: [
+                  ['Name', _patientName],
+                  ['Age', '$_patientAge years'],
+                  ['Gender', _patientGender],
+                  ['Phone', _patientPhone],
+                ],
+                cellStyle: const pw.TextStyle(fontSize: 11),
+                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+              ),
+              pw.SizedBox(height: 16),
+
+              // Primary diagnosis
+              if (top != null) ...[
+                pw.Text(
+                  'Primary Diagnosis',
+                  style: pw.TextStyle(
+                    fontSize: 14,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 6),
+                pw.Table.fromTextArray(
+                  data: [
+                    ['Disease', top.disease],
+                    [
+                      'Confidence',
+                      '${(top.confidence * 100).toStringAsFixed(1)}%',
+                    ],
+                    ['ICD-10', top.icd10Code ?? '—'],
+                  ],
+                  cellStyle: const pw.TextStyle(fontSize: 11),
+                ),
+                pw.SizedBox(height: 16),
+              ],
+
+              // Other predictions
+              if ((_diagnosis?.aiPredictions.length ?? 0) > 1) ...[
+                pw.Text(
+                  'Differential Diagnoses',
+                  style: pw.TextStyle(
+                    fontSize: 14,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 6),
+                pw.Table.fromTextArray(
+                  headers: ['Disease', 'Confidence', 'ICD-10'],
+                  data:
+                      _diagnosis!.aiPredictions
+                          .skip(1)
+                          .map(
+                            (p) => [
+                              p.disease,
+                              '${(p.confidence * 100).toStringAsFixed(1)}%',
+                              p.icd10Code ?? '—',
+                            ],
+                          )
+                          .toList(),
+                  cellStyle: const pw.TextStyle(fontSize: 11),
+                ),
+                pw.SizedBox(height: 16),
+              ],
+
+              // Recommendations
+              if (top?.recommendations?.isNotEmpty == true) ...[
+                pw.Text(
+                  'Recommendations',
+                  style: pw.TextStyle(
+                    fontSize: 14,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 6),
+                ...top!.recommendations!.map(
+                  (r) => pw.Bullet(
+                    text: r,
+                    style: const pw.TextStyle(fontSize: 11),
+                  ),
+                ),
+                pw.SizedBox(height: 16),
+              ],
+
+              // Description
+              if (top?.description != null) ...[
+                pw.Text(
+                  'About This Condition',
+                  style: pw.TextStyle(
+                    fontSize: 14,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 6),
+                pw.Text(
+                  top!.description!,
+                  style: const pw.TextStyle(fontSize: 11),
+                ),
+                pw.SizedBox(height: 16),
+              ],
+
+              // Diet
+              if (top?.diet?.isNotEmpty == true) ...[
+                pw.Text(
+                  'Recommended Diet',
+                  style: pw.TextStyle(
+                    fontSize: 14,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 6),
+                ...top!.diet!.map(
+                  (d) => pw.Bullet(
+                    text: d,
+                    style: const pw.TextStyle(fontSize: 11),
+                  ),
+                ),
+                pw.SizedBox(height: 16),
+              ],
+
+              // Workout
+              if (top?.workout?.isNotEmpty == true) ...[
+                pw.Text(
+                  'Lifestyle & Exercise',
+                  style: pw.TextStyle(
+                    fontSize: 14,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 6),
+                ...top!.workout!.map(
+                  (w) => pw.Bullet(
+                    text: w,
+                    style: const pw.TextStyle(fontSize: 11),
+                  ),
+                ),
+                pw.SizedBox(height: 16),
+              ],
+
+              // Prescriptions
+              if (_diagnosis?.prescriptions?.isNotEmpty == true) ...[
+                pw.Text(
+                  'Prescriptions',
+                  style: pw.TextStyle(
+                    fontSize: 14,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 6),
+                pw.Table.fromTextArray(
+                  headers: ['Medication', 'Dosage', 'Frequency', 'Duration'],
+                  data:
+                      _diagnosis!.prescriptions!
+                          .map(
+                            (p) => [
+                              p.medication,
+                              p.dosage,
+                              p.frequency,
+                              p.duration,
+                            ],
+                          )
+                          .toList(),
+                  cellStyle: const pw.TextStyle(fontSize: 11),
+                ),
+                pw.SizedBox(height: 16),
+              ],
+
+              // Pharmacies
+              if (_nearbyPharmacies.isNotEmpty) ...[
+                pw.Text(
+                  'Nearby Pharmacies',
+                  style: pw.TextStyle(
+                    fontSize: 14,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 6),
+                pw.Table.fromTextArray(
+                  headers: ['Pharmacy', 'Distance', 'Phone'],
+                  data:
+                      _nearbyPharmacies
+                          .map(
+                            (ph) => [
+                              ph.name,
+                              ph.distanceText,
+                              ph.phoneNumber ?? '—',
+                            ],
+                          )
+                          .toList(),
+                  cellStyle: const pw.TextStyle(fontSize: 11),
+                ),
+              ],
+
+              pw.SizedBox(height: 24),
+              pw.Text(
+                'This report is AI-generated and must be reviewed by a qualified clinician.',
+                style: const pw.TextStyle(
+                  fontSize: 9,
+                  color: PdfColors.grey600,
+                ),
+              ),
+            ],
       ),
     );
 
-    _slideAnimation = Tween<double>(begin: 50.0, end: 0.0).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: const Interval(0.2, 1.0, curve: Curves.easeOut),
+    final dir = await getTemporaryDirectory();
+    final file = File(
+      '${dir.path}/diagnosis_${_diagnosis?.diagnosisId ?? 'report'}.pdf',
+    );
+    await file.writeAsBytes(await pdf.save());
+    return file;
+  }
+
+  Future<void> _downloadPdf() async {
+    setState(() => _isGeneratingPdf = true);
+    try {
+      final file = await _buildPdf();
+      await Printing.layoutPdf(
+        onLayout: (_) async => file.readAsBytesSync(),
+        name: 'Diagnosis_${_diagnosis?.diagnosisId ?? 'report'}.pdf',
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('PDF error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isGeneratingPdf = false);
+    }
+  }
+
+  Future<void> _shareReport(String method) async {
+    setState(() => _isGeneratingPdf = true);
+    try {
+      final file = await _buildPdf();
+      final xFile = XFile(file.path, mimeType: 'application/pdf');
+      final top = _topPrediction;
+      final text =
+          'Diagnosis Report for $_patientName\n'
+          'Date: $_diagnosisDate\n'
+          'Primary Diagnosis: ${top?.disease ?? '—'} '
+          '(${((top?.confidence ?? 0) * 100).toStringAsFixed(1)}%)\n'
+          'ICD-10: ${top?.icd10Code ?? '—'}\n\n'
+          'Generated by AI Health Companion';
+
+      if (method == 'whatsapp') {
+        final phone = _patientPhone.replaceAll(RegExp(r'[^\d+]'), '');
+        final encoded = Uri.encodeComponent(text);
+        final uri = Uri.parse('https://wa.me/$phone?text=$encoded');
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } else {
+          // fallback: share sheet
+          await Share.shareXFiles([xFile], text: text);
+        }
+      } else if (method == 'email') {
+        final subject = Uri.encodeComponent('Diagnosis Report — $_patientName');
+        final body = Uri.encodeComponent(text);
+        final uri = Uri.parse('mailto:?subject=$subject&body=$body');
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri);
+        } else {
+          await Share.shareXFiles(
+            [xFile],
+            text: text,
+            subject: 'Diagnosis Report — $_patientName',
+          );
+        }
+      } else {
+        await Share.shareXFiles(
+          [xFile],
+          text: text,
+          subject: 'Diagnosis Report — $_patientName',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Share error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isGeneratingPdf = false);
+    }
+  }
+
+  void _showShareSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      builder:
+          (_) => SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Share Report',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  ListTile(
+                    leading: const CircleAvatar(
+                      backgroundColor: Color(0xFF25D366),
+                      child: Icon(Icons.chat, color: Colors.white),
+                    ),
+                    title: const Text('WhatsApp'),
+                    subtitle: const Text("Send to patient's WhatsApp"),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _shareReport('whatsapp');
+                    },
+                  ),
+                  ListTile(
+                    leading: const CircleAvatar(
+                      backgroundColor: Colors.blue,
+                      child: Icon(Icons.email, color: Colors.white),
+                    ),
+                    title: const Text('Email'),
+                    subtitle: const Text('Send via email'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _shareReport('email');
+                    },
+                  ),
+                  ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: AppTheme.primaryColor,
+                      child: const Icon(Icons.share, color: Colors.white),
+                    ),
+                    title: const Text('Other'),
+                    subtitle: const Text('Share via any app'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _shareReport('other');
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
     );
   }
 
-  void _startAnimations() {
-    _animationController.forward();
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
+  // ── build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     if (_diagnosis == null) {
       return Scaffold(
-        backgroundColor: AppTheme.backgroundColor,
-        appBar: AppHeader(title: 'Diagnosis Results', subtitle: 'Loading...'),
+        appBar: AppHeader(title: 'Diagnosis Results', subtitle: ''),
         body: const Center(child: Text('No diagnosis data available')),
       );
     }
 
-    final topPrediction =
-        _diagnosis!.aiPredictions.isNotEmpty
-            ? _diagnosis!.aiPredictions.first
-            : null;
-
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppHeader(
-        title: 'AI Diagnosis Results',
-        subtitle:
-            topPrediction != null
-                ? 'Confidence: ${topPrediction.confidencePercentage}'
-                : 'No predictions',
+        title: 'Diagnosis Report',
+        subtitle: _diagnosis!.diagnosisId,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.share),
-            onPressed: _shareResults,
-            tooltip: 'Share',
-          ),
-          IconButton(
-            icon: const Icon(Icons.download),
-            onPressed: _exportResults,
-            tooltip: 'Export',
-          ),
-        ],
-      ),
-      body: AnimatedBuilder(
-        animation: _animationController,
-        builder: (context, child) {
-          return Transform.translate(
-            offset: Offset(0, _slideAnimation.value),
-            child: Opacity(
-              opacity: _fadeAnimation.value,
-              child: Column(
-                children: [
-                  // Header Section
-                  _buildHeaderSection(),
-
-                  // Tab Bar
-                  _buildTabBar(),
-
-                  // Content
-                  Expanded(child: _buildTabContent()),
-
-                  // Action Buttons
-                  _buildActionButtons(),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildHeaderSection() {
-    final predictionCount = _diagnosis?.aiPredictions.length ?? 0;
-
-    return Container(
-      margin: const EdgeInsets.all(20),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppTheme.primaryColor, AppTheme.secondaryColor],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: AppTheme.mediumShadow,
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(40),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.white.withValues(alpha: 0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, 0),
+          if (_isGeneratingPdf)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
                 ),
-              ],
+              ),
+            )
+          else ...[
+            IconButton(
+              icon: const Icon(Icons.download),
+              tooltip: 'Download PDF',
+              onPressed: _downloadPdf,
             ),
-            child: const Icon(
-              Icons.psychology,
-              color: AppTheme.primaryColor,
-              size: 40,
+            IconButton(
+              icon: const Icon(Icons.share),
+              tooltip: 'Share',
+              onPressed: _showShareSheet,
             ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'AI Diagnosis Complete',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Analysis completed with $predictionCount possible condition${predictionCount != 1 ? 's' : ''}',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.white.withValues(alpha: 0.9),
-            ),
-            textAlign: TextAlign.center,
-          ),
+          ],
         ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildPatientCard(),
+            const SizedBox(height: 16),
+            _buildPrimaryDiagnosisCard(),
+            if ((_diagnosis!.aiPredictions.length) > 1) ...[
+              const SizedBox(height: 16),
+              _buildDifferentialCard(),
+            ],
+            const SizedBox(height: 16),
+            _buildRecommendationsCard(),
+            if (_topPrediction?.description != null) ...[
+              const SizedBox(height: 16),
+              _buildDescriptionCard(),
+            ],
+            if (_topPrediction?.diet?.isNotEmpty == true) ...[
+              const SizedBox(height: 16),
+              _buildListCard(
+                'Recommended Diet',
+                Icons.restaurant,
+                Colors.orange,
+                _topPrediction!.diet!,
+              ),
+            ],
+            if (_topPrediction?.workout?.isNotEmpty == true) ...[
+              const SizedBox(height: 16),
+              _buildListCard(
+                'Lifestyle & Exercise',
+                Icons.fitness_center,
+                Colors.blue,
+                _topPrediction!.workout!,
+              ),
+            ],
+            if (_diagnosis!.prescriptions?.isNotEmpty == true) ...[
+              const SizedBox(height: 16),
+              _buildPrescriptionsCard(),
+            ],
+            if (_nearbyPharmacies.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              _buildPharmaciesCard(),
+            ],
+            const SizedBox(height: 16),
+            _buildDisclaimerCard(),
+            const SizedBox(height: 16),
+            _buildActionRow(),
+            const SizedBox(height: 24),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildTabBar() {
+  // ── section cards ─────────────────────────────────────────────────────────
+
+  Widget _buildSectionCard({
+    required String title,
+    required IconData icon,
+    required Color color,
+    required Widget child,
+  }) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: AppTheme.softShadow,
       ),
-      child: Row(
-        children:
-            _tabs.asMap().entries.map((entry) {
-              final index = entry.key;
-              final tab = entry.value;
-              final isSelected = _selectedTab == index;
-
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _selectedTab = index;
-                    });
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    decoration: BoxDecoration(
-                      color:
-                          isSelected
-                              ? AppTheme.primaryColor
-                              : Colors.transparent,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Text(
-                      tab,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color:
-                            isSelected ? Colors.white : AppTheme.textSecondary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildTabContent() {
-    switch (_selectedTab) {
-      case 0:
-        return _buildResultsTab();
-      case 1:
-        return _buildPrescriptionsTab();
-      case 2:
-        return _buildPharmaciesTab();
-      default:
-        return _buildResultsTab();
-    }
-  }
-
-  Widget _buildResultsTab() {
-    if (_diagnosis == null || _diagnosis!.aiPredictions.isEmpty) {
-      return const Center(child: Text('No AI predictions available'));
-    }
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top Prediction
-          _buildTopPredictionCard(_diagnosis!.aiPredictions.first),
-          const SizedBox(height: 20),
-
-          // Other Predictions
-          if (_diagnosis!.aiPredictions.length > 1) ...[
-            Text(
-              'Other Possible Conditions',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.08),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
             ),
-            const SizedBox(height: 16),
-            ..._diagnosis!.aiPredictions.skip(1).map((prediction) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _buildPredictionCard(prediction),
-              );
-            }),
-          ],
+            child: Row(
+              children: [
+                Icon(icon, color: color, size: 20),
+                const SizedBox(width: 10),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(padding: const EdgeInsets.all(16), child: child),
         ],
       ),
     );
   }
 
-  Widget _buildTopPredictionCard(AIPrediction prediction) {
-    final color = AppTheme.primaryColor;
-    final confidencePercent = (prediction.confidence * 100).toStringAsFixed(1);
-
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: AppTheme.mediumShadow,
-        border: Border.all(color: color, width: 2),
-      ),
-      child: Column(
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppTheme.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Patient card ──────────────────────────────────────────────────────────
+
+  Widget _buildPatientCard() {
+    return _buildSectionCard(
+      title: 'Patient Information',
+      icon: Icons.person,
+      color: AppTheme.primaryColor,
+      child: Column(
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16),
+              CircleAvatar(
+                radius: 28,
+                backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.12),
+                child: Text(
+                  _patientName.isNotEmpty ? _patientName[0].toUpperCase() : '?',
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryColor,
+                  ),
                 ),
-                child: Icon(Icons.medical_services, color: color, size: 24),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      prediction.disease,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
+                      _patientName,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    if (prediction.icd10Code != null)
-                      Text(
-                        'ICD-10: ${prediction.icd10Code}',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppTheme.textSecondary,
-                        ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '$_patientAge yrs • $_patientGender',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.textSecondary,
                       ),
+                    ),
                   ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          const Divider(height: 1),
+          const SizedBox(height: 12),
+          _buildInfoRow('Phone', _patientPhone),
+          _buildInfoRow('Diagnosis Date', _diagnosisDate),
+          _buildInfoRow('Report ID', _diagnosis?.diagnosisId ?? '—'),
+        ],
+      ),
+    );
+  }
+
+  // ── Primary diagnosis card ────────────────────────────────────────────────
+
+  Widget _buildPrimaryDiagnosisCard() {
+    final top = _topPrediction;
+    if (top == null) return const SizedBox.shrink();
+    final color = _confidenceColor(top.confidence);
+    final pct = (top.confidence * 100).toStringAsFixed(1);
+
+    return _buildSectionCard(
+      title: 'Primary Diagnosis',
+      icon: Icons.medical_services,
+      color: color,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  top.disease,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               Container(
@@ -358,589 +769,520 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage>
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  '$confidencePercent%',
+                  '$pct%',
                   style: TextStyle(
                     color: color,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-
-          // Confidence Bar
+          if (top.icd10Code != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              'ICD-10: ${top.icd10Code}',
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ],
+          const SizedBox(height: 14),
+          // Confidence bar
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Confidence Level',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Confidence',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                  Text(
+                    pct,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               ClipRRect(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(6),
                 child: LinearProgressIndicator(
-                  value: prediction.confidence,
-                  minHeight: 12,
-                  backgroundColor: color.withValues(alpha: 0.1),
+                  value: top.confidence,
+                  minHeight: 10,
+                  backgroundColor: color.withValues(alpha: 0.12),
                   valueColor: AlwaysStoppedAnimation<Color>(color),
                 ),
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
 
-          // Recommendations
-          if (prediction.recommendations != null &&
-              prediction.recommendations!.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Text(
-              'Recommendations:',
-              style: Theme.of(
-                context,
-              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            ...prediction.recommendations!.map((recommendation) {
+  // ── Differential diagnoses ────────────────────────────────────────────────
+
+  Widget _buildDifferentialCard() {
+    final others = _diagnosis!.aiPredictions.skip(1).toList();
+    return _buildSectionCard(
+      title: 'Differential Diagnoses',
+      icon: Icons.compare_arrows,
+      color: Colors.orange,
+      child: Column(
+        children:
+            others.map((p) {
+              final pct = (p.confidence * 100).toStringAsFixed(1);
+              final color = _confidenceColor(p.confidence);
               return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.only(bottom: 12),
                 child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      width: 6,
-                      height: 6,
-                      margin: const EdgeInsets.only(top: 6, right: 12),
+                      width: 10,
+                      height: 10,
                       decoration: BoxDecoration(
                         color: color,
-                        borderRadius: BorderRadius.circular(3),
+                        shape: BoxShape.circle,
                       ),
                     ),
+                    const SizedBox(width: 12),
                     Expanded(
-                      child: Text(
-                        recommendation,
-                        style: Theme.of(context).textTheme.bodyMedium,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            p.disease,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                          if (p.icd10Code != null)
+                            Text(
+                              'ICD-10: ${p.icd10Code}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      '$pct%',
+                      style: TextStyle(
+                        color: color,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
                 ),
               );
-            }),
-          ],
-        ],
+            }).toList(),
       ),
     );
   }
 
-  Widget _buildPredictionCard(AIPrediction prediction) {
-    final color = AppTheme.secondaryColor;
-    final confidencePercent = (prediction.confidence * 100).toStringAsFixed(1);
+  // ── Recommendations ───────────────────────────────────────────────────────
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: AppTheme.softShadow,
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(6),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  prediction.disease,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                if (prediction.icd10Code != null)
-                  Text(
-                    'ICD-10: ${prediction.icd10Code}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.textSecondary,
+  Widget _buildRecommendationsCard() {
+    final recs = _topPrediction?.recommendations ?? [];
+    if (recs.isEmpty) return const SizedBox.shrink();
+    return _buildSectionCard(
+      title: 'Recommendations',
+      icon: Icons.lightbulb_outline,
+      color: Colors.teal,
+      child: Column(
+        children:
+            recs
+                .map(
+                  (r) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.check_circle_outline,
+                          size: 16,
+                          color: Colors.teal,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(r, style: const TextStyle(fontSize: 13)),
+                        ),
+                      ],
                     ),
                   ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              '$confidencePercent%',
-              style: TextStyle(color: color, fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
+                )
+                .toList(),
       ),
     );
   }
 
-  Widget _buildPrescriptionsTab() {
-    if (_diagnosis == null ||
-        _diagnosis!.prescriptions == null ||
-        _diagnosis!.prescriptions!.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.medication_outlined,
-              size: 64,
-              color: AppTheme.textSecondary.withValues(alpha: 0.5),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No prescriptions available',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(color: AppTheme.textSecondary),
-            ),
-          ],
-        ),
-      );
-    }
+  // ── Prescriptions ─────────────────────────────────────────────────────────
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+  Widget _buildPrescriptionsCard() {
+    final prescriptions = _diagnosis!.prescriptions!;
+    return _buildSectionCard(
+      title: 'Prescriptions',
+      icon: Icons.medication,
+      color: Colors.purple,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Prescribed Medications',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 16),
-          ..._diagnosis!.prescriptions!.map((prescription) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: _buildPrescriptionCard(prescription),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPrescriptionCard(Prescription prescription) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: AppTheme.softShadow,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
+        children:
+            prescriptions.map((p) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16),
+                  color: Colors.purple.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.purple.withValues(alpha: 0.2),
+                  ),
                 ),
-                child: const Icon(
-                  Icons.medication,
-                  color: AppTheme.primaryColor,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  prescription.medication,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildPrescriptionDetail(
-            'Dosage',
-            prescription.dosage,
-            Icons.science,
-          ),
-          const SizedBox(height: 12),
-          _buildPrescriptionDetail(
-            'Frequency',
-            prescription.frequency,
-            Icons.schedule,
-          ),
-          const SizedBox(height: 12),
-          _buildPrescriptionDetail(
-            'Duration',
-            prescription.duration,
-            Icons.calendar_today,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPrescriptionDetail(String label, String value, IconData icon) {
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: AppTheme.textSecondary),
-        const SizedBox(width: 12),
-        Text(
-          '$label: ',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: AppTheme.textSecondary,
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPharmaciesTab() {
-    if (_nearbyPharmacies.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.local_pharmacy_outlined,
-              size: 64,
-              color: AppTheme.textSecondary.withValues(alpha: 0.5),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No nearby pharmacies found',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(color: AppTheme.textSecondary),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Try searching in a different area',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Nearby Pharmacies',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Pharmacies with your prescribed medicines',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
-          ),
-          const SizedBox(height: 16),
-          ..._nearbyPharmacies.map((pharmacy) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: _buildPharmacyCard(pharmacy),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPharmacyCard(NearbyPharmacy pharmacy) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: AppTheme.softShadow,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Pharmacy Header
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Icon(
-                  Icons.local_pharmacy,
-                  color: AppTheme.primaryColor,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      pharmacy.name,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
+                      p.medication,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    _buildInfoRow('Dosage', p.dosage),
+                    _buildInfoRow('Frequency', p.frequency),
+                    _buildInfoRow('Duration', p.duration),
+                  ],
+                ),
+              );
+            }).toList(),
+      ),
+    );
+  }
+
+  // ── Pharmacies ────────────────────────────────────────────────────────────
+
+  Widget _buildPharmaciesCard() {
+    return _buildSectionCard(
+      title: 'Nearest Pharmacies with Available Medicines',
+      icon: Icons.local_pharmacy,
+      color: Colors.green,
+      child: Column(
+        children:
+            _nearbyPharmacies.map((ph) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 14),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.green.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
                     Row(
                       children: [
                         const Icon(
-                          Icons.location_on,
-                          size: 16,
+                          Icons.local_pharmacy,
+                          color: Colors.green,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            ph.name,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            ph.distanceText,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.green,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.place,
+                          size: 14,
                           color: AppTheme.textSecondary,
                         ),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
-                            pharmacy.distanceText,
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: AppTheme.textSecondary),
+                            ph.fullAddress,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // Available medicines
+                    if (ph.medicines.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      const Divider(height: 1),
+                      const SizedBox(height: 10),
+                      const Text(
+                        'Available Medicines',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ...ph.medicines.map(
+                        (m) => Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      m.displayName,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    if (m.strength != null)
+                                      Text(
+                                        m.strength!,
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: AppTheme.textSecondary,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    m.priceText,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.primaryColor,
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          m.isAvailable
+                                              ? Colors.green.withValues(
+                                                alpha: 0.12,
+                                              )
+                                              : Colors.red.withValues(
+                                                alpha: 0.12,
+                                              ),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      m.stockText,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                        color:
+                                            m.isAvailable
+                                                ? Colors.green
+                                                : Colors.red,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+
+                    // Action buttons
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        if (ph.phoneNumber != null)
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () async {
+                                final uri = Uri.parse('tel:${ph.phoneNumber}');
+                                if (await canLaunchUrl(uri)) {
+                                  await launchUrl(uri);
+                                }
+                              },
+                              icon: const Icon(Icons.phone, size: 16),
+                              label: const Text('Call'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.green,
+                                side: const BorderSide(color: Colors.green),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 10,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            ),
+                          ),
+                        if (ph.phoneNumber != null) const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              final uri = Uri.parse(
+                                'https://maps.google.com/?q=${ph.latitude},${ph.longitude}',
+                              );
+                              if (await canLaunchUrl(uri)) {
+                                await launchUrl(
+                                  uri,
+                                  mode: LaunchMode.externalApplication,
+                                );
+                              }
+                            },
+                            icon: const Icon(Icons.navigation, size: 16),
+                            label: const Text('Navigate'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Address
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.place, size: 20, color: AppTheme.textSecondary),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  pharmacy.fullAddress,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ),
-            ],
-          ),
-
-          // Available Medicines
-          if (pharmacy.medicines.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            const Divider(),
-            const SizedBox(height: 12),
-            Text(
-              'Available Medicines',
-              style: Theme.of(
-                context,
-              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 12),
-            ...pharmacy.medicines.map((medicine) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _buildMedicineItem(medicine),
               );
-            }),
-          ],
-
-          // Action Buttons
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              if (pharmacy.phoneNumber != null)
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      if (!mounted) return;
-                      UrlLauncherHelper.makePhoneCall(
-                        context,
-                        pharmacy.phoneNumber!,
-                      );
-                    },
-                    icon: const Icon(Icons.phone, size: 20),
-                    label: const Text('Call'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
-              if (pharmacy.phoneNumber != null) const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    if (!mounted) return;
-                    UrlLauncherHelper.navigateTo(
-                      context,
-                      pharmacy.latitude,
-                      pharmacy.longitude,
-                      destinationName: pharmacy.name,
-                    );
-                  },
-                  icon: const Icon(Icons.navigation, size: 20),
-                  label: const Text('Navigate'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryColor,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+            }).toList(),
       ),
     );
   }
 
-  Widget _buildMedicineItem(PharmacyMedicine medicine) {
+  // ── Disease description ───────────────────────────────────────────────────
+
+  Widget _buildDescriptionCard() {
+    return _buildSectionCard(
+      title: 'About This Condition',
+      icon: Icons.info_outline,
+      color: Colors.indigo,
+      child: Text(
+        _topPrediction!.description!,
+        style: const TextStyle(fontSize: 13, height: 1.6),
+      ),
+    );
+  }
+
+  // ── Generic list card (diet / workout) ────────────────────────────────────
+
+  Widget _buildListCard(
+    String title,
+    IconData icon,
+    Color color,
+    List<String> items,
+  ) {
+    return _buildSectionCard(
+      title: title,
+      icon: icon,
+      color: color,
+      child: Column(
+        children:
+            items
+                .map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.arrow_right, size: 18, color: color),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            item,
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+                .toList(),
+      ),
+    );
+  }
+
+  // ── Disclaimer ────────────────────────────────────────────────────────────
+
+  Widget _buildDisclaimerCard() {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppTheme.backgroundColor,
+        color: Colors.amber.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
       ),
-      child: Row(
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 20),
+          SizedBox(width: 10),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  medicine.displayName,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-                ),
-                if (medicine.strength != null || medicine.form != null)
-                  Text(
-                    [
-                      medicine.strength,
-                      medicine.form,
-                    ].where((e) => e != null).join(' • '),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                medicine.priceText,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.primaryColor,
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color:
-                      medicine.isAvailable
-                          ? Colors.green.withValues(alpha: 0.1)
-                          : Colors.red.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  medicine.stockText,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: medicine.isAvailable ? Colors.green : Colors.red,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButtons() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      child: Row(
-        children: [
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: () => context.go('/diagnosis'),
-              icon: const Icon(Icons.refresh),
-              label: const Text('New Diagnosis'),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: _saveDiagnosis,
-              icon: const Icon(Icons.save),
-              label: const Text('Save Results'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
+            child: Text(
+              'This report is AI-generated and intended to assist — '
+              'not replace — clinical judgment. All diagnoses must be '
+              'confirmed by a qualified healthcare professional.',
+              style: TextStyle(fontSize: 12, color: Colors.black87),
             ),
           ),
         ],
@@ -948,30 +1290,41 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage>
     );
   }
 
-  void _shareResults() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Sharing diagnosis results...'),
-        backgroundColor: AppTheme.primaryColor,
-      ),
-    );
-  }
+  // ── Bottom action row ─────────────────────────────────────────────────────
 
-  void _exportResults() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Exporting diagnosis report...'),
-        backgroundColor: AppTheme.successColor,
-      ),
-    );
-  }
-
-  void _saveDiagnosis() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Diagnosis results saved successfully'),
-        backgroundColor: AppTheme.successColor,
-      ),
+  Widget _buildActionRow() {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () => context.go('/diagnosis'),
+            icon: const Icon(Icons.refresh),
+            label: const Text('New Diagnosis'),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: _isGeneratingPdf ? null : _showShareSheet,
+            icon: const Icon(Icons.share),
+            label: const Text('Share Report'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryColor,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

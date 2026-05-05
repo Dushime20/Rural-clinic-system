@@ -208,12 +208,23 @@ class AIPrediction {
   final double confidence;
   final String? icd10Code;
   final List<String>? recommendations;
+  // Full disease information from Flask
+  final String? description;
+  final List<String>? precautions;
+  final List<String>? medications;
+  final List<String>? diet;
+  final List<String>? workout;
 
   AIPrediction({
     required this.disease,
     required this.confidence,
     this.icd10Code,
     this.recommendations,
+    this.description,
+    this.precautions,
+    this.medications,
+    this.diet,
+    this.workout,
   });
 
   factory AIPrediction.fromJson(Map<String, dynamic> json) {
@@ -225,6 +236,21 @@ class AIPrediction {
           json['recommendations'] != null
               ? List<String>.from(json['recommendations'] as List)
               : null,
+      description: json['description'] as String?,
+      precautions:
+          json['precautions'] != null
+              ? List<String>.from(json['precautions'] as List)
+              : null,
+      medications:
+          json['medications'] != null
+              ? List<String>.from(json['medications'] as List)
+              : null,
+      diet:
+          json['diet'] != null ? List<String>.from(json['diet'] as List) : null,
+      workout:
+          json['workout'] != null
+              ? List<String>.from(json['workout'] as List)
+              : null,
     );
   }
 
@@ -233,6 +259,11 @@ class AIPrediction {
     'confidence': confidence,
     if (icd10Code != null) 'icd10Code': icd10Code,
     if (recommendations != null) 'recommendations': recommendations,
+    if (description != null) 'description': description,
+    if (precautions != null) 'precautions': precautions,
+    if (medications != null) 'medications': medications,
+    if (diet != null) 'diet': diet,
+    if (workout != null) 'workout': workout,
   };
 
   String get confidencePercentage =>

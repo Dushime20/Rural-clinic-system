@@ -85,6 +85,11 @@ dependencies:
   # File handling
   path_provider: ^2.1.4
   
+  # Sharing & PDF
+  share_plus: ^10.0.0
+  pdf: ^3.11.1
+  printing: ^5.13.1
+  
   # Date & Time
   timeago: ^3.6.1
 

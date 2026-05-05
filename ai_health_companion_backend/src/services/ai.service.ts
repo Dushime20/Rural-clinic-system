@@ -6,6 +6,7 @@ import { ModelLoader } from './ml/model-loader';
 import { InferenceEngine } from './ml/inference-engine';
 import { FallbackMechanism } from './ml/fallback-mechanism';
 import { PredictionResult } from '../types/ml.types';
+import { flaskMLService } from './flask-ml.service';
 
 export interface DiagnosisInput {
     symptoms: Array<{ name: string; category: string; severity?: string }>;
@@ -27,6 +28,12 @@ export interface Prediction {
     confidence: number;
     icd10Code?: string;
     recommendations?: string[];
+    // Full disease information from Flask
+    description?: string;
+    precautions?: string[];
+    medications?: string[];
+    diet?: string[];
+    workout?: string[];
 }
 
 export class AIService {
@@ -87,20 +94,67 @@ export class AIService {
     }
 
     public async predictDisease(input: DiagnosisInput): Promise<Prediction[]> {
+        // If Flask ML service is configured, use it as the primary predictor
+        const useFlask = process.env.USE_FLASK_ML_SERVICE === 'true';
+        if (useFlask) {
+            try {
+                const isHealthy = await flaskMLService.healthCheck();
+                if (isHealthy) {
+                    logger.info('Using Flask ML service for prediction');
+                    const symptomNames = input.symptoms.map(s => s.name);
+                    const flaskResult = await flaskMLService.predictDisease(
+                        symptomNames,
+                        input.vitalSigns,
+                        { age: input.age, gender: input.gender }
+                    );
+
+                    // Use top_predictions if available, otherwise fall back to single prediction
+                    const rawPredictions: Array<{ disease: string; confidence: number; icd10Code?: string }> =
+                        (flaskResult as any).top_predictions?.length
+                            ? (flaskResult as any).top_predictions
+                            : [{ disease: flaskResult.prediction.disease, confidence: flaskResult.prediction.confidence, icd10Code: flaskResult.prediction.icd10Code }];
+
+                    const predictions: Prediction[] = rawPredictions.map((p, index) => ({
+                        disease: p.disease.trim(),
+                        confidence: p.confidence,
+                        icd10Code: p.icd10Code,
+                        // Full disease info only on primary prediction
+                        ...(index === 0 ? {
+                            description: flaskResult.information.description,
+                            precautions: flaskResult.information.precautions,
+                            medications: flaskResult.information.medications,
+                            diet: flaskResult.information.diet,
+                            workout: flaskResult.information.workout,
+                            recommendations: [
+                                ...flaskResult.information.precautions,
+                                ...flaskResult.information.medications.slice(0, 3)
+                            ].filter(Boolean),
+                        } : {})
+                    }));
+
+                    logger.info(
+                        `Flask ML predictions: ${predictions.map(p => `${p.disease}(${(p.confidence * 100).toFixed(1)}%)`).join(', ')}`
+                    );
+                    return predictions;
+                } else {
+                    logger.warn('Flask ML service is not healthy, falling back to rule-based');
+                }
+            } catch (flaskError) {
+                logger.error('Flask ML service prediction failed, falling back to rule-based:', flaskError);
+            }
+        }
+
+        // Fall back to local TensorFlow.js model or rule-based
         try {
             const startTime = Date.now();
-
-            // Use fallback mechanism (handles both ML and rule-based)
             const result: PredictionResult = await this.fallbackMechanism.predict(input);
-
             const inferenceTime = Date.now() - startTime;
-            
+
             logger.info(
                 `Prediction completed using ${result.method} method in ${inferenceTime}ms, ` +
                 `${result.predictions.length} diseases predicted`
             );
 
-            // Log if fallback was used
             if (result.method === 'rule-based' && result.fallbackReason) {
                 logger.warn(`Fallback reason: ${result.fallbackReason}`);
             }

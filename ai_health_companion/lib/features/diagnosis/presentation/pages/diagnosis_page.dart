@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/services/location_service.dart';
+import '../../../../core/services/patient_service.dart';
 import '../../../../shared/widgets/app_header.dart';
 import '../../data/models/diagnosis_models.dart';
 import '../../data/providers/diagnosis_provider.dart';
@@ -25,42 +26,11 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
   final _searchController = TextEditingController();
   String _searchQuery = '';
 
-  // Mock patient data
-  final List<Map<String, dynamic>> _patients = [
-    {
-      'id': '1',
-      'name': 'John Doe',
-      'age': 45,
-      'gender': 'Male',
-      'bloodType': 'O+',
-      'phone': '+250 788 123 456',
-      'lastVisit': '2024-01-15',
-      'status': 'Follow-up',
-      'diagnosis': 'Hypertension',
-    },
-    {
-      'id': '2',
-      'name': 'Mary Johnson',
-      'age': 32,
-      'gender': 'Female',
-      'bloodType': 'A+',
-      'phone': '+250 788 234 567',
-      'lastVisit': '2024-01-14',
-      'status': 'Recent',
-      'diagnosis': 'Diabetes Type 2',
-    },
-    {
-      'id': '3',
-      'name': 'Robert Smith',
-      'age': 28,
-      'gender': 'Male',
-      'bloodType': 'B+',
-      'phone': '+250 788 345 678',
-      'lastVisit': '2024-01-13',
-      'status': 'Recent',
-      'diagnosis': 'Common Cold',
-    },
-  ];
+  // Real patient data from API
+  final _patientService = PatientService();
+  List<dynamic> _patients = [];
+  bool _patientsLoading = true;
+  String? _patientsError;
 
   // Symptoms
   final List<String> _selectedSymptoms = [];
@@ -114,6 +84,46 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 6, vsync: this);
+    _loadPatients();
+
+    // Rebuild when vital sign values change so the Review tab stays in sync
+    _temperatureController.addListener(_onVitalsChanged);
+    _bloodPressureController.addListener(_onVitalsChanged);
+    _heartRateController.addListener(_onVitalsChanged);
+    _respiratoryRateController.addListener(_onVitalsChanged);
+    _oxygenSaturationController.addListener(_onVitalsChanged);
+    _additionalNotesController.addListener(_onVitalsChanged);
+  }
+
+  void _onVitalsChanged() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _loadPatients({bool reset = false}) async {
+    if (reset) {
+      setState(() {
+        _patients = [];
+      });
+    }
+    setState(() {
+      _patientsLoading = true;
+      _patientsError = null;
+    });
+
+    final result = await _patientService.getPatients(
+      search: _searchQuery.isEmpty ? null : _searchQuery,
+      limit: 100, // load enough for the list
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _patientsLoading = false;
+      if (result['success'] == true) {
+        _patients = result['data']['patients'] as List? ?? [];
+      } else {
+        _patientsError = result['message'] as String?;
+      }
+    });
   }
 
   @override
@@ -129,22 +139,36 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
     super.dispose();
   }
 
-  List<Map<String, dynamic>> get _filteredPatients {
+  List<dynamic> get _filteredPatients {
     if (_searchQuery.isEmpty) return _patients;
-    return _patients
-        .where(
-          (p) => p['name'].toString().toLowerCase().contains(
-            _searchQuery.toLowerCase(),
-          ),
-        )
-        .toList();
+    final q = _searchQuery.toLowerCase();
+    return _patients.where((p) {
+      final name =
+          '${p['firstName'] ?? ''} ${p['lastName'] ?? ''}'.toLowerCase();
+      return name.contains(q);
+    }).toList();
   }
 
-  void _selectPatient(Map<String, dynamic> patient) {
+  void _selectPatient(dynamic patient) {
     setState(() {
-      _selectedPatient = patient;
+      _selectedPatient = Map<String, dynamic>.from(patient as Map);
       _tabController.animateTo(1); // Move to patient info tab
     });
+  }
+
+  /// Helpers to read real API patient fields safely
+  String _patientFullName(dynamic p) =>
+      '${p['firstName'] ?? ''} ${p['lastName'] ?? ''}'.trim();
+
+  int _patientAge(dynamic p) {
+    final dob = p['dateOfBirth'];
+    if (dob == null) return 0;
+    try {
+      return DateTime.now().difference(DateTime.parse(dob.toString())).inDays ~/
+          365;
+    } catch (_) {
+      return 0;
+    }
   }
 
   void _toggleSymptom(String symptom) {
@@ -281,8 +305,9 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
         patientId: _selectedPatient!['id'],
         symptoms: symptoms,
         vitalSigns: vitalSigns,
-        age: _selectedPatient!['age'],
-        gender: _selectedPatient!['gender'].toString().toLowerCase(),
+        age: _patientAge(_selectedPatient),
+        gender:
+            (_selectedPatient!['gender'] ?? 'unknown').toString().toLowerCase(),
         medicalHistory:
             _selectedMedicalHistory.isNotEmpty ? _selectedMedicalHistory : null,
         notes:
@@ -389,7 +414,7 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
         title: 'AI Diagnosis Assistant',
         subtitle:
             _selectedPatient != null
-                ? 'Patient: ${_selectedPatient!['name']}'
+                ? 'Patient: ${_patientFullName(_selectedPatient)}'
                 : 'Select a patient to begin',
         actions: [
           IconButton(
@@ -428,32 +453,7 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
           ],
         ),
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -5),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: ElevatedButton.icon(
-            onPressed: _runDiagnosis,
-            icon: const Icon(Icons.psychology),
-            label: const Text('Run AI Diagnosis'),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-        ),
-      ),
+      bottomNavigationBar: null,
     );
   }
 
@@ -468,6 +468,17 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
             decoration: InputDecoration(
               hintText: 'Search patients...',
               prefixIcon: const Icon(Icons.search),
+              suffixIcon:
+                  _searchQuery.isNotEmpty
+                      ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                          _loadPatients(reset: true);
+                        },
+                      )
+                      : null,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -475,104 +486,127 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
               fillColor: Colors.grey[50],
             ),
             onChanged: (value) {
-              setState(() {
-                _searchQuery = value;
+              setState(() => _searchQuery = value);
+              // Debounce: re-fetch from API after typing stops
+              Future.delayed(const Duration(milliseconds: 500), () {
+                if (_searchQuery == value) _loadPatients(reset: true);
               });
             },
           ),
         ),
-        Expanded(
-          child:
-              _filteredPatients.isEmpty
-                  ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.people_outline,
-                          size: 80,
-                          color: Colors.grey[400],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No patients found',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.grey[600],
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                  : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: _filteredPatients.length,
-                    itemBuilder: (context, index) {
-                      final patient = _filteredPatients[index];
-                      final isSelected =
-                          _selectedPatient?['id'] == patient['id'];
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        elevation: isSelected ? 4 : 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(
-                            color:
-                                isSelected
-                                    ? AppTheme.primaryColor
-                                    : Colors.transparent,
-                            width: 2,
-                          ),
-                        ),
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor:
-                                isSelected
-                                    ? AppTheme.primaryColor
-                                    : AppTheme.primaryColor.withValues(
-                                      alpha: 0.1,
-                                    ),
-                            child: Text(
-                              patient['name'].toString().substring(0, 1),
-                              style: TextStyle(
-                                color:
-                                    isSelected
-                                        ? Colors.white
-                                        : AppTheme.primaryColor,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          title: Text(
-                            patient['name'],
-                            style: TextStyle(
-                              fontWeight:
-                                  isSelected
-                                      ? FontWeight.bold
-                                      : FontWeight.w600,
-                            ),
-                          ),
-                          subtitle: Text(
-                            '${patient['age']} years • ${patient['gender']} • ${patient['bloodType']}',
-                          ),
-                          trailing:
-                              isSelected
-                                  ? const Icon(
-                                    Icons.check_circle,
-                                    color: AppTheme.primaryColor,
-                                  )
-                                  : const Icon(
-                                    Icons.arrow_forward_ios,
-                                    size: 16,
-                                  ),
-                          onTap: () => _selectPatient(patient),
-                        ),
-                      );
-                    },
-                  ),
-        ),
+        Expanded(child: _buildPatientList()),
       ],
+    );
+  }
+
+  Widget _buildPatientList() {
+    if (_patientsLoading && _patients.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_patientsError != null && _patients.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.cloud_off, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              _patientsError!,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () => _loadPatients(reset: true),
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final filtered = _filteredPatients;
+
+    if (filtered.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.people_outline, size: 80, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              _searchQuery.isEmpty
+                  ? 'No patients found'
+                  : 'No matching patients',
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () => _loadPatients(reset: true),
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: filtered.length,
+        itemBuilder: (context, index) {
+          final patient = filtered[index];
+          final isSelected = _selectedPatient?['id'] == patient['id'];
+          final name = _patientFullName(patient);
+          final age = _patientAge(patient);
+          final gender = patient['gender'] ?? '—';
+          final bloodType = patient['bloodType'] ?? '—';
+
+          return Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            elevation: isSelected ? 4 : 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(
+                color: isSelected ? AppTheme.primaryColor : Colors.transparent,
+                width: 2,
+              ),
+            ),
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor:
+                    isSelected
+                        ? AppTheme.primaryColor
+                        : AppTheme.primaryColor.withValues(alpha: 0.1),
+                child: Text(
+                  name.isNotEmpty ? name[0].toUpperCase() : '?',
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : AppTheme.primaryColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              title: Text(
+                name,
+                style: TextStyle(
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                ),
+              ),
+              subtitle: Text('$age yrs • $gender • $bloodType'),
+              trailing:
+                  isSelected
+                      ? const Icon(
+                        Icons.check_circle,
+                        color: AppTheme.primaryColor,
+                      )
+                      : const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () => _selectPatient(patient),
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -609,6 +643,16 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
       );
     }
 
+    final p = _selectedPatient!;
+    final name = _patientFullName(p);
+    final age = _patientAge(p);
+    final gender = p['gender'] ?? '—';
+    final bloodType = p['bloodType'] ?? '—';
+    final phone = p['phoneNumber'] ?? p['phone'] ?? '—';
+    final lastVisit =
+        p['lastVisit'] != null ? p['lastVisit'].toString().split('T')[0] : '—';
+    final patientId = p['patientId'] ?? '—';
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -628,7 +672,7 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
                       alpha: 0.1,
                     ),
                     child: Text(
-                      _selectedPatient!['name'].toString().substring(0, 1),
+                      name.isNotEmpty ? name[0].toUpperCase() : '?',
                       style: const TextStyle(
                         fontSize: 40,
                         fontWeight: FontWeight.bold,
@@ -638,7 +682,7 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    _selectedPatient!['name'],
+                    name,
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -650,35 +694,21 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
                     runSpacing: 8,
                     alignment: WrapAlignment.center,
                     children: [
-                      _buildInfoChip(
-                        '${_selectedPatient!['age']} years',
-                        Icons.cake,
-                      ),
-                      _buildInfoChip(_selectedPatient!['gender'], Icons.person),
-                      _buildInfoChip(
-                        _selectedPatient!['bloodType'],
-                        Icons.bloodtype,
-                      ),
+                      _buildInfoChip('$age yrs', Icons.cake),
+                      _buildInfoChip(gender, Icons.person),
+                      _buildInfoChip(bloodType, Icons.bloodtype),
                     ],
                   ),
                   const SizedBox(height: 20),
-                  _buildDetailRow(
-                    Icons.phone,
-                    'Phone',
-                    _selectedPatient!['phone'],
-                  ),
+                  _buildDetailRow(Icons.phone, 'Phone', phone),
                   const Divider(),
                   _buildDetailRow(
                     Icons.calendar_today,
                     'Last Visit',
-                    _selectedPatient!['lastVisit'],
+                    lastVisit,
                   ),
                   const Divider(),
-                  _buildDetailRow(
-                    Icons.medical_services,
-                    'Last Diagnosis',
-                    _selectedPatient!['diagnosis'],
-                  ),
+                  _buildDetailRow(Icons.badge, 'Patient ID', patientId),
                 ],
               ),
             ),
@@ -989,10 +1019,10 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
           ),
           const SizedBox(height: 20),
           _buildReviewSection('Patient Information', Icons.person, [
-            'Name: ${_selectedPatient!['name']}',
-            'Age: ${_selectedPatient!['age']} years',
-            'Gender: ${_selectedPatient!['gender']}',
-            'Blood Type: ${_selectedPatient!['bloodType']}',
+            'Name: ${_patientFullName(_selectedPatient)}',
+            'Age: ${_patientAge(_selectedPatient)} years',
+            'Gender: ${_selectedPatient!['gender'] ?? '—'}',
+            'Blood Type: ${_selectedPatient!['bloodType'] ?? '—'}',
           ]),
           const SizedBox(height: 16),
           _buildReviewSection(
@@ -1042,13 +1072,29 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Click "Run AI Diagnosis" button below to get AI-powered diagnosis prediction.',
+                    'Review the information above, then tap the button to run the AI diagnosis.',
                     style: TextStyle(fontSize: 13, color: Colors.grey[700]),
                   ),
                 ),
               ],
             ),
           ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _runDiagnosis,
+              icon: const Icon(Icons.psychology),
+              label: const Text('Run AI Diagnosis'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
         ],
       ),
     );

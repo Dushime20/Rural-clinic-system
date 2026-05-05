@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:go_router/go_router.dart';
@@ -64,11 +65,14 @@ class HealthCompanionApp extends ConsumerWidget {
 
       // Localization configuration
       locale: locale,
-      localizationsDelegates: const [
+      localizationsDelegates: [
         AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
+        // Kinyarwanda (rw) is not included in GlobalMaterialLocalizations or
+        // GlobalCupertinoLocalizations. The fallback delegates below proxy rw
+        // to en so Material/Cupertino widgets always find their localizations.
+        const _FallbackMaterialLocalizationsDelegate(),
         GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
+        const _FallbackCupertinoLocalizationsDelegate(),
       ],
       supportedLocales: const [
         Locale('en'), // English
@@ -78,6 +82,56 @@ class HealthCompanionApp extends ConsumerWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Fallback delegates for locales not covered by GlobalMaterialLocalizations
+// or GlobalCupertinoLocalizations (e.g. Kinyarwanda / rw).
+// They accept every locale and proxy unsupported ones to English so that
+// Material and Cupertino widgets always find their required localizations.
+// ---------------------------------------------------------------------------
+
+class _FallbackMaterialLocalizationsDelegate
+    extends LocalizationsDelegate<MaterialLocalizations> {
+  const _FallbackMaterialLocalizationsDelegate();
+
+  @override
+  bool isSupported(Locale locale) => true; // accept all locales
+
+  @override
+  Future<MaterialLocalizations> load(Locale locale) {
+    // If the locale is directly supported, use it; otherwise fall back to en.
+    final effective =
+        GlobalMaterialLocalizations.delegate.isSupported(locale)
+            ? locale
+            : const Locale('en');
+    return GlobalMaterialLocalizations.delegate.load(effective);
+  }
+
+  @override
+  bool shouldReload(_FallbackMaterialLocalizationsDelegate old) => false;
+}
+
+class _FallbackCupertinoLocalizationsDelegate
+    extends LocalizationsDelegate<CupertinoLocalizations> {
+  const _FallbackCupertinoLocalizationsDelegate();
+
+  @override
+  bool isSupported(Locale locale) => true; // accept all locales
+
+  @override
+  Future<CupertinoLocalizations> load(Locale locale) {
+    final effective =
+        GlobalCupertinoLocalizations.delegate.isSupported(locale)
+            ? locale
+            : const Locale('en');
+    return GlobalCupertinoLocalizations.delegate.load(effective);
+  }
+
+  @override
+  bool shouldReload(_FallbackCupertinoLocalizationsDelegate old) => false;
+}
+
+// ---------------------------------------------------------------------------
 
 final GoRouter _router = GoRouter(
   initialLocation: '/',
@@ -104,20 +158,25 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/home',
-      builder: (context, state) =>
-          const MainNavigationWrapper(currentIndex: 0, child: HomePage()),
+      builder:
+          (context, state) =>
+              const MainNavigationWrapper(currentIndex: 0, child: HomePage()),
     ),
     GoRoute(
       path: '/diagnosis',
-      builder: (context, state) =>
-          const MainNavigationWrapper(currentIndex: 1, child: DiagnosisPage()),
+      builder:
+          (context, state) => const MainNavigationWrapper(
+            currentIndex: 1,
+            child: DiagnosisPage(),
+          ),
     ),
     GoRoute(
       path: '/patients',
-      builder: (context, state) => const MainNavigationWrapper(
-        currentIndex: 2,
-        child: PatientListPage(),
-      ),
+      builder:
+          (context, state) => const MainNavigationWrapper(
+            currentIndex: 2,
+            child: PatientListPage(),
+          ),
     ),
     GoRoute(
       path: '/patient/add',
@@ -143,20 +202,27 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/analytics',
-      builder: (context, state) => const MainNavigationWrapper(
-        currentIndex: 3,
-        child: AnalyticsDashboardPage(),
-      ),
+      builder:
+          (context, state) => const MainNavigationWrapper(
+            currentIndex: 3,
+            child: AnalyticsDashboardPage(),
+          ),
     ),
     GoRoute(
       path: '/sync',
-      builder: (context, state) =>
-          const MainNavigationWrapper(currentIndex: 3, child: SyncStatusPage()),
+      builder:
+          (context, state) => const MainNavigationWrapper(
+            currentIndex: 3,
+            child: SyncStatusPage(),
+          ),
     ),
     GoRoute(
       path: '/settings',
-      builder: (context, state) =>
-          const MainNavigationWrapper(currentIndex: 4, child: SettingsPage()),
+      builder:
+          (context, state) => const MainNavigationWrapper(
+            currentIndex: 4,
+            child: SettingsPage(),
+          ),
     ),
     GoRoute(
       path: '/diagnosis/result',

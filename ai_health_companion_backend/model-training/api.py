@@ -7,7 +7,7 @@ from fuzzywuzzy import process
 import ast
 import os
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -127,98 +127,105 @@ def get_disease_information(predicted_disease):
         return None
 
 def predict_disease(symptoms):
-    """Predict disease from symptoms"""
+    """Predict top-3 diseases from symptoms with confidence scores."""
     try:
-        # Create symptom vector
-        symptom_vector = np.zeros(len(symptoms_list_processed))
+        # Build a named DataFrame so sklearn doesn't warn about missing feature names
+        feature_names = list(symptoms_list.keys())
+        symptom_vector = pd.DataFrame(
+            [np.zeros(len(feature_names), dtype=int)],
+            columns=feature_names
+        )
         for symptom in symptoms:
+            # symptoms_list_processed keys are space-separated; map back to underscore key
             if symptom in symptoms_list_processed:
-                symptom_vector[symptoms_list_processed[symptom]] = 1
-        
-        # Predict
-        prediction = Rf.predict([symptom_vector])[0]
-        disease = diseases_list[prediction]
-        
-        # Get confidence (probability)
-        probabilities = Rf.predict_proba([symptom_vector])[0]
-        confidence = float(max(probabilities))
-        
-        return disease, confidence
+                original_key = symptom.replace(' ', '_')
+                if original_key in symptoms_list:
+                    symptom_vector.at[0, original_key] = 1
+
+        probabilities = Rf.predict_proba(symptom_vector)[0]
+        classes = Rf.classes_
+
+        # Get top-3 predictions sorted by confidence descending
+        top_indices = np.argsort(probabilities)[::-1][:3]
+        top_predictions = [
+            {
+                'disease': diseases_list[int(classes[i])],
+                'confidence': float(probabilities[i])
+            }
+            for i in top_indices
+            if probabilities[i] > 0
+        ]
+
+        # Primary prediction
+        primary = top_predictions[0]
+        return primary['disease'], primary['confidence'], top_predictions
+
     except Exception as e:
         logger.error(f"Prediction error: {e}")
         raise
 
 def predict_disease_with_vitals(symptoms, vital_signs, demographics):
     """
-    Predict disease from symptoms with optional vital signs and demographics
-    
-    This function enhances prediction by considering:
-    - Symptoms (primary)
-    - Vital signs (temperature, BP, heart rate, etc.)
-    - Demographics (age, gender)
-    
-    If vital signs are provided, they influence the confidence score
+    Predict disease from symptoms with optional vital signs and demographics.
+    Returns (primary_disease, final_confidence, top_predictions).
     """
     try:
-        # Base prediction from symptoms
-        disease, base_confidence = predict_disease(symptoms)
-        
-        # If no vital signs, return base prediction
+        disease, base_confidence, top_predictions = predict_disease(symptoms)
+
         if not vital_signs and not demographics:
-            return disease, base_confidence
-        
-        # Adjust confidence based on vital signs
+            return disease, base_confidence, top_predictions
+
         confidence_adjustment = 0.0
-        
-        # Temperature analysis
+
         temp = vital_signs.get('temperature')
         if temp:
             if disease in ['Malaria', 'Typhoid', 'Dengue', 'Influenza'] and temp > 38.0:
-                confidence_adjustment += 0.05  # Fever supports these diseases
+                confidence_adjustment += 0.05
             elif disease == 'Hypothyroidism' and temp < 36.5:
-                confidence_adjustment += 0.03  # Low temp supports hypothyroidism
-        
-        # Blood pressure analysis
+                confidence_adjustment += 0.03
+
         bp_sys = vital_signs.get('bloodPressureSystolic')
         bp_dia = vital_signs.get('bloodPressureDiastolic')
         if bp_sys and bp_dia:
             if disease == 'Hypertension ' and (bp_sys > 140 or bp_dia > 90):
-                confidence_adjustment += 0.10  # High BP strongly supports hypertension
+                confidence_adjustment += 0.10
             elif disease == 'Hypoglycemia' and bp_sys < 90:
-                confidence_adjustment += 0.05  # Low BP supports hypoglycemia
-        
-        # Heart rate analysis
+                confidence_adjustment += 0.05
+
         hr = vital_signs.get('heartRate')
         if hr:
             if disease in ['Heart attack', 'Hyperthyroidism'] and hr > 100:
-                confidence_adjustment += 0.05  # Tachycardia supports these
+                confidence_adjustment += 0.05
             elif disease == 'Hypothyroidism' and hr < 60:
-                confidence_adjustment += 0.03  # Bradycardia supports hypothyroidism
-        
-        # Oxygen saturation analysis
+                confidence_adjustment += 0.03
+
         o2 = vital_signs.get('oxygenSaturation')
         if o2:
             if disease in ['Pneumonia', 'Bronchial Asthma'] and o2 < 95:
-                confidence_adjustment += 0.08  # Low O2 supports respiratory diseases
-        
-        # Age-based adjustments
+                confidence_adjustment += 0.08
+
         age = demographics.get('age')
         if age:
             if disease == 'Heart attack' and age > 50:
-                confidence_adjustment += 0.03  # Higher risk with age
+                confidence_adjustment += 0.03
             elif disease in ['Chicken pox', 'Common Cold'] and age < 18:
-                confidence_adjustment += 0.02  # More common in children
-        
-        # Calculate final confidence (cap at 0.99)
+                confidence_adjustment += 0.02
+
         final_confidence = min(base_confidence + confidence_adjustment, 0.99)
-        
-        logger.info(f"Vital signs adjustment: +{confidence_adjustment:.3f} (base: {base_confidence:.3f}, final: {final_confidence:.3f})")
-        
-        return disease, final_confidence
-        
+
+        # Apply the same adjustment to the primary prediction in top_predictions
+        if top_predictions:
+            top_predictions[0]['confidence'] = final_confidence
+
+        logger.info(
+            f"Vital signs adjustment: +{confidence_adjustment:.3f} "
+            f"(base: {base_confidence:.3f}, final: {final_confidence:.3f})"
+        )
+
+        return disease, final_confidence, top_predictions
+
     except Exception as e:
         logger.error(f"Prediction with vitals error: {e}")
-        # Fallback to base prediction
         return predict_disease(symptoms)
 
 # API Endpoints
@@ -229,7 +236,7 @@ def health_check():
     return jsonify({
         'status': 'healthy',
         'service': 'ml-prediction-service',
-        'timestamp': datetime.utcnow().isoformat(),
+        'timestamp': datetime.now(timezone.utc).isoformat(),
         'model_loaded': Rf is not None
     }), 200
 
@@ -294,42 +301,53 @@ def predict():
         # Process and correct symptoms
         corrected_symptoms = []
         invalid_symptoms = []
-        
+
+        logger.info(f"Received symptoms: {input_symptoms}")
+
         for symptom in input_symptoms:
             symptom_clean = symptom.strip().lower()
             corrected = correct_spelling(symptom_clean)
-            
+            logger.info(f"  '{symptom_clean}' → '{corrected}'")
+
             if corrected:
                 corrected_symptoms.append(corrected)
             else:
                 invalid_symptoms.append(symptom)
+
+        logger.info(f"Corrected: {corrected_symptoms}, Invalid: {invalid_symptoms}")
         
         if len(corrected_symptoms) == 0:
+            logger.warning(f"No valid symptoms matched from input: {input_symptoms}")
             return jsonify({
                 'success': False,
-                'error': 'No valid symptoms found',
-                'invalid_symptoms': invalid_symptoms
-            }), 400
+                'error': 'No valid symptoms found. Symptoms must match the medical vocabulary.',
+                'invalid_symptoms': invalid_symptoms,
+                'hint': 'Use terms like: fever, cough, headache, fatigue, nausea, vomiting, diarrhea, chest pain, etc.'
+            }), 200  # Return 200 so Node.js reads the body instead of treating as network error
         
         # Predict disease (with vital signs if available)
-        predicted_disease, confidence = predict_disease_with_vitals(
-            corrected_symptoms, 
-            vital_signs, 
+        predicted_disease, confidence, top_predictions = predict_disease_with_vitals(
+            corrected_symptoms,
+            vital_signs,
             demographics
         )
-        
+
         # Get disease information
         disease_info = get_disease_information(predicted_disease)
-        
+
         if not disease_info:
             return jsonify({
                 'success': False,
                 'error': 'Failed to retrieve disease information'
             }), 500
-        
+
         # Add ICD-10 code
         icd10_code = get_icd10_code(predicted_disease)
-        
+
+        # Enrich top_predictions with ICD-10 codes
+        for pred in top_predictions:
+            pred['icd10Code'] = get_icd10_code(pred['disease'])
+
         # Build response
         response = {
             'success': True,
@@ -342,8 +360,9 @@ def predict():
                 'vital_signs_used': bool(vital_signs),
                 'demographics_used': bool(demographics)
             },
+            'top_predictions': top_predictions,
             'information': disease_info,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }
         
         logger.info(f"Prediction: {predicted_disease} (confidence: {confidence:.2f}, ICD-10: {icd10_code})")

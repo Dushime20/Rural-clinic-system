@@ -1,12 +1,12 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../constants/app_constants.dart';
+import 'auth_service.dart';
 
 /// API Service for making HTTP requests
 /// Uses Dio for better error handling and interceptors
 class ApiService {
   late final Dio _dio;
-  String? _authToken;
 
   ApiService() {
     _dio = Dio(
@@ -25,9 +25,11 @@ class ApiService {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
-          // Add auth token if available
-          if (_authToken != null) {
-            options.headers['Authorization'] = 'Bearer $_authToken';
+          // Always pull the latest token from the AuthService singleton so
+          // we never send a stale (or missing) token after login/logout.
+          final token = AuthService().token;
+          if (token != null) {
+            options.headers['Authorization'] = 'Bearer $token';
           }
           debugPrint('REQUEST[${options.method}] => PATH: ${options.path}');
           return handler.next(options);
@@ -47,11 +49,6 @@ class ApiService {
         },
       ),
     );
-  }
-
-  /// Set authentication token
-  void setAuthToken(String? token) {
-    _authToken = token;
   }
 
   /// GET request

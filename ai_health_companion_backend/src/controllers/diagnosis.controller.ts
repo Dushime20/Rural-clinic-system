@@ -56,6 +56,16 @@ export const createDiagnosis = async (
         // Get AI predictions
         const aiPredictions = await aiService.predictDisease(aiInput);
 
+        // Auto-generate prescriptions from the primary prediction's medication list
+        // (Flask provides these; they can be refined by the clinician later)
+        const primaryPrediction = aiPredictions[0];
+        const autoPrescriptions = primaryPrediction?.medications?.map((med: string) => ({
+            medication: med,
+            dosage: 'As directed',
+            frequency: 'As directed',
+            duration: 'As directed by physician',
+        })) ?? [];
+
         // Create diagnosis
         const diagnosis = diagnosisRepository.create({
             diagnosisId: `DX-${uuidv4().slice(0, 8).toUpperCase()}`,
@@ -68,6 +78,7 @@ export const createDiagnosis = async (
             patientGender: patient.gender,
             medicalHistory: medicalHistory || patient.chronicConditions,
             aiPredictions,
+            prescriptions: autoPrescriptions.length > 0 ? autoPrescriptions : undefined,
             notes,
             diagnosisDate: new Date()
         });
