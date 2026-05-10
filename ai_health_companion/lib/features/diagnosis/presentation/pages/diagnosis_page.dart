@@ -5,9 +5,11 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/services/location_service.dart';
 import '../../../../core/services/patient_service.dart';
+import '../../../../core/constants/symptoms_constants.dart';
 import '../../../../shared/widgets/app_header.dart';
 import '../../data/models/diagnosis_models.dart';
 import '../../data/providers/diagnosis_provider.dart';
+import '../widgets/categorized_symptom_selector.dart';
 
 class DiagnosisPage extends ConsumerStatefulWidget {
   const DiagnosisPage({super.key});
@@ -48,24 +50,8 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
   bool _isRecording = false;
   String _recordedText = '';
 
-  final List<String> _commonSymptoms = [
-    'Fever',
-    'Cough',
-    'Headache',
-    'Fatigue',
-    'Nausea',
-    'Vomiting',
-    'Diarrhea',
-    'Sore throat',
-    'Shortness of breath',
-    'Dizziness',
-    'Joint pain',
-    'Muscle ache',
-    'Chills',
-    'Abdominal pain',
-    'Chest pain',
-    'Loss of appetite',
-  ];
+  // Use all symptoms from constants (132 total)
+  final List<String> _commonSymptoms = SymptomsConstants.allSymptoms;
 
   final List<String> _medicalHistoryOptions = [
     'Diabetes',
@@ -752,9 +738,13 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
             Icons.sick,
           ),
           const SizedBox(height: 20),
-          _buildSymptomCounter(),
-          const SizedBox(height: 20),
-          _buildSymptomGrid(),
+          
+          // Use the new categorized symptom selector
+          CategorizedSymptomSelector(
+            selectedSymptoms: _selectedSymptoms,
+            onSymptomToggle: _toggleSymptom,
+          ),
+          
           const SizedBox(height: 24),
           _buildSectionTitle('Medical History'),
           const SizedBox(height: 12),
@@ -1159,94 +1149,6 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
         fontWeight: FontWeight.w600,
         color: AppTheme.primaryColor,
       ),
-    );
-  }
-
-  Widget _buildSymptomCounter() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.primaryColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Text(
-            'Selected Symptoms',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppTheme.primaryColor,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              '${_selectedSymptoms.length}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSymptomGrid() {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 2.5,
-      ),
-      itemCount: _commonSymptoms.length,
-      itemBuilder: (context, index) {
-        final symptom = _commonSymptoms[index];
-        final isSelected = _selectedSymptoms.contains(symptom);
-        return InkWell(
-          onTap: () => _toggleSymptom(symptom),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: isSelected ? AppTheme.primaryColor : Colors.grey[100],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isSelected ? AppTheme.primaryColor : Colors.grey[300]!,
-                width: 2,
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  isSelected ? Icons.check_circle : Icons.circle_outlined,
-                  color: isSelected ? Colors.white : Colors.grey[600],
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    symptom,
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : Colors.black87,
-                      fontWeight:
-                          isSelected ? FontWeight.w600 : FontWeight.normal,
-                      fontSize: 14,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 
