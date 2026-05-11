@@ -54,17 +54,31 @@ export const createDiagnosis = async (
         };
 
         // Get AI predictions
-        const aiPredictions = await aiService.predictDisease(aiInput);
+        logger.info('Calling AI service for predictions...');
+        let aiPredictions;
+        try {
+            aiPredictions = await aiService.predictDisease(aiInput);
+            logger.info(`AI predictions received: ${JSON.stringify(aiPredictions).substring(0, 300)}`);
+        } catch (aiError: any) {
+            logger.error('❌ AI service error:', aiError);
+            logger.error('❌ AI error message:', aiError.message);
+            logger.error('❌ AI error stack:', aiError.stack);
+            throw new AppError(aiError.message || 'AI prediction failed', 500);
+        }
 
         // Auto-generate prescriptions from the primary prediction's medication list
         // (Flask provides these; they can be refined by the clinician later)
         const primaryPrediction = aiPredictions[0];
+        logger.info(`Primary prediction: ${primaryPrediction?.disease}, medications: ${primaryPrediction?.medications?.length || 0}`);
+        
         const autoPrescriptions = primaryPrediction?.medications?.map((med: string) => ({
             medication: med,
             dosage: 'As directed',
             frequency: 'As directed',
             duration: 'As directed by physician',
         })) ?? [];
+        
+        logger.info(`Auto-generated ${autoPrescriptions.length} prescriptions`);
 
         // Create diagnosis
         const diagnosis = diagnosisRepository.create({

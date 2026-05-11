@@ -103,6 +103,12 @@ def get_disease_information(predicted_disease):
         # Precautions
         disease_prec = precautions[precautions['Disease'] == predicted_disease][['Precaution_1', 'Precaution_2', 'Precaution_3', 'Precaution_4']]
         disease_prec = [col for col in disease_prec.values]
+        
+        # Filter out NaN values from precautions
+        if len(disease_prec) > 0:
+            disease_prec = [str(p) for p in disease_prec[0].tolist() if pd.notna(p)]
+        else:
+            disease_prec = []
 
         # Medications
         disease_meds = medications[medications['Disease'] == predicted_disease]['Medication']
@@ -117,7 +123,7 @@ def get_disease_information(predicted_disease):
 
         return {
             'description': disease_desc,
-            'precautions': disease_prec[0].tolist() if len(disease_prec) > 0 else [],
+            'precautions': disease_prec,
             'medications': ast.literal_eval(disease_meds[0]) if len(disease_meds) > 0 else [],
             'diet': ast.literal_eval(disease_diet[0]) if len(disease_diet) > 0 else [],
             'workout': disease_workout.tolist() if len(disease_workout) > 0 else []
