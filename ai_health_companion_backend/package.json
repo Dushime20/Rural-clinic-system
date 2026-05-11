@@ -31,7 +31,6 @@
   "license": "MIT",
   "dependencies": {
     "@tensorflow/tfjs": "^4.22.0",
-    "@tensorflow/tfjs-node": "^4.22.0",
     "axios": "^1.13.4",
     "bcryptjs": "^2.4.3",
     "bull": "^4.12.0",

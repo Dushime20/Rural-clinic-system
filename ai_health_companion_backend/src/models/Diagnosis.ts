@@ -59,7 +59,7 @@ interface SyncStatus {
 @Index(['clinicId'])
 @Index(['diagnosisDate'])
 @Index(['status'])
-@Index(['syncStatus'], { where: "(sync_status->>'pendingSync')::boolean = true" })
+@Index(['syncStatus'], { where: "(\"syncStatus\"->>'pendingSync')::boolean = true" })
 export class Diagnosis {
     @PrimaryGeneratedColumn('uuid')
     id!: string;

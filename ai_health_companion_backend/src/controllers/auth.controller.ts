@@ -1,5 +1,5 @@
 import { Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import * as jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { User, UserRole } from '../models/User';
 import { AppDataSource } from '../database/data-source';
@@ -327,16 +327,16 @@ const generateAccessToken = (user: User): string => {
             clinicId: user.clinicId
         },
         config.jwtSecret,
-        { expiresIn: config.jwtExpiresIn }
-    );
+        { expiresIn: config.jwtExpiresIn } as jwt.SignOptions
+    ) as string;
 };
 
 const generateRefreshToken = (user: User): string => {
     return jwt.sign(
         { id: user.id },
         config.jwtRefreshSecret,
-        { expiresIn: config.jwtRefreshExpiresIn }
-    );
+        { expiresIn: config.jwtRefreshExpiresIn } as jwt.SignOptions
+    ) as string;
 };
 
 

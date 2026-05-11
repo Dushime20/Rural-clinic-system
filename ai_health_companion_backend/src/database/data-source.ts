@@ -16,8 +16,8 @@ import { PharmacyMedicine } from '../models/PharmacyMedicine';
 export const AppDataSource = new DataSource({
     type: 'postgres',
     url: config.nodeEnv === 'test' ? config.databaseTestUrl : config.databaseUrl,
-    synchronize: false,
-    logging: config.nodeEnv === 'development' ? ['error'] : ['error'],
+    synchronize: true, // Enable auto-sync for development
+    logging: config.nodeEnv === 'development' ? ['error', 'warn'] : ['error'],
     entities: [
         User,
         Patient,
@@ -32,7 +32,7 @@ export const AppDataSource = new DataSource({
         Pharmacy,
         PharmacyMedicine
     ],
-    migrations: ['src/database/migrations/*.ts'],
+    migrations: [],
     subscribers: [],
     extra: {
         // Neon serverless-friendly pool settings

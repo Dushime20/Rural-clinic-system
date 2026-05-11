@@ -1,0 +1,21 @@
+﻿================================================================================
+ALL SYMPTOMS FROM ML MODEL (132 total)
+================================================================================
+
+python : Traceback (most recent call last):
+At line:1 char:1
++ python extract-symptoms.py 2>&1 | Out-File -Encoding utf8 all-symptom ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Traceback (most recent call last) 
+   ::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  File "C:\Users\educa\Desktop\Rural-clinic-system\ai_health_companion_backend\
+extract-symptoms.py", line 39, in <module>
+    print("\n\U0001f4cb DART CODE FOR FLUTTER APP:")
+  File "C:\Users\educa\AppData\Local\Programs\Python\Python312\Lib\encodings\cp
+1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\U0001f4cb' in 
+position 2: character maps to <undefined>

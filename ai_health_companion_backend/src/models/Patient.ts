@@ -45,7 +45,7 @@ interface SyncStatus {
 @Index(['clinicId'])
 @Index(['createdById'])
 @Index(['firstName', 'lastName'])
-@Index(['syncStatus'], { where: "(sync_status->>'pendingSync')::boolean = true" })
+@Index(['syncStatus'], { where: "(\"syncStatus\"->>'pendingSync')::boolean = true" })
 export class Patient {
     @PrimaryGeneratedColumn('uuid')
     id!: string;

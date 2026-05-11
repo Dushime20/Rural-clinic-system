@@ -31,10 +31,13 @@ function buildDataSource(): DataSource {
         .replace(/&&/, '&')
         .replace(/[?&]$/, '');
 
+    // Determine if we need SSL (for production/Neon) or not (for local dev)
+    const needsSsl = cleanUrl.includes('neon.tech') || process.env.NODE_ENV === 'production';
+
     return new DataSource({
         type: 'postgres',
         url: cleanUrl,
-        ssl: { rejectUnauthorized: false },
+        ssl: needsSsl ? { rejectUnauthorized: false } : false,
         synchronize: false,
         logging: false,
         entities: [User],
