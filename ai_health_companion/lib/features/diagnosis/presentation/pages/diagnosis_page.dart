@@ -46,9 +46,9 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
   final _respiratoryRateController = TextEditingController();
   final _oxygenSaturationController = TextEditingController();
 
-  // Voice Recording
-  bool _isRecording = false;
-  String _recordedText = '';
+  // Voice Recording - REMOVED (not needed)
+  // bool _isRecording = false;
+  // String _recordedText = '';
 
   // Use all symptoms from constants (132 total)
   final List<String> _commonSymptoms = SymptomsConstants.allSymptoms;
@@ -69,7 +69,7 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 6, vsync: this);
+    _tabController = TabController(length: 5, vsync: this); // Changed from 6 to 5 (removed voice tab)
     _loadPatients();
 
     // Rebuild when vital sign values change so the Review tab stays in sync
@@ -177,15 +177,7 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
     });
   }
 
-  void _toggleRecording() {
-    setState(() {
-      _isRecording = !_isRecording;
-      if (!_isRecording) {
-        _recordedText =
-            'Patient complains of fever, headache, and body aches for 3 days.';
-      }
-    });
-  }
+  // Voice recording method removed - not needed
 
   Future<void> _runDiagnosis() async {
     if (_selectedPatient == null) {
@@ -199,10 +191,10 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
       return;
     }
 
-    if (_selectedSymptoms.isEmpty && _recordedText.isEmpty) {
+    if (_selectedSymptoms.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please provide symptoms or voice input'),
+          content: Text('Please provide symptoms'),
           backgroundColor: Colors.orange,
         ),
       );
@@ -420,7 +412,6 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
             Tab(icon: Icon(Icons.person), text: 'Patient Info'),
             Tab(icon: Icon(Icons.sick), text: 'Symptoms'),
             Tab(icon: Icon(Icons.favorite), text: 'Vital Signs'),
-            Tab(icon: Icon(Icons.mic), text: 'Voice Input'),
             Tab(icon: Icon(Icons.preview), text: 'Review'),
           ],
         ),
@@ -434,7 +425,6 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
             _buildPatientInfoTab(),
             _buildSymptomsTab(),
             _buildVitalSignsTab(),
-            _buildVoiceInputTab(),
             _buildReviewTab(),
           ],
         ),
@@ -713,11 +703,27 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Patient information is read-only. Proceed to next tabs to record symptoms and vital signs.',
+                    'Patient information is read-only. Proceed to next tab to record symptoms.',
                     style: TextStyle(fontSize: 13, color: Colors.grey[700]),
                   ),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          // Next button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => _tabController.animateTo(2), // Go to Symptoms tab
+              icon: const Icon(Icons.arrow_forward),
+              label: const Text('Next: Record Symptoms'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
           ),
         ],
@@ -762,6 +768,22 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
               ),
               filled: true,
               fillColor: Colors.grey[50],
+            ),
+          ),
+          const SizedBox(height: 24),
+          // Next button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => _tabController.animateTo(3), // Go to Vital Signs tab
+              icon: const Icon(Icons.arrow_forward),
+              label: const Text('Next: Record Vital Signs'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
           ),
         ],
@@ -826,148 +848,20 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
             'Normal: 95-100%',
             Colors.cyan,
           ),
-        ],
-      ),
-    );
-  }
-
-  // Tab 5: Voice Input
-  Widget _buildVoiceInputTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionHeader(
-            'Voice Input',
-            'Alternative: Record patient consultation in your language',
-            Icons.mic,
-          ),
-          const SizedBox(height: 32),
-          Center(
-            child: Column(
-              children: [
-                GestureDetector(
-                  onTap: _toggleRecording,
-                  child: Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _isRecording ? Colors.red : AppTheme.primaryColor,
-                      boxShadow: [
-                        BoxShadow(
-                          color: (_isRecording
-                                  ? Colors.red
-                                  : AppTheme.primaryColor)
-                              .withValues(alpha: 0.3),
-                          blurRadius: 20,
-                          spreadRadius: 5,
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      _isRecording ? Icons.stop : Icons.mic,
-                      size: 60,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  _isRecording ? 'Recording...' : 'Tap to start recording',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: _isRecording ? Colors.red : AppTheme.primaryColor,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _isRecording
-                      ? 'Speak clearly about patient symptoms'
-                      : 'Voice will be transcribed automatically',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.textSecondary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 32),
-          if (_recordedText.isNotEmpty) ...[
-            _buildSectionTitle('Transcription'),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.check_circle,
-                        color: Colors.green,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Voice recorded successfully',
-                        style: TextStyle(
-                          color: Colors.green[700],
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    _recordedText,
-                    style: const TextStyle(fontSize: 16, height: 1.5),
-                  ),
-                ],
-              ),
-            ),
-          ],
           const SizedBox(height: 24),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.green.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(Icons.language, color: Colors.green, size: 24),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Voice Input Benefits',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.green[700],
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Voice input allows you to quickly document patient consultations in your local language. The AI will analyze the transcription.',
-                        style: TextStyle(fontSize: 13, color: Colors.grey[700]),
-                      ),
-                    ],
-                  ),
+          // Next button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => _tabController.animateTo(4), // Go to Review tab
+              icon: const Icon(Icons.arrow_forward),
+              label: const Text('Next: Review & Submit'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              ],
+              ),
             ),
           ),
         ],
@@ -975,7 +869,9 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
     );
   }
 
-  // Tab 6: Review
+  // Voice Input tab removed - not needed for MVP
+
+  // Tab 5: Review
   Widget _buildReviewTab() {
     if (_selectedPatient == null) {
       return Center(
@@ -1038,10 +934,6 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
             'Respiratory Rate: ${_respiratoryRateController.text.isEmpty ? 'Not recorded' : '${_respiratoryRateController.text} breaths/min'}',
             'Oxygen Saturation: ${_oxygenSaturationController.text.isEmpty ? 'Not recorded' : '${_oxygenSaturationController.text}%'}',
           ]),
-          if (_recordedText.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            _buildReviewSection('Voice Notes', Icons.mic, [_recordedText]),
-          ],
           if (_additionalNotesController.text.isNotEmpty) ...[
             const SizedBox(height: 16),
             _buildReviewSection('Additional Notes', Icons.note, [
