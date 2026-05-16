@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/services/patient_service.dart';
 import '../../../../shared/widgets/app_header.dart';
+import '../../../../shared/widgets/custom_drawer.dart';
 
 class PatientListPage extends ConsumerStatefulWidget {
   const PatientListPage({super.key});
@@ -131,10 +132,17 @@ class _PatientListPageState extends ConsumerState<PatientListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: const CustomDrawer(),
       appBar: AppHeader(
         title: 'Patients',
         subtitle: '${_patients.length} patients',
         showBackButton: false,
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),

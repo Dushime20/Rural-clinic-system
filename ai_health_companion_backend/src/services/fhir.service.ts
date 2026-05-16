@@ -467,7 +467,7 @@ export class FHIRService {
                 coding: [
                     {
                         system: 'http://terminology.hl7.org/CodeSystem/condition-clinical',
-                        code: diagnosis.status === 'confirmed' ? 'active' : 'provisional'
+                        code: 'active'
                     }
                 ]
             },
@@ -475,7 +475,7 @@ export class FHIRService {
                 coding: [
                     {
                         system: 'http://terminology.hl7.org/CodeSystem/condition-ver-status',
-                        code: diagnosis.status === 'confirmed' ? 'confirmed' : 'provisional'
+                        code: 'confirmed'
                     }
                 ]
             },

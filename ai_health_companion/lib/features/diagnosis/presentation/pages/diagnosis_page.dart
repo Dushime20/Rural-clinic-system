@@ -7,6 +7,7 @@ import '../../../../core/services/location_service.dart';
 import '../../../../core/services/patient_service.dart';
 import '../../../../core/constants/symptoms_constants.dart';
 import '../../../../shared/widgets/app_header.dart';
+import '../../../../shared/widgets/custom_drawer.dart';
 import '../../data/models/diagnosis_models.dart';
 import '../../data/providers/diagnosis_provider.dart';
 import '../widgets/categorized_symptom_selector.dart';
@@ -302,25 +303,49 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
       final locationService = LocationService();
       final position = await locationService.getCurrentLocation();
 
+      debugPrint('═══ PHARMACY SEARCH DEBUG ═══');
+      debugPrint('📍 Location: ${position?.latitude}, ${position?.longitude}');
+
       // Find nearby pharmacies with prescribed medicines
       List<NearbyPharmacy> nearbyPharmacies = [];
       if (position != null &&
           result.prescriptions != null &&
           result.prescriptions!.isNotEmpty) {
         try {
-          debugPrint('Finding nearby pharmacies...');
           // Get unique medicine names
           final medicineNames =
               result.prescriptions!.map((p) => p.medication).toSet().toList();
+          
+          debugPrint('💊 Prescribed medicines: $medicineNames');
+          debugPrint('💊 Total medicines: ${medicineNames.length}');
 
           // Search for each medicine
           for (final medicineName in medicineNames) {
+            debugPrint('');
+            debugPrint('🔍 Searching for: "$medicineName"');
+            debugPrint('   Radius: 50 km');
+            
             final pharmacies = await diagnosisService.findNearbyPharmacies(
               latitude: position.latitude,
               longitude: position.longitude,
               medicineName: medicineName,
               radius: 50, // 50 km radius
             );
+            
+            debugPrint('   ✅ Found: ${pharmacies.length} pharmacies');
+            
+            if (pharmacies.isEmpty) {
+              debugPrint('   ⚠️ WARNING: No pharmacies found!');
+              debugPrint('   → Check medicine name in database');
+              debugPrint('   → Check pharmacy isActive status');
+              debugPrint('   → Check medicine isAvailable status');
+              debugPrint('   → Check distance (must be < 50 km)');
+            } else {
+              for (final p in pharmacies) {
+                debugPrint('   📍 ${p.name} - ${p.distanceText}');
+              }
+            }
+            
             nearbyPharmacies.addAll(pharmacies);
           }
 
@@ -331,23 +356,53 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
           }
           nearbyPharmacies = uniquePharmacies.values.toList();
 
-          // Sort by distance
+          // Sort by: 1) Number of medicines (more first), 2) Distance (closer first)
+          final totalPrescribedMedicines = medicineNames.length;
           nearbyPharmacies.sort((a, b) {
+            // First, prioritize pharmacies with more medicines
+            final countA = a.medicines.length;
+            final countB = b.medicines.length;
+            
+            if (countA != countB) {
+              return countB.compareTo(countA); // More medicines first
+            }
+            
+            // Then sort by distance
             final distA = a.distance ?? double.infinity;
             final distB = b.distance ?? double.infinity;
             return distA.compareTo(distB);
           });
 
-          debugPrint('Found ${nearbyPharmacies.length} nearby pharmacies');
-        } catch (e) {
-          debugPrint('Pharmacy search error: $e');
+          debugPrint('');
+          debugPrint('📊 FINAL RESULTS:');
+          debugPrint('   Total unique pharmacies: ${nearbyPharmacies.length}');
+          
+          if (nearbyPharmacies.isEmpty) {
+            debugPrint('   ❌ NO PHARMACIES TO SHOW');
+          } else {
+            debugPrint('   ✅ Pharmacies to display:');
+            for (final p in nearbyPharmacies) {
+              final hasAll = p.medicines.length == totalPrescribedMedicines;
+              debugPrint('      • ${p.name} (${p.medicines.length}/${totalPrescribedMedicines} medicines)${hasAll ? ' ✓ HAS ALL' : ''}');
+            }
+          }
+        } catch (e, stackTrace) {
+          debugPrint('❌ PHARMACY SEARCH ERROR: $e');
+          debugPrint('   Error type: ${e.runtimeType}');
+          debugPrint('   Stack trace: $stackTrace');
           // Continue without pharmacies
         }
       } else {
         if (position == null) {
-          debugPrint('Location not available, skipping pharmacy search');
+          debugPrint('❌ Skipped: Location not available');
+          debugPrint('   → Check location permissions');
+          debugPrint('   → Enable GPS');
+        } else if (result.prescriptions == null || result.prescriptions!.isEmpty) {
+          debugPrint('❌ Skipped: No prescriptions');
         }
       }
+      
+      debugPrint('═══ END PHARMACY SEARCH ═══');
 
       // Close loading dialog
       if (mounted) Navigator.pop(context);
@@ -388,7 +443,15 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: const CustomDrawer(),
       appBar: AppHeader(
+        showBackButton: false,
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
         title: 'AI Diagnosis Assistant',
         subtitle:
             _selectedPatient != null

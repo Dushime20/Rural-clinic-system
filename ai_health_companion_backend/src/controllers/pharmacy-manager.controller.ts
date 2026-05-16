@@ -318,13 +318,21 @@ export const findNearbyPharmaciesWithMedicine = async (
     try {
         const { latitude, longitude, medicineName, radius = 50 } = req.query;
 
+        logger.info('═══ PHARMACY SEARCH REQUEST ═══');
+        logger.info(`📍 Location: ${latitude}, ${longitude}`);
+        logger.info(`💊 Medicine: ${medicineName}`);
+        logger.info(`📏 Radius: ${radius} km`);
+
         if (!latitude || !longitude || !medicineName) {
+            logger.error('❌ Missing required parameters');
             throw new AppError('latitude, longitude, and medicineName are required', 400);
         }
 
         const lat = parseFloat(latitude as string);
         const lng = parseFloat(longitude as string);
         const radiusKm = parseFloat(radius as string);
+
+        logger.info(`🔍 Searching for pharmacies with "${medicineName}"...`);
 
         // Haversine formula in SQL to find pharmacies within radius
         const results = await pharmacyRepo()
@@ -354,13 +362,43 @@ export const findNearbyPharmaciesWithMedicine = async (
             )
             .orderBy('distance_km', 'ASC')
             .limit(10)
-            .getMany();
+            .getRawAndEntities();
+
+        // Map distance to each pharmacy entity
+        const pharmaciesWithDistance = results.entities.map((pharmacy, index) => {
+            const distance = parseFloat(results.raw[index]?.distance_km || '0');
+            return {
+                ...pharmacy,
+                distance: Math.round(distance * 10) / 10, // Round to 1 decimal place
+            };
+        });
+
+        logger.info(`✅ Found ${pharmaciesWithDistance.length} pharmacies`);
+        
+        if (pharmaciesWithDistance.length === 0) {
+            logger.warn('⚠️ No pharmacies found!');
+            logger.warn('   Possible reasons:');
+            logger.warn('   1. No pharmacies within radius');
+            logger.warn('   2. Medicine name mismatch');
+            logger.warn('   3. No active pharmacies');
+            logger.warn('   4. Medicine not available in any pharmacy');
+        } else {
+            logger.info('📍 Pharmacies found:');
+            pharmaciesWithDistance.forEach((pharmacy, index) => {
+                const distance = pharmacy.distance || 'unknown';
+                const medicineCount = pharmacy.medicines?.length || 0;
+                logger.info(`   ${index + 1}. ${pharmacy.name} - ${distance} km (${medicineCount} medicines)`);
+            });
+        }
+
+        logger.info('═══ END PHARMACY SEARCH ═══');
 
         res.status(200).json({
             success: true,
-            data: { pharmacies: results, count: results.length },
+            data: { pharmacies: pharmaciesWithDistance, count: pharmaciesWithDistance.length },
         });
     } catch (error) {
+        logger.error('❌ PHARMACY SEARCH ERROR:', error);
         next(error);
     }
 };

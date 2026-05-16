@@ -177,7 +177,6 @@ export interface Diagnosis {
   followUpRequired: boolean;
   followUpDate?: string;
   referralRequired: boolean;
-  status: 'pending' | 'confirmed' | 'revised' | 'cancelled';
   diagnosisDate: string;
   createdAt: string;
   updatedAt: string;

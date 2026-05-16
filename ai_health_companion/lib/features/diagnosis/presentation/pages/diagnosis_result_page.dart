@@ -589,9 +589,13 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
               const SizedBox(height: 16),
               _buildPrescriptionsCard(),
             ],
-            if (_nearbyPharmacies.isNotEmpty) ...[
+            // Pharmacy recommendations section
+            if (_diagnosis!.prescriptions?.isNotEmpty == true) ...[
               const SizedBox(height: 16),
-              _buildPharmaciesCard(),
+              if (_nearbyPharmacies.isNotEmpty)
+                _buildPharmaciesCard()
+              else
+                _buildNoPharmaciesCard(),
             ],
             const SizedBox(height: 16),
             _buildDisclaimerCard(),
@@ -980,97 +984,162 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
   // ── Pharmacies ────────────────────────────────────────────────────────────
 
   Widget _buildPharmaciesCard() {
+    // Calculate total prescribed medicines for "Has all" badge
+    final totalPrescribedMedicines = _diagnosis?.prescriptions?.length ?? 0;
+    
     return _buildSectionCard(
-      title: 'Nearest Pharmacies with Available Medicines',
+      title: 'Nearby Pharmacies',
       icon: Icons.local_pharmacy,
       color: Colors.green,
       child: Column(
         children:
             _nearbyPharmacies.map((ph) {
-              return Container(
-                margin: const EdgeInsets.only(bottom: 14),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha: 0.04),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.green.withValues(alpha: 0.2),
+              // Check if pharmacy has all prescribed medicines
+              final hasAllMedicines = totalPrescribedMedicines > 0 && 
+                                      ph.medicines.length == totalPrescribedMedicines;
+              
+              return InkWell(
+                onTap: () => _showPharmacyDetails(ph),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 14),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: hasAllMedicines 
+                        ? Colors.green.withValues(alpha: 0.08)  // Highlight if has all
+                        : Colors.green.withValues(alpha: 0.04),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: hasAllMedicines
+                          ? Colors.green.withValues(alpha: 0.4)  // Stronger border if has all
+                          : Colors.green.withValues(alpha: 0.2),
+                      width: hasAllMedicines ? 2 : 1,
+                    ),
                   ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.local_pharmacy,
-                          color: Colors.green,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            ph.name,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.local_pharmacy,
+                            color: Colors.green,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  ph.name,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                // "Has all medicines" badge
+                                if (hasAllMedicines) ...[
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.check_circle,
+                                        size: 14,
+                                        color: Colors.green.shade700,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Has all medicines',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.green.shade700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  ph.distanceText,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.green,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              const Icon(
+                                Icons.chevron_right,
+                                color: AppTheme.textSecondary,
+                                size: 20,
+                              ),
+                            ],
                           ),
-                          decoration: BoxDecoration(
-                            color: Colors.green.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(8),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.place,
+                            size: 14,
+                            color: AppTheme.textSecondary,
                           ),
-                          child: Text(
-                            ph.distanceText,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.green,
-                              fontWeight: FontWeight.w600,
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              ph.fullAddress,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.textSecondary,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.place,
-                          size: 14,
-                          color: AppTheme.textSecondary,
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            ph.fullAddress,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppTheme.textSecondary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
 
                     // Available medicines
                     if (ph.medicines.isNotEmpty) ...[
                       const SizedBox(height: 10),
                       const Divider(height: 1),
                       const SizedBox(height: 10),
-                      const Text(
-                        'Available Medicines',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.textSecondary,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Available Medicines',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                          Text(
+                            '${ph.medicines.length}/${totalPrescribedMedicines}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: hasAllMedicines ? Colors.green.shade700 : AppTheme.textSecondary,
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                       ...ph.medicines.map(
@@ -1155,9 +1224,30 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                           Expanded(
                             child: OutlinedButton.icon(
                               onPressed: () async {
-                                final uri = Uri.parse('tel:${ph.phoneNumber}');
-                                if (await canLaunchUrl(uri)) {
-                                  await launchUrl(uri);
+                                try {
+                                  final uri = Uri.parse('tel:${ph.phoneNumber}');
+                                  if (await canLaunchUrl(uri)) {
+                                    await launchUrl(uri);
+                                  } else {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Cannot open phone dialer'),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                  }
+                                } catch (e) {
+                                  debugPrint('Error launching phone dialer: $e');
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Error: $e'),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
                                 }
                               },
                               icon: const Icon(Icons.phone, size: 16),
@@ -1178,14 +1268,35 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                         Expanded(
                           child: ElevatedButton.icon(
                             onPressed: () async {
-                              final uri = Uri.parse(
-                                'https://maps.google.com/?q=${ph.latitude},${ph.longitude}',
-                              );
-                              if (await canLaunchUrl(uri)) {
-                                await launchUrl(
-                                  uri,
-                                  mode: LaunchMode.externalApplication,
+                              try {
+                                final uri = Uri.parse(
+                                  'https://maps.google.com/?q=${ph.latitude},${ph.longitude}',
                                 );
+                                if (await canLaunchUrl(uri)) {
+                                  await launchUrl(
+                                    uri,
+                                    mode: LaunchMode.externalApplication,
+                                  );
+                                } else {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Cannot open maps'),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
+                                }
+                              } catch (e) {
+                                debugPrint('Error launching maps: $e');
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Error: $e'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
                               }
                             },
                             icon: const Icon(Icons.navigation, size: 16),
@@ -1204,8 +1315,451 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                     ),
                   ],
                 ),
+                ),
               );
             }).toList(),
+      ),
+    );
+  }
+
+  void _showPharmacyDetails(NearbyPharmacy pharmacy) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, scrollController) => SingleChildScrollView(
+          controller: scrollController,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Handle bar
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Pharmacy name
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.local_pharmacy,
+                      color: AppTheme.primaryColor,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          pharmacy.name,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (pharmacy.isActive)
+                          Container(
+                            margin: const EdgeInsets.only(top: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'Active',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.green,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              const Divider(),
+              const SizedBox(height: 16),
+
+              // Details
+              _buildPharmacyDetailRow(
+                Icons.location_on,
+                'Address',
+                pharmacy.fullAddress,
+              ),
+              const SizedBox(height: 12),
+              if (pharmacy.distance != null)
+                _buildPharmacyDetailRow(
+                  Icons.directions,
+                  'Distance',
+                  pharmacy.distanceText,
+                ),
+              if (pharmacy.distance != null) const SizedBox(height: 12),
+              if (pharmacy.phoneNumber != null)
+                _buildPharmacyDetailRow(
+                  Icons.phone,
+                  'Phone',
+                  pharmacy.phoneNumber!,
+                ),
+              if (pharmacy.phoneNumber != null) const SizedBox(height: 12),
+              if (pharmacy.openingHours != null)
+                _buildPharmacyDetailRow(
+                  Icons.access_time,
+                  'Opening Hours',
+                  pharmacy.openingHours!,
+                ),
+              if (pharmacy.openingHours != null) const SizedBox(height: 12),
+              _buildPharmacyDetailRow(
+                Icons.gps_fixed,
+                'Coordinates',
+                '${pharmacy.latitude.toStringAsFixed(4)}, ${pharmacy.longitude.toStringAsFixed(4)}',
+              ),
+
+              // Available medicines
+              if (pharmacy.medicines.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                const Divider(),
+                const SizedBox(height: 16),
+                const Text(
+                  'Available Medicines',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ...pharmacy.medicines.map(
+                  (m) => Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[200]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                m.displayName,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              if (m.strength != null) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  m.strength!,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              m.priceText,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primaryColor,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: m.isAvailable
+                                    ? Colors.green.withValues(alpha: 0.1)
+                                    : Colors.red.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                m.stockText,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: m.isAvailable ? Colors.green : Colors.red,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 24),
+
+              // Action buttons
+              Row(
+                children: [
+                  if (pharmacy.phoneNumber != null)
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          Navigator.pop(context);
+                          try {
+                            final uri = Uri.parse('tel:${pharmacy.phoneNumber}');
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(uri);
+                            }
+                          } catch (e) {
+                            debugPrint('Error launching phone dialer: $e');
+                          }
+                        },
+                        icon: const Icon(Icons.phone, size: 18),
+                        label: const Text('Call'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.green,
+                          side: const BorderSide(color: Colors.green),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (pharmacy.phoneNumber != null) const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        try {
+                          final uri = Uri.parse(
+                            'https://maps.google.com/?q=${pharmacy.latitude},${pharmacy.longitude}',
+                          );
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(
+                              uri,
+                              mode: LaunchMode.externalApplication,
+                            );
+                          }
+                        } catch (e) {
+                          debugPrint('Error launching maps: $e');
+                        }
+                      },
+                      icon: const Icon(Icons.navigation, size: 18),
+                      label: const Text('Navigate'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPharmacyDetailRow(IconData icon, String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: AppTheme.textSecondary),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNoPharmaciesCard() {
+    return _buildSectionCard(
+      title: 'Pharmacy Recommendations',
+      icon: Icons.local_pharmacy,
+      color: Colors.orange,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.orange.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  size: 48,
+                  color: Colors.orange.shade700,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'No Nearby Pharmacies Found',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange.shade900,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'We couldn\'t find any pharmacies within 50 km that have the prescribed medicines in stock.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.orange.shade800,
+                    height: 1.4,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.lightbulb_outline,
+                      size: 20,
+                      color: Colors.orange.shade700,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Suggestions:',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange.shade900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                _buildSuggestionItem('Contact pharmacies directly to check availability'),
+                _buildSuggestionItem('Try searching in the Pharmacies tab'),
+                _buildSuggestionItem('Consider alternative medicine brands'),
+                _buildSuggestionItem('Check back later as stock updates regularly'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                context.go('/pharmacies');
+              },
+              icon: const Icon(Icons.local_pharmacy),
+              label: const Text('Browse All Pharmacies'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSuggestionItem(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            margin: const EdgeInsets.only(top: 6),
+            width: 4,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.orange.shade700,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.orange.shade800,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

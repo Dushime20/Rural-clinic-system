@@ -12,39 +12,33 @@ class CustomDrawer extends StatelessWidget {
     return Drawer(
       child: Column(
         children: [
-          // Header
+          // Simple header with app branding
           Container(
-            height: 200,
+            height: 80,
             decoration: const BoxDecoration(
               gradient: AppTheme.primaryGradient,
             ),
             child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              bottom: false,
+              child: Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const CircleAvatar(
-                      radius: 30,
-                      backgroundColor: Colors.white,
-                      child: Icon(
-                        Icons.person,
-                        size: 40,
-                        color: AppTheme.primaryColor,
-                      ),
+                    const Icon(
+                      Icons.medical_services,
+                      size: 32,
+                      color: Colors.white,
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Dr. John Smith',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      'Health Worker',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withOpacity(0.8),
+                    const SizedBox(width: 12),
+                    Flexible(
+                      child: Text(
+                        'Health Companion',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -58,15 +52,6 @@ class CustomDrawer extends StatelessWidget {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                _buildDrawerItem(
-                  context,
-                  icon: Icons.dashboard,
-                  title: 'Dashboard',
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.go('/home');
-                  },
-                ),
                 _buildDrawerItem(
                   context,
                   icon: Icons.psychology,
@@ -87,11 +72,20 @@ class CustomDrawer extends StatelessWidget {
                 ),
                 _buildDrawerItem(
                   context,
+                  icon: Icons.local_pharmacy,
+                  title: 'Pharmacies',
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.go('/pharmacies');
+                  },
+                ),
+                _buildDrawerItem(
+                  context,
                   icon: Icons.analytics,
                   title: 'Analytics',
                   onTap: () {
                     Navigator.pop(context);
-                    // TODO: Navigate to analytics
+                    context.go('/analytics');
                   },
                 ),
                 _buildDrawerItem(
@@ -135,24 +129,17 @@ class CustomDrawer extends StatelessWidget {
             ),
           ),
           
-          // Footer
+          // Footer with app version only
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(12),
             child: Column(
               children: [
                 const Divider(),
-                Text(
-                  'AI Health Companion v${AppConstants.appVersion}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
                 const SizedBox(height: 4),
                 Text(
-                  'Offline Mode: Active',
+                  'v${AppConstants.appVersion}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.successColor,
-                    fontWeight: FontWeight.w500,
+                    color: AppTheme.textSecondary,
                   ),
                 ),
               ],

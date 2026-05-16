@@ -33,6 +33,17 @@ interface Diagnosis {
     bloodPressureDiastolic?: number;
     heartRate?: number;
   };
+  aiPredictions?: Array<{
+    disease: string;
+    confidence: number;
+    icd10Code?: string;
+    description?: string;
+    recommendations?: string[];
+    precautions?: string[];
+    medications?: string[];
+    diet?: string[];
+    workout?: string[];
+  }>;
   selectedDiagnosis?: {
     disease: string;
     confidence: number;
@@ -46,7 +57,6 @@ interface Diagnosis {
   }>;
   notes?: string;
   diagnosisDate: string;
-  status: string;
 }
 
 export function PharmacyPrescriptions() {
@@ -154,23 +164,6 @@ export function PharmacyPrescriptions() {
       ),
     },
     {
-      key: 'status',
-      header: 'Status',
-      render: (d: Diagnosis) => {
-        const statusColors = {
-          pending: 'warning',
-          confirmed: 'success',
-          revised: 'info',
-          cancelled: 'danger',
-        } as const;
-        return (
-          <Badge variant={statusColors[d.status as keyof typeof statusColors] || 'info'}>
-            {d.status}
-          </Badge>
-        );
-      },
-    },
-    {
       key: 'actions',
       header: 'Actions',
       render: (d: Diagnosis) => (
@@ -218,14 +211,14 @@ export function PharmacyPrescriptions() {
       <Card>
         <div className="flex flex-col sm:flex-row gap-3">
           <Input
-            placeholder="Search by patient name..."
+            placeholder="Search by patient name or phone number..."
             leftIcon={<Search className="w-4 h-4" />}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
               setPage(1);
             }}
-            className="sm:w-72"
+            className="sm:w-96"
           />
         </div>
       </Card>
@@ -290,28 +283,34 @@ export function PharmacyPrescriptions() {
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                 <FileText className="w-4 h-4" />
-                Diagnosis
+                Diagnosis Information
               </h3>
-              <div className="p-4 bg-blue-50 rounded-lg space-y-2">
+              <div className="p-4 bg-blue-50 rounded-lg space-y-3">
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Disease</span>
                   <span className="text-sm font-medium text-gray-900">
-                    {selectedDiagnosis.selectedDiagnosis?.disease || 'Pending'}
+                    {selectedDiagnosis.selectedDiagnosis?.disease || 
+                     selectedDiagnosis.aiPredictions?.[0]?.disease || 
+                     'Pending'}
                   </span>
                 </div>
-                {selectedDiagnosis.selectedDiagnosis?.icd10Code && (
+                {(selectedDiagnosis.selectedDiagnosis?.icd10Code || 
+                  selectedDiagnosis.aiPredictions?.[0]?.icd10Code) && (
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">ICD-10 Code</span>
                     <span className="text-sm font-medium text-gray-900">
-                      {selectedDiagnosis.selectedDiagnosis.icd10Code}
+                      {selectedDiagnosis.selectedDiagnosis?.icd10Code || 
+                       selectedDiagnosis.aiPredictions?.[0]?.icd10Code}
                     </span>
                   </div>
                 )}
-                {selectedDiagnosis.selectedDiagnosis?.confidence && (
+                {(selectedDiagnosis.selectedDiagnosis?.confidence || 
+                  selectedDiagnosis.aiPredictions?.[0]?.confidence) && (
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Confidence</span>
                     <span className="text-sm font-medium text-gray-900">
-                      {(selectedDiagnosis.selectedDiagnosis.confidence * 100).toFixed(1)}%
+                      {((selectedDiagnosis.selectedDiagnosis?.confidence || 
+                         selectedDiagnosis.aiPredictions?.[0]?.confidence || 0) * 100).toFixed(1)}%
                     </span>
                   </div>
                 )}
@@ -323,6 +322,21 @@ export function PharmacyPrescriptions() {
                 </div>
               </div>
             </div>
+
+            {/* Disease Description */}
+            {selectedDiagnosis.aiPredictions?.[0]?.description && (
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">
+                  About {selectedDiagnosis.selectedDiagnosis?.disease || 
+                         selectedDiagnosis.aiPredictions[0].disease}
+                </h3>
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                  <p className="text-sm text-gray-700 leading-relaxed">
+                    {selectedDiagnosis.aiPredictions[0].description}
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Symptoms */}
             {selectedDiagnosis.symptoms && selectedDiagnosis.symptoms.length > 0 && (

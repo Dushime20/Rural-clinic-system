@@ -123,7 +123,6 @@ class DiagnosisResponse {
   final List<Prescription>? prescriptions;
   final List<Symptom> symptoms;
   final VitalSigns vitalSigns;
-  final String status;
   final DateTime diagnosisDate;
   final String? notes;
   final bool followUpRequired;
@@ -138,7 +137,6 @@ class DiagnosisResponse {
     this.prescriptions,
     required this.symptoms,
     required this.vitalSigns,
-    required this.status,
     required this.diagnosisDate,
     this.notes,
     this.followUpRequired = false,
@@ -173,7 +171,6 @@ class DiagnosisResponse {
       vitalSigns: VitalSigns.fromJson(
         json['vitalSigns'] as Map<String, dynamic>,
       ),
-      status: json['status'] as String,
       diagnosisDate: DateTime.parse(json['diagnosisDate'] as String),
       notes: json['notes'] as String?,
       followUpRequired: json['followUpRequired'] as bool? ?? false,
@@ -195,7 +192,6 @@ class DiagnosisResponse {
       'prescriptions': prescriptions!.map((p) => p.toJson()).toList(),
     'symptoms': symptoms.map((s) => s.toJson()).toList(),
     'vitalSigns': vitalSigns.toJson(),
-    'status': status,
     'diagnosisDate': diagnosisDate.toIso8601String(),
     if (notes != null) 'notes': notes,
     'followUpRequired': followUpRequired,
@@ -363,9 +359,9 @@ class NearbyPharmacy {
       city: json['city'] as String?,
       district: json['district'] as String?,
       phoneNumber: json['phoneNumber'] as String?,
-      latitude: (json['latitude'] as num).toDouble(),
-      longitude: (json['longitude'] as num).toDouble(),
-      distance: (json['distance'] as num?)?.toDouble(),
+      latitude: _parseDouble(json['latitude']),
+      longitude: _parseDouble(json['longitude']),
+      distance: _parseDoubleNullable(json['distance']),
       openingHours: json['openingHours'] as String?,
       isActive: json['isActive'] as bool? ?? true,
       medicines:
@@ -377,6 +373,21 @@ class NearbyPharmacy {
                   .toList()
               : [],
     );
+  }
+
+  /// Helper to parse double from either String or num
+  static double _parseDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.parse(value);
+    throw FormatException('Cannot parse $value as double');
+  }
+
+  /// Helper to parse nullable double from either String or num
+  static double? _parseDoubleNullable(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 
   Map<String, dynamic> toJson() => {
@@ -440,12 +451,28 @@ class PharmacyMedicine {
       brandName: json['brandName'] as String?,
       strength: json['strength'] as String?,
       form: json['form'] as String?,
-      price: (json['price'] as num).toDouble(),
+      price: _parseDouble(json['price']),
       currency: json['currency'] as String? ?? 'RWF',
-      stockQuantity: json['stockQuantity'] as int? ?? 0,
+      stockQuantity: _parseInt(json['stockQuantity']),
       isAvailable: json['isAvailable'] as bool? ?? false,
       notes: json['notes'] as String?,
     );
+  }
+
+  /// Helper to parse double from either String or num
+  static double _parseDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.parse(value);
+    throw FormatException('Cannot parse $value as double');
+  }
+
+  /// Helper to parse int from either String or num
+  static int _parseInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
   }
 
   Map<String, dynamic> toJson() => {

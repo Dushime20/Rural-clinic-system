@@ -9,6 +9,7 @@ import '../../../../shared/widgets/feature_card.dart';
 import '../../../../shared/widgets/quick_action_button.dart';
 import '../../../../shared/widgets/animated_counter.dart';
 import '../../../../shared/widgets/chart_widget.dart';
+import '../../../../shared/widgets/custom_drawer.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -97,6 +98,7 @@ class _HomePageState extends ConsumerState<HomePage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
+      drawer: const CustomDrawer(),
       body: CustomScrollView(
         slivers: [
           // Custom App Bar
@@ -151,6 +153,12 @@ class _HomePageState extends ConsumerState<HomePage>
       pinned: true,
       backgroundColor: Colors.transparent,
       elevation: 0,
+      leading: Builder(
+        builder: (context) => IconButton(
+          icon: const Icon(Icons.menu, color: Colors.white),
+          onPressed: () => Scaffold.of(context).openDrawer(),
+        ),
+      ),
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
           decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),

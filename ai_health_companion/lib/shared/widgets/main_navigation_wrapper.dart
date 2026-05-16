@@ -25,7 +25,7 @@ class MainNavigationWrapper extends StatelessWidget {
         context.go('/patients');
         break;
       case 3:
-        context.go('/analytics');
+        context.go('/pharmacies');
         break;
       case 4:
         context.go('/settings');
@@ -49,8 +49,8 @@ class MainNavigationWrapper extends StatelessWidget {
           ),
           BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Patients'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.analytics),
-            label: 'Analytics',
+            icon: Icon(Icons.local_pharmacy),
+            label: 'Pharmacies',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),

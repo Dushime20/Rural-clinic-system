@@ -58,7 +58,6 @@ interface SyncStatus {
 @Index(['performedById'])
 @Index(['clinicId'])
 @Index(['diagnosisDate'])
-@Index(['status'])
 @Index(['syncStatus'], { where: "(\"syncStatus\"->>'pendingSync')::boolean = true" })
 export class Diagnosis {
     @PrimaryGeneratedColumn('uuid')
@@ -128,13 +127,6 @@ export class Diagnosis {
 
     @Column({ type: 'text', nullable: true })
     referralDetails?: string;
-
-    @Column({
-        type: 'enum',
-        enum: ['pending', 'confirmed', 'revised', 'cancelled'],
-        default: 'pending'
-    })
-    status!: string;
 
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
     diagnosisDate!: Date;

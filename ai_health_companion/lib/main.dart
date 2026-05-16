@@ -24,6 +24,7 @@ import 'features/patient/presentation/pages/patient_detail_page.dart';
 import 'features/patient/presentation/pages/add_patient_page.dart';
 import 'features/patient/presentation/pages/edit_patient_page.dart';
 import 'features/patient/presentation/pages/patient_medical_history_page.dart';
+import 'features/pharmacy/presentation/pages/pharmacies_page.dart';
 import 'features/settings/presentation/pages/settings_page.dart';
 import 'features/settings/presentation/pages/help_support_page.dart';
 import 'features/analytics/presentation/pages/analytics_dashboard_page.dart';
@@ -176,6 +177,14 @@ final GoRouter _router = GoRouter(
           (context, state) => const MainNavigationWrapper(
             currentIndex: 2,
             child: PatientListPage(),
+          ),
+    ),
+    GoRoute(
+      path: '/pharmacies',
+      builder:
+          (context, state) => const MainNavigationWrapper(
+            currentIndex: 3,
+            child: PharmaciesPage(),
           ),
     ),
     GoRoute(

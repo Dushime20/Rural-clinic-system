@@ -232,11 +232,14 @@ export const getDiagnosesWithPrescriptions = async (
             .where("diagnosis.prescriptions IS NOT NULL")
             .andWhere("jsonb_array_length(diagnosis.prescriptions) > 0");
 
-        // Search by patient name
+        // Search by patient name OR phone number
         if (search) {
             qb.andWhere(
-                "(LOWER(patient.firstName) LIKE :search OR LOWER(patient.lastName) LIKE :search)",
-                { search: `%${search.toLowerCase()}%` }
+                "(LOWER(patient.firstName) LIKE :search OR LOWER(patient.lastName) LIKE :search OR patient.phoneNumber LIKE :phoneSearch)",
+                { 
+                    search: `%${search.toLowerCase()}%`,
+                    phoneSearch: `%${search}%`
+                }
             );
         }
 
