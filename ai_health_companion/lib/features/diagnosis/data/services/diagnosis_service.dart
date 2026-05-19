@@ -136,6 +136,27 @@ class DiagnosisService {
     }
   }
 
+  /// Get pharmacy details by ID (includes medicines)
+  Future<NearbyPharmacy> getPharmacyById(String pharmacyId) async {
+    try {
+      final response = await _apiService.get('/pharmacy-manager/pharmacies/$pharmacyId');
+
+      if (response.data['success'] == true) {
+        return NearbyPharmacy.fromJson(
+          response.data['data']['pharmacy'] as Map<String, dynamic>,
+        );
+      } else {
+        throw Exception(
+          response.data['message'] ?? 'Failed to fetch pharmacy details',
+        );
+      }
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    } catch (e) {
+      throw Exception('Failed to get pharmacy details: $e');
+    }
+  }
+
   /// Update diagnosis
   Future<DiagnosisResponse> updateDiagnosis(
     String id,

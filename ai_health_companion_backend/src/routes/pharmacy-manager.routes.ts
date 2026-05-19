@@ -11,6 +11,7 @@ import {
     deleteMedicine,
     findNearbyPharmaciesWithMedicine,
     getAllPharmacies,
+    getPharmacyById,
     getAllMedicinesForAdmin,
 } from '../controllers/pharmacy-manager.controller';
 
@@ -21,6 +22,7 @@ router.get('/admin/medicines', authenticate, authorize(UserRole.ADMIN), getAllMe
 
 // ─── Public / Health Worker routes (authenticated, any role) ─────────────────
 router.get('/map', authenticate, getAllPharmacies);
+router.get('/pharmacies/:id', authenticate, getPharmacyById);
 router.get('/nearby', authenticate, findNearbyPharmaciesWithMedicine);
 
 // ─── Pharmacist-only routes ───────────────────────────────────────────────────

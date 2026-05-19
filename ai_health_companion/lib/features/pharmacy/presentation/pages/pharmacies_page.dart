@@ -45,9 +45,23 @@ class _PharmaciesPageState extends State<PharmaciesPage> {
 
     try {
       final pharmacies = await _diagnosisService.getAllPharmacies();
+      
+      // Fetch full details (with medicines) for each pharmacy
+      final pharmaciesWithMedicines = <NearbyPharmacy>[];
+      for (final pharmacy in pharmacies) {
+        try {
+          final fullDetails = await _diagnosisService.getPharmacyById(pharmacy.id);
+          pharmaciesWithMedicines.add(fullDetails);
+        } catch (e) {
+          // If fetching details fails, use the basic pharmacy data
+          debugPrint('Failed to fetch details for ${pharmacy.name}: $e');
+          pharmaciesWithMedicines.add(pharmacy);
+        }
+      }
+      
       setState(() {
-        _pharmacies = pharmacies;
-        _filteredPharmacies = pharmacies;
+        _pharmacies = pharmaciesWithMedicines;
+        _filteredPharmacies = pharmaciesWithMedicines;
         _isLoading = false;
       });
     } catch (e) {
@@ -65,10 +79,22 @@ class _PharmaciesPageState extends State<PharmaciesPage> {
         _filteredPharmacies = _pharmacies;
       } else {
         _filteredPharmacies = _pharmacies.where((pharmacy) {
-          return pharmacy.name.toLowerCase().contains(query) ||
-              (pharmacy.address.toLowerCase().contains(query)) ||
-              (pharmacy.city?.toLowerCase().contains(query) ?? false) ||
-              (pharmacy.district?.toLowerCase().contains(query) ?? false);
+          // Search by pharmacy name
+          if (pharmacy.name.toLowerCase().contains(query)) return true;
+          
+          // Search by location (address, city, district)
+          if (pharmacy.address.toLowerCase().contains(query)) return true;
+          if (pharmacy.city?.toLowerCase().contains(query) ?? false) return true;
+          if (pharmacy.district?.toLowerCase().contains(query) ?? false) return true;
+          
+          // Search by medicine name (generic name, brand name, medication name)
+          final hasMedicine = pharmacy.medicines.any((medicine) {
+            return medicine.medicationName.toLowerCase().contains(query) ||
+                (medicine.genericName?.toLowerCase().contains(query) ?? false) ||
+                (medicine.brandName?.toLowerCase().contains(query) ?? false);
+          });
+          
+          return hasMedicine;
         }).toList();
       }
     });
@@ -135,14 +161,14 @@ class _PharmaciesPageState extends State<PharmaciesPage> {
     }
   }
 
-  void _showPharmacyDetails(NearbyPharmacy pharmacy) {
+  Future<void> _showPharmacyDetails(NearbyPharmacy pharmacy) async {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => DraggableScrollableSheet(
+      builder: (modalContext) => DraggableScrollableSheet(
         initialChildSize: 0.7,
         minChildSize: 0.5,
         maxChildSize: 0.95,
@@ -243,11 +269,48 @@ class _PharmaciesPageState extends State<PharmaciesPage> {
                   pharmacy.openingHours!,
                 ),
               if (pharmacy.openingHours != null) const SizedBox(height: 12),
-              _buildDetailRow(
-                Icons.gps_fixed,
-                'Coordinates',
-                '${pharmacy.latitude.toStringAsFixed(4)}, ${pharmacy.longitude.toStringAsFixed(4)}',
+
+              // Medicines Section
+              const SizedBox(height: 8),
+              const Divider(),
+              const SizedBox(height: 16),
+              const Text(
+                'Available Medicines',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
+              const SizedBox(height: 12),
+              
+              // Empty state or medicines list
+              if (pharmacy.medicines.isEmpty)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: Colors.grey[600],
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'No medicines currently available',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                ...pharmacy.medicines.map((medicine) => _buildMedicineCard(medicine)),
 
               const SizedBox(height: 24),
 
@@ -258,7 +321,7 @@ class _PharmaciesPageState extends State<PharmaciesPage> {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () {
-                          Navigator.pop(context);
+                          Navigator.pop(modalContext);
                           _callPharmacy(pharmacy.phoneNumber!);
                         },
                         icon: const Icon(Icons.phone, size: 18),
@@ -277,7 +340,7 @@ class _PharmaciesPageState extends State<PharmaciesPage> {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        Navigator.pop(context);
+                        Navigator.pop(modalContext);
                         _navigateToPharmacy(
                           pharmacy.latitude,
                           pharmacy.longitude,
@@ -337,6 +400,103 @@ class _PharmaciesPageState extends State<PharmaciesPage> {
     );
   }
 
+  Widget _buildMedicineCard(PharmacyMedicine medicine) {
+    // Determine stock status color
+    Color stockColor;
+    if (!medicine.isAvailable || medicine.stockQuantity <= 0) {
+      stockColor = Colors.red;
+    } else if (medicine.stockQuantity <= 10) {
+      stockColor = Colors.orange;
+    } else {
+      stockColor = Colors.green;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Medicine name
+          Text(
+            medicine.displayName,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 6),
+          
+          // Strength and form
+          if (medicine.strength != null || medicine.form != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(
+                [
+                  if (medicine.strength != null) medicine.strength!,
+                  if (medicine.form != null) medicine.form!,
+                ].join(' '),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ),
+          
+          // Price and stock status row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Price
+              Row(
+                children: [
+                  Icon(
+                    Icons.attach_money,
+                    size: 16,
+                    color: AppTheme.textSecondary,
+                  ),
+                  Text(
+                    medicine.priceText,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.primaryColor,
+                    ),
+                  ),
+                ],
+              ),
+              
+              // Stock status
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: stockColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  medicine.stockText,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: stockColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -362,7 +522,7 @@ class _PharmaciesPageState extends State<PharmaciesPage> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search pharmacies...',
+                hintText: 'Search by pharmacy, medicine, or location...',
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(

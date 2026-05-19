@@ -1,0 +1,109 @@
+# Implementation Plan
+
+- [x] 1. Write bug condition exploration test
+  - **Property 1: Bug Condition** - Coordinates Hidden and Medicines Displayed
+  - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
+  - **DO NOT attempt to fix the test or the code when it fails**
+  - **NOTE**: This test encodes the expected behavior - it will validate the fix when it passes after implementation
+  - **GOAL**: Surface counterexamples that demonstrate the bug exists
+  - **Manual Testing Approach**: Since this is a UI change in Flutter, manual testing is appropriate
+  - Open the pharmacy details modal on UNFIXED code for multiple pharmacies
+  - **Test Case 1 - Coordinates Visible**: Verify that coordinates row is displayed with latitude/longitude values (e.g., "Coordinates: 1.9536, 30.0606")
+  - **Test Case 2 - Medicines Missing**: Open details for a pharmacy known to have medicines in the database → Verify that medicines section is NOT displayed
+  - **Test Case 3 - Empty Medicines**: Open details for a pharmacy with no medicines → Verify that no medicines section or empty state message is shown
+  - **Test Case 4 - Navigate Button**: Click Navigate button → Verify that Google Maps opens correctly (confirms coordinates are available internally)
+  - Run tests on UNFIXED code
+  - **EXPECTED OUTCOME**: Tests FAIL (coordinates are visible, medicines section is missing - this is correct and proves the bug exists)
+  - Document counterexamples found:
+    - Screenshot or detailed description of coordinates row being displayed
+    - Screenshot or detailed description of missing medicines section
+    - Note which pharmacies were tested and their medicine counts
+  - Mark task complete when tests are run and failures are documented
+  - _Requirements: 1.1, 1.2, 2.1, 2.2, 2.3_
+
+- [ ] 2. Write preservation property tests (BEFORE implementing fix)
+  - **Property 2: Preservation** - Existing Modal Functionality
+  - **IMPORTANT**: Follow observation-first methodology
+  - **Manual Testing Approach**: Test all existing functionality on UNFIXED code to document current behavior
+  - Observe behavior on UNFIXED code for non-buggy inputs (interactions not involving coordinates or medicines display)
+  - **Test Case 1 - Pharmacy Name Display**: Verify pharmacy name, active badge, and icon display correctly
+  - **Test Case 2 - Address Display**: Verify address with city/district displays correctly
+  - **Test Case 3 - Phone Display**: Verify phone number displays correctly
+  - **Test Case 4 - Opening Hours Display**: Verify opening hours display correctly
+  - **Test Case 5 - Call Button**: Click Call button → Verify phone dialer launches with correct number
+  - **Test Case 6 - Navigate Button**: Click Navigate button → Verify Google Maps opens with correct location
+  - **Test Case 7 - Search by Name**: Search for pharmacy by name → Verify filtering works
+  - **Test Case 8 - Search by Address**: Search for pharmacy by address → Verify filtering works
+  - **Test Case 9 - Modal Opening**: Tap pharmacy card → Verify modal opens with draggable behavior
+  - **Test Case 10 - Modal Closing**: Drag modal down or tap outside → Verify modal closes
+  - Document observed behavior for each test case with screenshots or detailed descriptions
+  - Run tests on UNFIXED code
+  - **EXPECTED OUTCOME**: Tests PASS (this confirms baseline behavior to preserve)
+  - Mark task complete when tests are written, run, and passing on unfixed code
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
+
+- [ ] 3. Fix for pharmacy details view update
+
+  - [x] 3.1 Implement the fix in pharmacies_page.dart
+    - Open file: `ai_health_companion/lib/features/pharmacy/presentation/pages/pharmacies_page.dart`
+    - Locate the `_showPharmacyDetails` method
+    - **Remove Coordinates Display**: Delete or comment out the `_buildDetailRow` call that displays coordinates (the row showing "Coordinates" with latitude/longitude values)
+    - **Add Medicines Section**: After the existing details section and before the action buttons, add a new medicines list section
+    - Create a `_buildMedicineCard` helper method to display individual medicine items with:
+      - Medication name (using `PharmacyMedicine.displayName`)
+      - Strength and form if available (e.g., "500mg Tablet")
+      - Price (using `PharmacyMedicine.priceText`)
+      - Stock status (using `PharmacyMedicine.stockText` - "In stock", "Low stock", or "Out of stock")
+    - In the medicines section:
+      - Display section header "Available Medicines"
+      - Show list of medicines if `pharmacy.medicines.isNotEmpty`
+      - Show "No medicines currently available" message if `pharmacy.medicines.isEmpty`
+    - Adjust spacing between medicines section and action buttons for good visual hierarchy
+    - Ensure medicines list is scrollable if there are many medicines
+    - _Bug_Condition: isBugCondition(input) where input.action == "openPharmacyDetails" AND modalDisplaysCoordinates(input.pharmacy) AND NOT modalDisplaysMedicines(input.pharmacy)_
+    - _Expected_Behavior: For any user action opening pharmacy details modal, the fixed modal SHALL NOT display coordinates row AND SHALL display medicines list section with all available medicines (name, price, stock status) OR "No medicines currently available" message if empty_
+    - _Preservation: Pharmacy name, address, phone, hours, active status display; Call button launches dialer; Navigate button opens Google Maps; Search filters by name/address/city/district; Tapping card opens modal; Modal appearance and animations unchanged_
+    - _Requirements: 1.1, 1.2, 2.1, 2.2, 2.3, 3.1, 3.2, 3.3, 3.4, 3.5_
+
+  - [ ] 3.2 Verify bug condition exploration test now passes
+    - **Property 1: Expected Behavior** - Coordinates Hidden and Medicines Displayed
+    - **IMPORTANT**: Re-run the SAME tests from task 1 - do NOT write new tests
+    - The tests from task 1 encode the expected behavior
+    - When these tests pass, it confirms the expected behavior is satisfied
+    - Run bug condition exploration tests from step 1 on FIXED code
+    - **Test Case 1 - Coordinates Hidden**: Verify that coordinates row is NOT displayed in the details section
+    - **Test Case 2 - Medicines Displayed**: Open details for a pharmacy with medicines → Verify that medicines section IS displayed with medication names, prices, and stock status
+    - **Test Case 3 - Empty State**: Open details for a pharmacy with no medicines → Verify that "No medicines currently available" message is shown
+    - **Test Case 4 - Navigate Still Works**: Click Navigate button → Verify that Google Maps still opens correctly (coordinates used internally but not displayed)
+    - **EXPECTED OUTCOME**: Tests PASS (confirms bug is fixed)
+    - _Requirements: 2.1, 2.2, 2.3_
+
+  - [ ] 3.3 Verify preservation tests still pass
+    - **Property 2: Preservation** - Existing Modal Functionality
+    - **IMPORTANT**: Re-run the SAME tests from task 2 - do NOT write new tests
+    - Run preservation property tests from step 2 on FIXED code
+    - **Test Case 1 - Pharmacy Name Display**: Verify pharmacy name, active badge, and icon still display correctly
+    - **Test Case 2 - Address Display**: Verify address with city/district still displays correctly
+    - **Test Case 3 - Phone Display**: Verify phone number still displays correctly
+    - **Test Case 4 - Opening Hours Display**: Verify opening hours still display correctly
+    - **Test Case 5 - Call Button**: Click Call button → Verify phone dialer still launches with correct number
+    - **Test Case 6 - Navigate Button**: Click Navigate button → Verify Google Maps still opens with correct location
+    - **Test Case 7 - Search by Name**: Search for pharmacy by name → Verify filtering still works
+    - **Test Case 8 - Search by Address**: Search for pharmacy by address → Verify filtering still works
+    - **Test Case 9 - Modal Opening**: Tap pharmacy card → Verify modal still opens with draggable behavior
+    - **Test Case 10 - Modal Closing**: Drag modal down or tap outside → Verify modal still closes
+    - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
+    - Compare behavior with documented baseline from task 2
+    - Confirm all tests still pass after fix (no regressions)
+    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
+
+- [ ] 4. Checkpoint - Ensure all tests pass
+  - Verify all manual tests from tasks 1 and 2 now pass on the fixed code
+  - Confirm coordinates are hidden from the details section
+  - Confirm medicines list is displayed with proper information
+  - Confirm all existing functionality (Call, Navigate, search, modal behavior) still works
+  - Take screenshots of the fixed pharmacy details modal showing:
+    - Modal without coordinates row
+    - Modal with medicines list displayed
+    - Modal with "No medicines currently available" message (if applicable)
+  - Ask the user if questions arise or if additional testing is needed

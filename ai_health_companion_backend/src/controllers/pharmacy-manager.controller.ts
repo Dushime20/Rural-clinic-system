@@ -470,3 +470,30 @@ export const getAllPharmacies = async (
         next(error);
     }
 };
+
+/**
+ * Get pharmacy by ID with medicines (for details view)
+ */
+export const getPharmacyById = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    try {
+        const pharmacy = await pharmacyRepo().findOne({
+            where: { id: req.params.id, isActive: true },
+            relations: ['medicines'],
+        });
+
+        if (!pharmacy) {
+            throw new AppError('Pharmacy not found', 404);
+        }
+
+        res.status(200).json({
+            success: true,
+            data: { pharmacy },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
