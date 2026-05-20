@@ -8,7 +8,6 @@ import '../../../../core/services/dashboard_service.dart';
 import '../../../../shared/widgets/feature_card.dart';
 import '../../../../shared/widgets/quick_action_button.dart';
 import '../../../../shared/widgets/animated_counter.dart';
-import '../../../../shared/widgets/chart_widget.dart';
 import '../../../../shared/widgets/custom_drawer.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -127,10 +126,6 @@ class _HomePageState extends ConsumerState<HomePage>
                   _buildMainFeaturesSection(),
                   const SizedBox(height: 32),
 
-                  // Analytics Chart
-                  _buildAnalyticsSection(),
-                  const SizedBox(height: 32),
-
                   // Recent Activity
                   _buildRecentActivitySection(),
                   const SizedBox(
@@ -236,46 +231,7 @@ class _HomePageState extends ConsumerState<HomePage>
                     ),
                   ),
 
-                  // Notifications
-                  AnimatedBuilder(
-                    animation: _headerAnimation,
-                    builder: (context, child) {
-                      return Transform.scale(
-                        scale: _headerAnimation.value,
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Stack(
-                            children: [
-                              const Center(
-                                child: Icon(
-                                  Icons.notifications_outlined,
-                                  color: Colors.white,
-                                  size: 24,
-                                ),
-                              ),
-                              Positioned(
-                                top: 8,
-                                right: 8,
-                                child: Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: const BoxDecoration(
-                                    color: AppTheme.errorColor,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                  const SizedBox(width: 16),
                 ],
               ),
             ),
@@ -381,7 +337,6 @@ class _HomePageState extends ConsumerState<HomePage>
   Widget _buildStatsSection() {
     final totalPatients = _stats['totalPatients'] ?? 0;
     final totalDiagnoses = _stats['totalDiagnoses'] ?? 0;
-    final todayAppointments = _stats['todayAppointments'] ?? 0;
 
     return AnimatedBuilder(
       animation: _cardsAnimation,
@@ -410,15 +365,6 @@ class _HomePageState extends ConsumerState<HomePage>
                             '$totalDiagnoses',
                             Icons.psychology,
                             AppTheme.secondaryColor,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildStatCard(
-                            'Appts Today',
-                            '$todayAppointments',
-                            Icons.calendar_today,
-                            AppTheme.successColor,
                           ),
                         ),
                       ],
@@ -564,71 +510,22 @@ class _HomePageState extends ConsumerState<HomePage>
                       onTap: () => context.go('/patients'),
                     ),
                     FeatureCard(
-                      title: 'Offline Mode',
-                      description: 'Work without internet',
-                      icon: Icons.offline_bolt,
+                      title: 'Pharmacies',
+                      description: 'Find nearby pharmacies',
+                      icon: Icons.local_pharmacy,
                       color: AppTheme.accentColor,
-                      onTap: () {
-                        context.go('/offline');
-                      },
+                      onTap: () => context.go('/pharmacies'),
                     ),
                     FeatureCard(
                       title: 'Analytics',
                       description: 'View health statistics',
                       icon: Icons.analytics,
                       color: AppTheme.successColor,
-                      onTap: () {
-                        // TODO: Navigate to analytics
-                      },
+                      onTap: () => context.go('/analytics'),
                     ),
                   ],
                 ),
               ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildAnalyticsSection() {
-    return AnimatedBuilder(
-      animation: _cardsAnimation,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(0, 70 * (1 - _cardsAnimation.value)),
-          child: Opacity(
-            opacity: _cardsAnimation.value,
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: AppTheme.softShadow,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.analytics,
-                        color: AppTheme.primaryColor,
-                        size: 24,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Weekly Analytics',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(height: 200, child: ChartWidget()),
-                ],
-              ),
             ),
           ),
         );
@@ -681,7 +578,10 @@ class _HomePageState extends ConsumerState<HomePage>
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    TextButton(onPressed: () {}, child: const Text('View All')),
+                    TextButton(
+                      onPressed: () => context.go('/recent-activity'),
+                      child: const Text('View All'),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),

@@ -88,15 +88,6 @@ class CustomDrawer extends StatelessWidget {
                     context.go('/analytics');
                   },
                 ),
-                _buildDrawerItem(
-                  context,
-                  icon: Icons.sync,
-                  title: 'Sync Status',
-                  onTap: () {
-                    Navigator.pop(context);
-                    _showSyncStatus(context);
-                  },
-                ),
                 const Divider(),
                 _buildDrawerItem(
                   context,
@@ -104,7 +95,7 @@ class CustomDrawer extends StatelessWidget {
                   title: 'Help & Support',
                   onTap: () {
                     Navigator.pop(context);
-                    // TODO: Navigate to help
+                    context.go('/help');
                   },
                 ),
                 _buildDrawerItem(
@@ -168,53 +159,6 @@ class CustomDrawer extends StatelessWidget {
         ),
       ),
       onTap: onTap,
-    );
-  }
-
-  void _showSyncStatus(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Sync Status'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const ListTile(
-              leading: Icon(Icons.cloud_done, color: AppTheme.successColor),
-              title: Text('Last Sync'),
-              subtitle: Text('2 hours ago'),
-            ),
-            const ListTile(
-              leading: Icon(Icons.storage, color: AppTheme.primaryColor),
-              title: Text('Pending Sync'),
-              subtitle: Text('5 records'),
-            ),
-            const ListTile(
-              leading: Icon(Icons.wifi, color: AppTheme.successColor),
-              title: Text('Connection'),
-              subtitle: Text('Online'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Sync completed'),
-                  backgroundColor: AppTheme.successColor,
-                ),
-              );
-            },
-            child: const Text('Sync Now'),
-          ),
-        ],
-      ),
     );
   }
 

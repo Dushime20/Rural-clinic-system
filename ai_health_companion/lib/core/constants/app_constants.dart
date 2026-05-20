@@ -20,28 +20,15 @@ class AppConstants {
   static const String databaseName = 'health_companion.db';
   static const int databaseVersion = 1;
 
-  // Hive Box Names
-  static const String patientBox = 'patients';
-  static const String diagnosisBox = 'diagnoses';
-  static const String settingsBox = 'settings';
-  static const String syncBox = 'sync_queue';
-
   // Storage Keys
   static const String userTokenKey = 'user_token';
   static const String userRoleKey = 'user_role';
-  static const String lastSyncKey = 'last_sync';
-  static const String offlineModeKey = 'offline_mode';
 
   // AI Model Configuration
   static const String modelPath = 'assets/models/disease_prediction.tflite';
   static const String modelLabelsPath = 'assets/models/labels.txt';
   static const int modelInputSize = 224;
   static const int maxPredictions = 3;
-
-  // Sync Configuration
-  static const Duration syncInterval = Duration(minutes: 15);
-  static const int maxRetryAttempts = 3;
-  static const Duration retryDelay = Duration(seconds: 5);
 
   // Validation Rules
   static const int minPasswordLength = 8;
@@ -58,11 +45,8 @@ class AppConstants {
   static const String networkError = 'Network connection error';
   static const String serverError = 'Server error occurred';
   static const String unknownError = 'An unknown error occurred';
-  static const String offlineError = 'App is in offline mode';
-  static const String syncError = 'Failed to sync data';
 
   // Success Messages
-  static const String syncSuccess = 'Data synced successfully';
   static const String diagnosisSuccess = 'Diagnosis completed';
   static const String patientSaved = 'Patient information saved';
 

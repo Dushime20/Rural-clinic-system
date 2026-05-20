@@ -316,12 +316,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         onTap: () => _showLanguageSelector(context),
       ),
       _tile(
-        icon: Icons.sync,
-        title: 'Sync Status',
-        subtitle: 'Manage offline data sync',
-        onTap: () => context.go('/sync'),
-      ),
-      _tile(
         icon: Icons.help_outline,
         title: 'Help & Support',
         subtitle: 'Get help and contact support',

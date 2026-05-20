@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'generated/app_localizations.dart';
@@ -19,6 +18,7 @@ import 'features/diagnosis/presentation/pages/diagnosis_page.dart';
 import 'features/diagnosis/presentation/pages/diagnosis_result_page.dart';
 import 'features/diagnosis/presentation/pages/diagnosis_history_page.dart';
 import 'features/diagnosis/presentation/pages/home_page.dart';
+import 'features/diagnosis/presentation/pages/recent_activity_page.dart';
 import 'features/patient/presentation/pages/patient_list_page.dart';
 import 'features/patient/presentation/pages/patient_detail_page.dart';
 import 'features/patient/presentation/pages/add_patient_page.dart';
@@ -28,16 +28,11 @@ import 'features/pharmacy/presentation/pages/pharmacies_page.dart';
 import 'features/settings/presentation/pages/settings_page.dart';
 import 'features/settings/presentation/pages/help_support_page.dart';
 import 'features/analytics/presentation/pages/analytics_dashboard_page.dart';
-import 'features/sync/presentation/pages/sync_status_page.dart';
-import 'features/sync/presentation/pages/offline_mode_page.dart';
 import 'shared/widgets/splash_screen.dart';
 import 'shared/widgets/main_navigation_wrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize Hive for local storage
-  await Hive.initFlutter();
 
   // Initialize location service early to request permission
   // This ensures location is available when diagnosis runs
@@ -218,14 +213,6 @@ final GoRouter _router = GoRouter(
           ),
     ),
     GoRoute(
-      path: '/sync',
-      builder:
-          (context, state) => const MainNavigationWrapper(
-            currentIndex: 3,
-            child: SyncStatusPage(),
-          ),
-    ),
-    GoRoute(
       path: '/settings',
       builder:
           (context, state) => const MainNavigationWrapper(
@@ -256,8 +243,8 @@ final GoRouter _router = GoRouter(
       builder: (context, state) => const HelpSupportPage(),
     ),
     GoRoute(
-      path: '/offline',
-      builder: (context, state) => const OfflineModePage(),
+      path: '/recent-activity',
+      builder: (context, state) => const RecentActivityPage(),
     ),
   ],
 );

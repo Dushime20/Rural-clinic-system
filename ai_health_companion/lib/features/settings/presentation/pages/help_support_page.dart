@@ -29,12 +29,6 @@ class _HelpSupportPageState extends ConsumerState<HelpSupportPage>
       'category': 'AI Diagnosis',
     },
     {
-      'question': 'Can I use the app offline?',
-      'answer':
-          'Yes! The app is designed to work offline. All patient data and AI models are stored locally on your device. Data will automatically sync when you\'re back online.',
-      'category': 'Offline Mode',
-    },
-    {
       'question': 'How do I add a new patient?',
       'answer':
           'Go to the Patients tab and tap the "+" button or "Add Patient" button. Fill out the patient information form with personal, medical, and contact details.',
@@ -45,12 +39,6 @@ class _HelpSupportPageState extends ConsumerState<HelpSupportPage>
       'answer':
           'Yes, all patient data is encrypted and stored securely. The app complies with healthcare privacy standards and uses end-to-end encryption.',
       'category': 'Security',
-    },
-    {
-      'question': 'How do I sync my data?',
-      'answer':
-          'Data syncs automatically when you have an internet connection. You can also manually sync by going to the Sync Status page and tapping "Sync Now".',
-      'category': 'Data Sync',
     },
     {
       'question': 'Can I export patient reports?',
@@ -69,6 +57,12 @@ class _HelpSupportPageState extends ConsumerState<HelpSupportPage>
       'answer':
           'Go to the patient\'s detail page and tap the edit button. You can update any patient information including medical history and contact details.',
       'category': 'Patient Management',
+    },
+    {
+      'question': 'How do I find nearby pharmacies?',
+      'answer':
+          'After a diagnosis, the app will show nearby pharmacies that have the prescribed medications in stock. You can also browse all pharmacies in the Pharmacies tab.',
+      'category': 'Pharmacies',
     },
   ];
 
@@ -92,15 +86,9 @@ class _HelpSupportPageState extends ConsumerState<HelpSupportPage>
       'color': AppTheme.accentColor,
     },
     {
-      'title': 'Offline Mode',
-      'description': 'Working without internet connection',
-      'icon': Icons.cloud_off,
-      'color': AppTheme.warningColor,
-    },
-    {
-      'title': 'Data Sync',
-      'description': 'Synchronizing data with cloud servers',
-      'icon': Icons.sync,
+      'title': 'Pharmacy Finder',
+      'description': 'Finding pharmacies with available medications',
+      'icon': Icons.local_pharmacy,
       'color': AppTheme.successColor,
     },
   ];
