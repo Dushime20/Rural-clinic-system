@@ -459,7 +459,7 @@ export const getAllPharmacies = async (
     try {
         const pharmacies = await pharmacyRepo().find({
             where: { isActive: true },
-            select: ['id', 'name', 'address', 'latitude', 'longitude', 'city', 'district', 'phoneNumber', 'openingHours'],
+            select: ['id', 'name', 'address', 'latitude', 'longitude', 'city', 'district', 'phoneNumber', 'openingHours', 'isActive', 'managerName'],
         });
 
         res.status(200).json({

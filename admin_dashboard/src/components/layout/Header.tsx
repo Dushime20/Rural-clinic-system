@@ -1,4 +1,4 @@
-import { Bell, Search, LogOut, User } from 'lucide-react';
+import { Search, LogOut, User } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getInitials } from '../../lib/utils';
 import { useState } from 'react';
@@ -35,15 +35,6 @@ export function Header({ sidebarCollapsed }: HeaderProps) {
 
       {/* Right side */}
       <div className="flex items-center gap-3 ml-auto">
-        {/* Notifications */}
-        <button
-          className="relative p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
-          aria-label="Notifications"
-        >
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" aria-hidden="true" />
-        </button>
-
         {/* User menu */}
         <div className="relative">
           <button

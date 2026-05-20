@@ -33,8 +33,6 @@ type CreateForm = z.infer<typeof createSchema>;
 const ROLE_OPTIONS = [
   { value: 'admin', label: 'Administrator' },
   { value: 'health_worker', label: 'Health Worker' },
-  { value: 'clinic_staff', label: 'Clinic Staff' },
-  { value: 'supervisor', label: 'Supervisor' },
   { value: 'pharmacist', label: 'Pharmacist' },
 ];
 

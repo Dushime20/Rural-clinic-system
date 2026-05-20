@@ -13,8 +13,6 @@ import { Pharmacies } from './pages/Pharmacies';
 import { Medications } from './pages/Medications';
 import { Diagnoses } from './pages/Diagnoses';
 import { Reports } from './pages/Reports';
-import { AuditLogs } from './pages/AuditLogs';
-import { Notifications } from './pages/Notifications';
 import { Settings } from './pages/Settings';
 // Pharmacy pages
 import { PharmacyDashboard } from './pages/pharmacy/PharmacyDashboard';
@@ -129,8 +127,6 @@ function AppRoutes() {
         <Route path="medications" element={<Medications />} />
         <Route path="diagnoses" element={<Diagnoses />} />
         <Route path="reports" element={<Reports />} />
-        <Route path="audit" element={<AuditLogs />} />
-        <Route path="notifications" element={<Notifications />} />
         <Route path="settings" element={<Settings />} />
       </Route>
 

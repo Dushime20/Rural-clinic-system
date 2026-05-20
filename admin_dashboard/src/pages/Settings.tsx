@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Settings as SettingsIcon, User, Lock, Bell, Database, Save } from 'lucide-react';
+import { Settings as SettingsIcon, User, Lock, Database, Save } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -31,7 +31,6 @@ type PasswordForm = z.infer<typeof passwordSchema>;
 const TABS = [
   { id: 'profile', label: 'Profile', icon: User },
   { id: 'security', label: 'Security', icon: Lock },
-  { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'system', label: 'System', icon: Database },
 ];
 
@@ -186,39 +185,6 @@ export function Settings() {
                   Update Password
                 </Button>
               </form>
-            </Card>
-          )}
-
-          {activeTab === 'notifications' && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Notification Preferences</CardTitle>
-              </CardHeader>
-              <div className="space-y-4">
-                {[
-                  { label: 'Low stock alerts', desc: 'Get notified when medications are running low', defaultChecked: true },
-                  { label: 'Critical lab results', desc: 'Immediate alerts for critical lab values', defaultChecked: true },
-                  { label: 'New user registrations', desc: 'When a new user is added to the system', defaultChecked: false },
-                  { label: 'System health alerts', desc: 'Server errors and performance issues', defaultChecked: true },
-                  { label: 'Daily summary email', desc: 'Daily digest of system activity', defaultChecked: false },
-                ].map(({ label, desc, defaultChecked }) => (
-                  <div key={label} className="flex items-start justify-between py-3 border-b border-gray-100 last:border-0">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{label}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{desc}</p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer ml-4">
-                      <input type="checkbox" defaultChecked={defaultChecked} className="sr-only peer" />
-                      <div className="w-10 h-5 bg-gray-200 peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-5 peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" />
-                    </label>
-                  </div>
-                ))}
-                <div className="flex justify-end pt-2">
-                  <Button leftIcon={<Save className="w-4 h-4" />} onClick={() => toast.success('Preferences saved')}>
-                    Save Preferences
-                  </Button>
-                </div>
-              </div>
             </Card>
           )}
 

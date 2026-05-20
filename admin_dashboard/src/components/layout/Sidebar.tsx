@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Users, UserCheck, Pill, Store,
-  BarChart3, Bell, Shield, Settings, ChevronLeft, ChevronRight,
+  BarChart3, Settings, ChevronLeft, ChevronRight,
   Activity, Heart
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -19,8 +19,6 @@ const navItems = [
   { to: '/admin/medications', icon: Pill, label: 'Medications' },
   { to: '/admin/diagnoses', icon: Activity, label: 'Diagnoses' },
   { to: '/admin/reports', icon: BarChart3, label: 'Reports' },
-  { to: '/admin/audit', icon: Shield, label: 'Audit Logs' },
-  { to: '/admin/notifications', icon: Bell, label: 'Notifications' },
 ];
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {

@@ -8,6 +8,7 @@ import { Appointment, AppointmentStatus } from '../models/Appointment';
 import { Medication } from '../models/Medication';
 import { Prescription } from '../models/Prescription';
 import { LabResult } from '../models/LabResult';
+import { Pharmacy } from '../models/Pharmacy';
 import { AppDataSource } from '../database/data-source';
 import { MoreThanOrEqual, Between } from 'typeorm';
 
@@ -56,6 +57,7 @@ router.get('/dashboard', async (req: AuthRequest, res: Response, next: NextFunct
         const medicationRepo = AppDataSource.getRepository(Medication);
         const prescriptionRepo = AppDataSource.getRepository(Prescription);
         const labResultRepo = AppDataSource.getRepository(LabResult);
+        const pharmacyRepo = AppDataSource.getRepository(Pharmacy);
 
         // Build where clauses - admins see all data, others see only their clinic
         const clinicWhere = isAdmin ? {} : { clinicId };
@@ -66,6 +68,7 @@ router.get('/dashboard', async (req: AuthRequest, res: Response, next: NextFunct
         const activeUsers = await userRepo.count({ where: { isActive: true } });
         const totalPatients = await patientRepo.count({ where: patientWhere });
         const totalDiagnoses = await diagnosisRepo.count({ where: clinicWhere });
+        const totalPharmacies = await pharmacyRepo.count({ where: { isActive: true } });
         const totalAppointments = await appointmentRepo.count({ where: clinicWhere });
         const todayAppointments = await appointmentRepo.count({ 
             where: { 
@@ -191,6 +194,7 @@ router.get('/dashboard', async (req: AuthRequest, res: Response, next: NextFunct
                 activeUsers,
                 totalPatients,
                 totalDiagnoses,
+                totalPharmacies,
                 totalAppointments,
                 todayAppointments,
                 totalMedications,
