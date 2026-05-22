@@ -432,3 +432,30 @@ export const getAllPharmacies = async (
         next(error);
     }
 };
+
+/**
+ * Toggle pharmacy active status (Admin only)
+ */
+export const togglePharmacyStatus = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    try {
+        const pharmacy = await pharmacyRepo().findOne({ where: { id: req.params.id } });
+        if (!pharmacy) throw new AppError('Pharmacy not found', 404);
+
+        pharmacy.isActive = req.body.isActive ?? !pharmacy.isActive;
+        await pharmacyRepo().save(pharmacy);
+
+        logger.info(`Pharmacy ${pharmacy.id} status set to ${pharmacy.isActive} by admin ${req.user?.email}`);
+
+        res.status(200).json({
+            success: true,
+            message: `Pharmacy ${pharmacy.isActive ? 'activated' : 'deactivated'} successfully`,
+            data: { pharmacy },
+        });
+    } catch (error) {
+        next(error);
+    }
+};

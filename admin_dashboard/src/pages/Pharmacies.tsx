@@ -83,17 +83,9 @@ export function Pharmacies() {
   const total = data?.total ?? 0;
 
   // ── View details ───────────────────────────────────────────────────────────
-  const handleViewDetails = async (pharmacy: Pharmacy) => {
-    try {
-      // Fetch full pharmacy details with medicines
-      const { data } = await api.get(`/pharmacy-manager/admin/pharmacies/${pharmacy.id}`);
-      setSelectedPharmacy(data.data?.pharmacy ?? pharmacy);
-      setShowDetails(true);
-    } catch (err) {
-      // If endpoint doesn't exist, just show basic info
-      setSelectedPharmacy(pharmacy);
-      setShowDetails(true);
-    }
+  const handleViewDetails = (pharmacy: Pharmacy) => {
+    setSelectedPharmacy(pharmacy);
+    setShowDetails(true);
   };
 
   // ── Columns ────────────────────────────────────────────────────────────────

@@ -54,7 +54,7 @@ export function Notifications() {
       // Response: { success, data: { notifications: [], unreadCount: number } }
       return {
         rows: (data.data?.notifications ?? []) as Notification[],
-        total: (data.data?.notifications?.length ?? 0) as number,
+        total: (data.data?.total ?? data.data?.notifications?.length ?? 0) as number,
       };
     },
   });

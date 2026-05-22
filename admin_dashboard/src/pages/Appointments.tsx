@@ -35,19 +35,20 @@ export function Appointments() {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
+  const [search, setSearch] = useState('');
   const [viewAppt, setViewAppt] = useState<Appointment | null>(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['appointments', page, statusFilter, dateFilter],
+    queryKey: ['appointments', page, statusFilter, dateFilter, search],
     queryFn: async () => {
       const params = new URLSearchParams({ page: String(page), limit: '10' });
       if (statusFilter) params.set('status', statusFilter);
       if (dateFilter) params.set('date', dateFilter);
+      if (search) params.set('search', search);
       const { data } = await api.get(`/appointments?${params}`);
-      // Response: { success, data: { appointments: [], count: number } }
       return {
         rows: (data.data?.appointments ?? []) as Appointment[],
-        total: (data.data?.count ?? 0) as number,
+        total: (data.data?.count ?? data.data?.pagination?.total ?? 0) as number,
       };
     },
   });
@@ -125,7 +126,8 @@ export function Appointments() {
 
       <Card>
         <div className="flex flex-col sm:flex-row gap-3">
-          <Input placeholder="Search by patient or provider..." leftIcon={<Search className="w-4 h-4" />} className="sm:w-64" />
+          <Input placeholder="Search by patient or provider..." leftIcon={<Search className="w-4 h-4" />}
+            value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="sm:w-64" />
           <Select options={STATUS_OPTIONS} value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} className="sm:w-44" />
           <Input type="date" value={dateFilter}

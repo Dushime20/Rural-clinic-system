@@ -55,15 +55,16 @@ export function LabOrders() {
     },
   });
 
-  // Critical results
   const { data: criticalResults } = useQuery({
     queryKey: ['critical-lab-results'],
     queryFn: async () => {
       try {
-        const { data } = await api.get('/lab/results/critical');
-        return (data.data?.results ?? data.data ?? []) as { id: string }[];
+        // Filter pending orders for critical priority (stat)
+        const { data } = await api.get('/lab/orders/pending');
+        const all = (data.data?.orders ?? data.data ?? []) as LabOrder[];
+        return all.filter((o) => o.priority === 'stat') as LabOrder[];
       } catch {
-        return [] as { id: string }[];
+        return [] as LabOrder[];
       }
     },
   });
@@ -72,6 +73,7 @@ export function LabOrders() {
     mutationFn: (id: string) => api.put(`/lab/results/${id}/review`, { approved: true }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['critical-lab-results'] });
+      qc.invalidateQueries({ queryKey: ['lab-orders-pending'] });
       toast.success('Lab result reviewed');
     },
     onError: (err) => toast.error(getErrorMessage(err, 'Failed to review result')),
@@ -143,7 +145,7 @@ export function LabOrders() {
           <div className="flex items-start justify-between">
             <div>
               <p className="font-semibold text-red-800">
-                {criticalResults.length} Critical Lab Result{criticalResults.length > 1 ? 's' : ''} Pending Review
+                {criticalResults.length} STAT Lab Order{criticalResults.length > 1 ? 's' : ''} Pending
               </p>
               <p className="text-sm text-red-600 mt-1">These require immediate attention</p>
             </div>
@@ -151,7 +153,7 @@ export function LabOrders() {
               {criticalResults.slice(0, 2).map((r) => (
                 <Button key={r.id} size="sm" variant="danger"
                   leftIcon={<CheckCircle className="w-3.5 h-3.5" />}
-                  onClick={() => reviewMutation.mutate(r.id)}>Review</Button>
+                  onClick={() => setViewOrder(r)}>View</Button>
               ))}
             </div>
           </div>
