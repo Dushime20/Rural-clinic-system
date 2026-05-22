@@ -157,6 +157,18 @@ export interface AIPrediction {
   confidence: number;
   icd10Code?: string;
   recommendations?: string[];
+  description?: string;
+  precautions?: string[];
+  medications?: string[];
+  diet?: string[];
+  workout?: string[];
+}
+
+export interface DiagnosisPrescription {
+  medication: string;
+  dosage: string;
+  frequency: string;
+  duration: string;
 }
 
 export interface Diagnosis {
@@ -173,6 +185,7 @@ export interface Diagnosis {
   patientGender: string;
   aiPredictions: AIPrediction[];
   selectedDiagnosis?: { disease: string; confidence: number; icd10Code?: string };
+  prescriptions?: DiagnosisPrescription[];
   notes?: string;
   followUpRequired: boolean;
   followUpDate?: string;

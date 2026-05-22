@@ -238,14 +238,62 @@ export function Diagnoses() {
                 </div>
                 <div className="space-y-2">
                   {viewDiag.aiPredictions.map((p, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                      <div>
-                        <p className="text-sm font-medium text-purple-900">{p.disease}</p>
-                        {p.icd10Code && <p className="text-xs text-purple-600">ICD-10: {p.icd10Code}</p>}
+                    <div key={i} className="p-3 bg-purple-50 rounded-lg">
+                      <div className="flex items-center justify-between mb-1">
+                        <div>
+                          <p className="text-sm font-medium text-purple-900">{p.disease}</p>
+                          {p.icd10Code && <p className="text-xs text-purple-600">ICD-10: {p.icd10Code}</p>}
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-bold text-purple-700">{(p.confidence * 100).toFixed(0)}%</p>
+                          <p className="text-xs text-purple-500">confidence</p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold text-purple-700">{(p.confidence * 100).toFixed(0)}%</p>
-                        <p className="text-xs text-purple-500">confidence</p>
+                      {i === 0 && p.description && (
+                        <p className="text-xs text-gray-600 mt-2 border-t border-purple-100 pt-2">{p.description}</p>
+                      )}
+                      {i === 0 && p.precautions && p.precautions.length > 0 && (
+                        <div className="mt-2 border-t border-purple-100 pt-2">
+                          <p className="text-xs font-medium text-gray-500 mb-1">Precautions</p>
+                          <ul className="list-disc list-inside space-y-0.5">
+                            {p.precautions.map((r, j) => <li key={j} className="text-xs text-gray-600">{r}</li>)}
+                          </ul>
+                        </div>
+                      )}
+                      {i === 0 && p.diet && p.diet.length > 0 && (
+                        <div className="mt-2 border-t border-purple-100 pt-2">
+                          <p className="text-xs font-medium text-gray-500 mb-1">Recommended Diet</p>
+                          <ul className="list-disc list-inside space-y-0.5">
+                            {p.diet.map((d, j) => <li key={j} className="text-xs text-gray-600">{d}</li>)}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {viewDiag.prescriptions && viewDiag.prescriptions.length > 0 && (
+              <div>
+                <p className="text-sm font-semibold text-gray-700 mb-2">Prescriptions</p>
+                <div className="space-y-2">
+                  {viewDiag.prescriptions.map((rx, i) => (
+                    <div key={i} className="p-3 bg-green-50 rounded-lg border border-green-100">
+                      <p className="text-sm font-medium text-green-900">{rx.medication}</p>
+                      <div className="grid grid-cols-3 gap-2 mt-1">
+                        <div>
+                          <p className="text-xs text-gray-500">Dosage</p>
+                          <p className="text-xs font-medium text-gray-700">{rx.dosage}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Frequency</p>
+                          <p className="text-xs font-medium text-gray-700">{rx.frequency}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Duration</p>
+                          <p className="text-xs font-medium text-gray-700">{rx.duration}</p>
+                        </div>
                       </div>
                     </div>
                   ))}

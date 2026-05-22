@@ -23,6 +23,14 @@ router.use(authenticate);
 router.get('/prescriptions', getDiagnosesWithPrescriptions);
 
 /**
+ * @route   GET /api/v1/diagnosis/patients/:patientId/diagnoses
+ * @desc    Get all diagnoses for a patient
+ * @access  Private
+ * NOTE: Must be registered BEFORE /:id to avoid Express matching "patients" as an id
+ */
+router.get('/patients/:patientId/diagnoses', getPatientDiagnoses);
+
+/**
  * @route   POST /api/v1/diagnosis
  * @desc    Create AI diagnosis
  * @access  Private (Health Worker, Admin)
@@ -51,12 +59,5 @@ router.put(
     authorize(UserRole.HEALTH_WORKER, UserRole.ADMIN),
     updateDiagnosis
 );
-
-/**
- * @route   GET /api/v1/patients/:patientId/diagnoses
- * @desc    Get all diagnoses for a patient
- * @access  Private
- */
-router.get('/patients/:patientId/diagnoses', getPatientDiagnoses);
 
 export default router;
