@@ -33,7 +33,8 @@ export function PharmacyDashboard() {
   const { data: medicinesData } = useQuery({
     queryKey: ['my-medicines-summary'],
     queryFn: async () => {
-      const { data } = await api.get('/pharmacy-manager/my/medicines?limit=6');
+      // Fetch up to 200 for accurate stats; display only first 6 in the preview list
+      const { data } = await api.get('/pharmacy-manager/my/medicines?limit=200');
       return data.data as { medicines: Medicine[]; pagination: { total: number } };
     },
     enabled: !!pharmacy,
@@ -74,6 +75,8 @@ export function PharmacyDashboard() {
   const available = medicines.filter((m) => m.isAvailable && m.stockQuantity > 0).length;
   const lowStock = medicines.filter((m) => m.stockQuantity > 0 && m.stockQuantity < 10).length;
   const outOfStock = medicines.filter((m) => m.stockQuantity === 0 || !m.isAvailable).length;
+  // Show only first 6 in the preview list
+  const previewMedicines = medicines.slice(0, 6);
 
   return (
     <div className="space-y-6">
@@ -139,7 +142,7 @@ export function PharmacyDashboard() {
               </div>
             ) : (
               <div className="divide-y divide-gray-50">
-                {medicines.map((m) => (
+                {previewMedicines.map((m) => (
                   <div key={m.id} className="px-6 py-3 flex items-center justify-between hover:bg-gray-50">
                     <div>
                       <p className="text-sm font-medium text-gray-900">{m.medicationName}</p>
