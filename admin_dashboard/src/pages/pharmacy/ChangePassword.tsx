@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -21,8 +22,15 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export function ChangePassword() {
-  const { refreshUser } = useAuth();
+  const { refreshUser, user } = useAuth();
   const navigate = useNavigate();
+
+  // If already logged in and doesn't need to change password, redirect
+  useEffect(() => {
+    if (user && !user.mustChangePassword) {
+      navigate('/pharmacy-portal', { replace: true });
+    }
+  }, [user, navigate]);
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -35,9 +43,19 @@ export function ChangePassword() {
         newPassword: data.newPassword,
       }),
     onSuccess: async () => {
-      toast.success('Password changed successfully!');
-      await refreshUser();
-      navigate('/pharmacy-portal', { replace: true });
+      // Refresh user to get updated mustChangePassword flag
+      try {
+        await refreshUser();
+        toast.success('Password changed successfully!');
+        // Small delay to ensure state updates propagate
+        setTimeout(() => {
+          navigate('/pharmacy-portal', { replace: true });
+        }, 100);
+      } catch (error) {
+        // If refresh fails but password was changed, try to continue anyway
+        toast.success('Password changed successfully!');
+        navigate('/pharmacy-portal', { replace: true });
+      }
     },
     onError: (err: unknown) => {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to change password';

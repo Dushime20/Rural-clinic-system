@@ -170,6 +170,7 @@ export const getAllUsers = async (
                     phoneNumber: user.phoneNumber,
                     isActive: user.isActive,
                     isEmailVerified: user.isEmailVerified,
+                    mustChangePassword: user.mustChangePassword,
                     lastLogin: user.lastLogin,
                     createdAt: user.createdAt
                 })),
@@ -216,6 +217,7 @@ export const getUserById = async (
                     phoneNumber: user.phoneNumber,
                     isActive: user.isActive,
                     isEmailVerified: user.isEmailVerified,
+                    mustChangePassword: user.mustChangePassword,
                     lastLogin: user.lastLogin,
                     createdAt: user.createdAt,
                     updatedAt: user.updatedAt
@@ -404,6 +406,7 @@ export const getCurrentUser = async (
                     phoneNumber: user.phoneNumber,
                     isActive: user.isActive,
                     isEmailVerified: user.isEmailVerified,
+                    mustChangePassword: user.mustChangePassword,
                     lastLogin: user.lastLogin,
                     createdAt: user.createdAt
                 }
@@ -483,7 +486,7 @@ export const changePassword = async (
 
         const user = await userRepository.findOne({
             where: { id: req.user.id },
-            select: ['id', 'email', 'password', 'firstName', 'lastName', 'role', 'createdAt', 'updatedAt']
+            select: ['id', 'email', 'password', 'firstName', 'lastName', 'role', 'mustChangePassword', 'createdAt', 'updatedAt']
         });
 
         if (!user) {
@@ -497,8 +500,9 @@ export const changePassword = async (
             throw new AppError('Current password is incorrect', 401);
         }
 
-        // Update password
+        // Update password and clear mustChangePassword flag
         user.password = newPassword; // Will be hashed by User entity
+        user.mustChangePassword = false; // User has changed their password
         await userRepository.save(user);
 
         logger.info(`Password changed for user: ${user.email}`);

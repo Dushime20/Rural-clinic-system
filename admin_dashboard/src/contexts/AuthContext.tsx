@@ -63,10 +63,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     mutationFn: loginRequest,
     onSuccess: (result) => {
       const { user: u, accessToken, refreshToken } = result;
+      // Ensure the user object is complete with all properties from backend
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
       localStorage.setItem('user', JSON.stringify(u));
       setUser(u);
+      console.log('User logged in:', { ...u, mustChangePassword: u.mustChangePassword }); // Debug log
     },
   });
 
@@ -100,9 +102,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data } = await api.get('/users/me');
       const u = data.data.user as User;
+      console.log('User refreshed:', { ...u, mustChangePassword: u.mustChangePassword }); // Debug log
       setUser(u);
       localStorage.setItem('user', JSON.stringify(u));
-    } catch { /* ignore */ }
+      return u;
+    } catch (error) {
+      // If refresh fails, clear everything
+      localStorage.clear();
+      setUser(null);
+      throw error;
+    }
   }, []);
 
   // Derive a clean error string from the login mutation state

@@ -11,6 +11,7 @@ export interface User {
   phoneNumber?: string;
   isActive: boolean;
   isEmailVerified: boolean;
+  mustChangePassword?: boolean;
   lastLogin?: string;
   createdAt: string;
   updatedAt: string;
