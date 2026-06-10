@@ -7,6 +7,8 @@ import { AuthRequest } from '../middleware/auth';
 import { logger } from '../utils/logger';
 import { v4 as uuidv4 } from 'uuid';
 import { AIService } from '../services/ai.service';
+import { recommendationEngineService } from '../services/recommendation-engine.service';
+import { diagnosisHistoryService } from '../services/diagnosis-history.service';
 
 const aiService = new AIService();
 const diagnosisRepository = AppDataSource.getRepository(Diagnosis);
@@ -16,7 +18,7 @@ const patientRepository = AppDataSource.getRepository(Patient);
  * @swagger
  * /diagnosis:
  *   post:
- *     summary: Create AI diagnosis
+ *     summary: Create AI diagnosis with pharmacy and clinic recommendations
  *     tags: [Diagnosis]
  *     security:
  *       - bearerAuth: []
@@ -28,7 +30,7 @@ const patientRepository = AppDataSource.getRepository(Patient);
  *             type: object
  *     responses:
  *       201:
- *         description: Diagnosis created successfully
+ *         description: Diagnosis created successfully with recommendations
  */
 export const createDiagnosis = async (
     req: AuthRequest,
@@ -36,7 +38,7 @@ export const createDiagnosis = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        const { patientId, symptoms, vitalSigns, medicalHistory, notes } = req.body;
+        const { patientId, symptoms, vitalSigns, medicalHistory, notes, latitude, longitude } = req.body;
 
         // Verify patient exists
         const patient = await patientRepository.findOne({ where: { id: patientId } });
@@ -105,11 +107,58 @@ export const createDiagnosis = async (
 
         logger.info(`New diagnosis created: ${diagnosis.diagnosisId} for patient ${patient.patientId}`);
 
-        res.status(201).json({
+        // Get comprehensive recommendations (pharmacies + clinics)
+        let recommendations;
+        let patternAnalysis;
+        let clinicRecommendationReason;
+        
+        try {
+            const diseaseName = primaryPrediction?.disease || '';
+            const medications = primaryPrediction?.medications || [];
+
+            // Call recommendation engine
+            const recommendationResult = await recommendationEngineService.getRecommendations({
+                diagnosisId: diagnosis.id,
+                patientId: diagnosis.patientId,
+                diseaseName,
+                medications,
+                latitude,
+                longitude,
+            });
+
+            recommendations = {
+                pharmacies: recommendationResult.pharmacies || [],
+                clinics: recommendationResult.clinics,
+                clinicRecommendationReason: recommendationResult.clinicRecommendationReason,
+            };
+
+            patternAnalysis = recommendationResult.patternAnalysis;
+            clinicRecommendationReason = recommendationResult.clinicRecommendationReason;
+
+            logger.info(`Recommendations generated: ${recommendations.pharmacies.length} pharmacies, ${recommendations.clinics?.length ?? 'null'} clinics`);
+            logger.info(`Clinic recommendation triggered: ${recommendations.clinics !== undefined}, reason: ${clinicRecommendationReason || 'none'}`);
+        } catch (recError) {
+            logger.error('❌ Recommendation engine error (graceful degradation):', recError);
+            // Graceful degradation: return diagnosis without recommendations
+            recommendations = { pharmacies: [] };
+        }
+
+        // Build response with optional clinic fields (backward compatibility)
+        const response: any = {
             success: true,
             message: 'Diagnosis created successfully',
-            data: { diagnosis }
-        });
+            data: {
+                diagnosis,
+                recommendations,
+            },
+        };
+
+        // Add pattern analysis if available
+        if (patternAnalysis && (patternAnalysis.isRecurring || patternAnalysis.isPersistent || patternAnalysis.matchesChronicCondition)) {
+            response.data.patternAnalysis = patternAnalysis;
+        }
+
+        res.status(201).json(response);
     } catch (error) {
         next(error);
     }

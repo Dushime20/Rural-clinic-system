@@ -10,6 +10,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Users } from './pages/Users';
 import { Patients } from './pages/Patients';
 import { Pharmacies } from './pages/Pharmacies';
+import { Clinics } from './pages/Clinics';
 import { Medications } from './pages/Medications';
 import { Diagnoses } from './pages/Diagnoses';
 import { Reports } from './pages/Reports';
@@ -124,6 +125,7 @@ function AppRoutes() {
         <Route path="users" element={<Users />} />
         <Route path="patients" element={<Patients />} />
         <Route path="pharmacies" element={<Pharmacies />} />
+        <Route path="clinics" element={<Clinics />} />
         <Route path="medications" element={<Medications />} />
         <Route path="diagnoses" element={<Diagnoses />} />
         <Route path="reports" element={<Reports />} />

@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import { Response, NextFunction } from 'express';
-import { AuthRequest, authenticate } from '../middleware/auth';
+import { AuthRequest, authenticate, authorize } from '../middleware/auth';
 import { Patient } from '../models/Patient';
 import { Diagnosis } from '../models/Diagnosis';
-import { User } from '../models/User';
+import { User, UserRole } from '../models/User';
 import { Appointment, AppointmentStatus } from '../models/Appointment';
 import { Medication } from '../models/Medication';
 import { Prescription } from '../models/Prescription';
@@ -11,6 +11,9 @@ import { LabResult } from '../models/LabResult';
 import { Pharmacy } from '../models/Pharmacy';
 import { AppDataSource } from '../database/data-source';
 import { MoreThanOrEqual, Between } from 'typeorm';
+import { analyticsService } from '../services/analytics.service';
+import { query, validationResult } from 'express-validator';
+import { AppError } from '../middleware/error-handler';
 
 const router = Router();
 
@@ -334,5 +337,77 @@ router.get('/patients', async (req: AuthRequest, res: Response, next: NextFuncti
         next(error);
     }
 });
+
+/**
+ * @swagger
+ * /analytics/clinic-recommendations:
+ *   get:
+ *     summary: Get clinic recommendation statistics (Admin only)
+ *     tags: [Analytics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: from
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Start date for filtering (ISO 8601 format)
+ *       - in: query
+ *         name: to
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: End date for filtering (ISO 8601 format)
+ *       - in: query
+ *         name: reason
+ *         schema:
+ *           type: string
+ *           enum: [no_pharmacy_found, recurring_disease, persistent_disease, chronic_condition]
+ *         description: Filter by recommendation reason
+ *     responses:
+ *       200:
+ *         description: Clinic recommendation statistics
+ */
+router.get(
+    '/clinic-recommendations',
+    authenticate,
+    authorize(UserRole.ADMIN),
+    [
+        query('from').optional().isISO8601().withMessage('from must be a valid ISO 8601 date'),
+        query('to').optional().isISO8601().withMessage('to must be a valid ISO 8601 date'),
+        query('reason').optional().isIn(['no_pharmacy_found', 'recurring_disease', 'persistent_disease', 'chronic_condition']).withMessage('Invalid reason value'),
+    ],
+    async (req: AuthRequest, res: Response, next: NextFunction) => {
+        try {
+            // Validate request
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                throw new AppError('Validation failed', 400, errors.array());
+            }
+
+            const { from, to, reason } = req.query;
+
+            const params: any = {};
+            if (from) params.from = new Date(from as string);
+            if (to) params.to = new Date(to as string);
+            if (reason) params.reason = reason as string;
+
+            const stats = await analyticsService.getClinicRecommendationStats(params);
+
+            res.status(200).json({
+                success: true,
+                data: {
+                    total: stats.total,
+                    byReason: stats.byReason,
+                    avgClinicsPerRecommendation: stats.avgClinicsPerRecommendation,
+                    dateRange: stats.dateRange,
+                },
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+);
 
 export default router;

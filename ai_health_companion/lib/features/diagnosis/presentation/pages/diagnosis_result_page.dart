@@ -13,6 +13,10 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/app_header.dart';
 import '../../data/models/diagnosis_models.dart';
+import '../../data/models/clinic_models.dart';
+import '../widgets/clinic_recommendation_card.dart';
+import '../widgets/pattern_analysis_notice.dart';
+import '../widgets/clinic_specialty_filter.dart';
 
 class DiagnosisResultPage extends ConsumerStatefulWidget {
   final Map<String, dynamic> diagnosisData;
@@ -28,6 +32,20 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
   Map<String, dynamic>? _patient;
   List<NearbyPharmacy> _nearbyPharmacies = [];
   bool _isGeneratingPdf = false;
+  bool _isHistorical = false; // Flag to indicate historical diagnosis
+  // Clinic filter state
+  List<String> _selectedSpecialties = [];
+  List<ClinicRecommendation> get _filteredClinics {
+    final clinics = _diagnosis?.recommendations?.clinics ?? [];
+    if (_selectedSpecialties.isEmpty) return clinics;
+    return clinics
+        .where(
+          (clinic) => clinic.specialties.any(
+            (s) => _selectedSpecialties.contains(s),
+          ),
+        )
+        .toList();
+  }
 
   @override
   void initState() {
@@ -59,6 +77,9 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
               return NearbyPharmacy.fromJson(p as Map<String, dynamic>);
             }).toList();
       }
+
+      // Check if this is a historical diagnosis
+      _isHistorical = widget.diagnosisData['isHistorical'] as bool? ?? false;
     } catch (e) {
       debugPrint('Error extracting diagnosis data: $e');
     }
@@ -554,6 +575,9 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Historical diagnosis indicator
+            if (_isHistorical) _buildHistoricalDiagnosisNotice(),
+            if (_isHistorical) const SizedBox(height: 16),
             _buildPatientCard(),
             const SizedBox(height: 16),
             _buildPrimaryDiagnosisCard(),
@@ -597,6 +621,30 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
               else
                 _buildNoPharmaciesCard(),
             ],
+            // Clinic recommendations section (NEW)
+            if (_diagnosis!.hasClinicsRecommended) ...[
+              const SizedBox(height: 16),
+              // Pattern analysis notice (if applicable)
+              if (_diagnosis!.hasPatternAnalysis)
+                PatternAnalysisNotice(
+                  patternAnalysis: _diagnosis!.patternAnalysis!,
+                ),
+              const SizedBox(height: 16),
+              // Specialty filter (only show if there are clinics to filter)
+              if (_diagnosis!.hasClinics)
+                ClinicSpecialtyFilter(
+                  clinics: _diagnosis!.recommendations!.clinics!,
+                  selectedSpecialties: _selectedSpecialties,
+                  onFilterChanged: (selected) {
+                    setState(() {
+                      _selectedSpecialties = selected;
+                    });
+                  },
+                ),
+              if (_diagnosis!.hasClinics)
+                const SizedBox(height: 8),
+              _buildClinicsCard(),
+            ],
             const SizedBox(height: 16),
             _buildDisclaimerCard(),
             const SizedBox(height: 16),
@@ -609,6 +657,61 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
   }
 
   // ── section cards ─────────────────────────────────────────────────────────
+
+  Widget _buildHistoricalDiagnosisNotice() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.blue.withValues(alpha: 0.3),
+          width: 2,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.blue.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.history,
+              color: Colors.blue,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Historical Diagnosis',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Viewing past diagnosis. Clinic recommendations are based on your current location, not the original diagnosis location.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.blue.shade800,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildSectionCard({
     required String title,
@@ -1762,6 +1865,338 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
         ],
       ),
     );
+  }
+
+  // ── Clinic recommendations ────────────────────────────────────────────────
+
+  Widget _buildClinicsCard() {
+    final clinics = _filteredClinics; // Use filtered clinics
+    final totalClinics = _diagnosis?.recommendations?.clinics?.length ?? 0;
+    final reason = _diagnosis?.recommendations?.clinicRecommendationReason;
+    
+    // Don't show anything if clinics weren't recommended at all
+    if (_diagnosis?.recommendations?.clinics == null) {
+      return const SizedBox.shrink();
+    }
+
+    return _buildSectionCard(
+      title: 'Clinic Recommendations',
+      icon: Icons.local_hospital,
+      color: Colors.blue,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Historical diagnosis clinic search indicator
+          if (_isHistorical) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.lightBlue.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: Colors.lightBlue.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.location_on,
+                    color: Colors.lightBlue.shade700,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'These clinic recommendations are based on your current location and updated pattern analysis.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.lightBlue.shade900,
+                        height: 1.4,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+          // Explanation based on reason
+          if (reason != null) ...[
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.blue.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.blue.withValues(alpha: 0.2),
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: Colors.blue.shade700,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _getClinicReasonExplanation(reason),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.blue.shade900,
+                        height: 1.5,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+          // Show message if NO clinics found at all (empty array from backend)
+          if (totalClinics == 0) ...[
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.orange.shade50,
+                    Colors.amber.shade50,
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.orange.shade200,
+                  width: 1.5,
+                ),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.orange.withValues(alpha: 0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.location_off_outlined,
+                      size: 48,
+                      color: Colors.orange.shade600,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No Specialized Clinics Found',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange.shade900,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'We couldn\'t find clinics with the recommended specialties in your area.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.orange.shade800,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.lightbulb_outline,
+                              size: 18,
+                              color: Colors.amber.shade700,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Suggestions:',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey.shade800,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        _buildSuggestionItem('Visit a General Medicine clinic'),
+                        _buildSuggestionItem('Expand your search radius'),
+                        _buildSuggestionItem('Contact your primary care doctor'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            // Show filtered message if filters are active
+            if (_selectedSpecialties.isNotEmpty && clinics.length < totalClinics) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: Colors.amber.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.filter_alt, size: 18, color: Colors.amber),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Showing ${clinics.length} of $totalClinics clinics',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            // Show message if no clinics match filter
+            if (clinics.isEmpty && totalClinics > 0) ...[
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.filter_alt_off, size: 48, color: Colors.grey.shade400),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No clinics match selected specialties',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Try selecting different specialties or clear filters',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ] else
+              // Clinic cards
+              ...clinics.map((clinic) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: ClinicRecommendationCard(clinic: clinic),
+              )),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _getClinicReasonExplanation(String reason) {
+    // Check if we have pharmacy recommendations
+    // Use _nearbyPharmacies list (populated by Flutter) instead of backend recommendations
+    final bool hasPharmacies = _nearbyPharmacies.isNotEmpty;
+    final bool hasPharmacyRecommendations = _diagnosis?.recommendations?.pharmacies.isNotEmpty ?? false;
+    
+    // Normalize reason to handle both spaces and underscores
+    final normalizedReason = reason.toLowerCase().replaceAll('_', ' ');
+    
+    // DEBUG: Print values to console
+    debugPrint('=== CLINIC MESSAGE DEBUG ===');
+    debugPrint('Reason from backend: $reason');
+    debugPrint('Normalized reason: $normalizedReason');
+    debugPrint('Has pharmacies (from _nearbyPharmacies): $hasPharmacies');
+    debugPrint('Nearby pharmacies count: ${_nearbyPharmacies.length}');
+    debugPrint('Backend pharmacies count: ${_diagnosis?.recommendations?.pharmacies.length ?? 0}');
+    debugPrint('');
+    debugPrint('Pattern checks:');
+    debugPrint('  - Contains "persistent": ${normalizedReason.contains('persistent')}');
+    debugPrint('  - Contains "recurring": ${normalizedReason.contains('recurring')}');
+    debugPrint('  - Contains "chronic": ${normalizedReason.contains('chronic')}');
+    debugPrint('  - Contains "no pharmacy": ${normalizedReason.contains('no pharmacy')}');
+    debugPrint('==========================');
+    
+    // IMPORTANT: If backend says "no pharmacy" but we actually found pharmacies,
+    // ignore that reason and use default message instead
+    final shouldIgnoreNoPharmacyReason = normalizedReason.contains('no pharmacy') && hasPharmacies;
+    
+    if (shouldIgnoreNoPharmacyReason) {
+      debugPrint('⚠️ Backend said no_pharmacy but pharmacies were found! Using default message.');
+    }
+    
+    // Handle persistent/chronic conditions
+    if (!shouldIgnoreNoPharmacyReason && normalizedReason.contains('persistent')) {
+      if (hasPharmacies) {
+        return 'This condition has persisted for an extended period. While pharmacies are available for medication, we also recommend visiting a specialized clinic for in-depth evaluation and comprehensive treatment.';
+      }
+      return 'This condition has persisted for an extended period. We recommend visiting a specialized clinic for in-depth evaluation and treatment.';
+    }
+    
+    // Handle recurring patterns
+    if (!shouldIgnoreNoPharmacyReason && normalizedReason.contains('recurring')) {
+      if (hasPharmacies) {
+        return 'Your diagnosis history shows a recurring pattern. In addition to obtaining medication from nearby pharmacies, we recommend specialized clinic care to help prevent future occurrences.';
+      }
+      return 'Your diagnosis history shows a recurring pattern. Specialized clinics can provide comprehensive care and help prevent future occurrences.';
+    }
+    
+    // Handle chronic conditions
+    if (!shouldIgnoreNoPharmacyReason && normalizedReason.contains('chronic')) {
+      if (hasPharmacies) {
+        return 'Your symptoms match a chronic condition. While medication is available at nearby pharmacies, specialized clinics offer long-term management and expert care for ongoing treatment.';
+      }
+      return 'Your symptoms match a chronic condition. Specialized clinics offer long-term management and expert care for chronic conditions.';
+    }
+    
+    // Handle no pharmacy found case (only if pharmacies were NOT actually found)
+    if (!shouldIgnoreNoPharmacyReason && normalizedReason.contains('no pharmacy') && !hasPharmacies) {
+      return 'No nearby pharmacies were found with the prescribed medications. We recommend visiting these specialized clinics for alternative treatment options.';
+    }
+    
+    // Default message - check if pharmacies are available
+    if (hasPharmacies) {
+      return 'Based on your diagnosis, medication is available at nearby pharmacies. We also recommend consulting with these specialized clinics for comprehensive care and expert medical guidance.';
+    }
+    
+    return 'Based on your diagnosis, we recommend consulting with these specialized clinics for comprehensive care.';
   }
 
   // ── Disease description ───────────────────────────────────────────────────

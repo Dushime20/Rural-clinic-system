@@ -16,9 +16,20 @@ class DiagnosisService {
       );
 
       if (response.data['success'] == true) {
-        return DiagnosisResponse.fromJson(
-          response.data['data']['diagnosis'] as Map<String, dynamic>,
-        );
+        // Merge recommendations and patternAnalysis into diagnosis object
+        final diagnosisJson = response.data['data']['diagnosis'] as Map<String, dynamic>;
+        
+        // Add recommendations if present
+        if (response.data['data']['recommendations'] != null) {
+          diagnosisJson['recommendations'] = response.data['data']['recommendations'];
+        }
+        
+        // Add pattern analysis if present
+        if (response.data['data']['patternAnalysis'] != null) {
+          diagnosisJson['patternAnalysis'] = response.data['data']['patternAnalysis'];
+        }
+        
+        return DiagnosisResponse.fromJson(diagnosisJson);
       } else {
         throw Exception(response.data['message'] ?? 'Diagnosis failed');
       }
@@ -235,6 +246,43 @@ class DiagnosisService {
       throw _handleDioError(e);
     } catch (e) {
       throw Exception('Failed to add prescriptions: $e');
+    }
+  }
+
+  /// Re-evaluate historical diagnosis with current location
+  /// This method:
+  /// - Fetches the historical diagnosis
+  /// - Re-runs pattern detection 
+  /// - Performs real-time clinic search using current location (not historical)
+  /// - Results are cached for 10 minutes on the backend
+  Future<DiagnosisResponse> reevaluateHistoricalDiagnosis(
+    String diagnosisId, {
+    required double latitude,
+    required double longitude,
+  }) async {
+    try {
+      final response = await _apiService.post(
+        '/diagnosis/$diagnosisId/reevaluate',
+        data: {
+          'latitude': latitude,
+          'longitude': longitude,
+          'useCurrentLocation': true,
+        },
+      );
+
+      if (response.data['success'] == true) {
+        return DiagnosisResponse.fromJson(
+          response.data['data']['diagnosis'] as Map<String, dynamic>,
+        );
+      } else {
+        throw Exception(
+          response.data['message'] ?? 'Failed to reevaluate diagnosis',
+        );
+      }
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    } catch (e) {
+      throw Exception('Failed to reevaluate historical diagnosis: $e');
     }
   }
 

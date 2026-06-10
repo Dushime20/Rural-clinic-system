@@ -8,7 +8,8 @@ export enum UserRole {
     HEALTH_WORKER = 'health_worker',
     CLINIC_STAFF = 'clinic_staff',
     SUPERVISOR = 'supervisor',
-    PHARMACIST = 'pharmacist'
+    PHARMACIST = 'pharmacist',
+    CLINIC = 'clinic'
 }
 
 @Entity('users')

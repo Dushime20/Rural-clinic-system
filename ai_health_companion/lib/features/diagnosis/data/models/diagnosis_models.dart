@@ -1,4 +1,5 @@
 // Diagnosis Request and Response Models
+import 'clinic_models.dart';
 
 class DiagnosisRequest {
   final String patientId;
@@ -127,6 +128,9 @@ class DiagnosisResponse {
   final String? notes;
   final bool followUpRequired;
   final DateTime? followUpDate;
+  // Clinic recommendations fields (added for clinic feature)
+  final Recommendations? recommendations;
+  final PatternAnalysis? patternAnalysis;
 
   DiagnosisResponse({
     required this.id,
@@ -141,6 +145,8 @@ class DiagnosisResponse {
     this.notes,
     this.followUpRequired = false,
     this.followUpDate,
+    this.recommendations,
+    this.patternAnalysis,
   });
 
   factory DiagnosisResponse.fromJson(Map<String, dynamic> json) {
@@ -178,6 +184,17 @@ class DiagnosisResponse {
           json['followUpDate'] != null
               ? DateTime.parse(json['followUpDate'] as String)
               : null,
+      // Parse clinic recommendations if available
+      recommendations: json['recommendations'] != null
+          ? Recommendations.fromJson(
+              json['recommendations'] as Map<String, dynamic>,
+            )
+          : null,
+      patternAnalysis: json['patternAnalysis'] != null
+          ? PatternAnalysis.fromJson(
+              json['patternAnalysis'] as Map<String, dynamic>,
+            )
+          : null,
     );
   }
 
@@ -196,7 +213,23 @@ class DiagnosisResponse {
     if (notes != null) 'notes': notes,
     'followUpRequired': followUpRequired,
     if (followUpDate != null) 'followUpDate': followUpDate!.toIso8601String(),
+    if (recommendations != null) 'recommendations': recommendations!.toJson(),
+    if (patternAnalysis != null) 'patternAnalysis': patternAnalysis!.toJson(),
   };
+
+  /// Helper methods for clinic recommendations
+  bool get hasClinics =>
+      recommendations != null && recommendations!.hasClinics;
+
+  /// Check if clinic recommendations were triggered (even if none found)
+  bool get hasClinicsRecommended =>
+      recommendations != null && recommendations!.hasClinicsRecommended;
+
+  bool get hasPharmacies =>
+      recommendations != null && recommendations!.hasPharmacies;
+
+  bool get hasPatternAnalysis =>
+      patternAnalysis != null && patternAnalysis!.hasPattern;
 }
 
 class AIPrediction {

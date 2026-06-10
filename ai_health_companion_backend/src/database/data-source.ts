@@ -12,6 +12,17 @@ import { Notification } from '../models/Notification';
 import { AuditLog } from '../models/AuditLog';
 import { Pharmacy } from '../models/Pharmacy';
 import { PharmacyMedicine } from '../models/PharmacyMedicine';
+import { Clinic } from '../models/Clinic';
+import { ClinicSpecialty } from '../models/ClinicSpecialty';
+import { DiseaseSpecialtyMapping } from '../models/DiseaseSpecialtyMapping';
+import { AnalyticsEvent } from '../models/AnalyticsEvent';
+import { InitialSchema1738765423000 } from './migrations/1738765423000-InitialSchema';
+import { AddInternationalFeatures1738766000000 } from './migrations/1738766000000-AddInternationalFeatures';
+import { AddPasswordResetFields1735400000000 } from './migrations/1735400000000-AddPasswordResetFields';
+import { AddPharmacyFeature1746000000000 } from './migrations/1746000000000-AddPharmacyFeature';
+import { RemoveDiagnosisStatus1747392000000 } from './migrations/1747392000000-RemoveDiagnosisStatus';
+import { AddClinicSpecializedRecommendations1748000000000 } from './migrations/1748000000000-AddClinicSpecializedRecommendations';
+import { SeedDiseaseSpecialtyMappings1748000001000 } from './migrations/1748000001000-SeedDiseaseSpecialtyMappings';
 
 export const AppDataSource = new DataSource({
     type: 'postgres',
@@ -30,9 +41,21 @@ export const AppDataSource = new DataSource({
         Notification,
         AuditLog,
         Pharmacy,
-        PharmacyMedicine
+        PharmacyMedicine,
+        Clinic,
+        ClinicSpecialty,
+        DiseaseSpecialtyMapping,
+        AnalyticsEvent
     ],
-    migrations: [],
+    migrations: [
+        InitialSchema1738765423000,
+        AddInternationalFeatures1738766000000,
+        AddPasswordResetFields1735400000000,
+        AddPharmacyFeature1746000000000,
+        RemoveDiagnosisStatus1747392000000,
+        AddClinicSpecializedRecommendations1748000000000,
+        SeedDiseaseSpecialtyMappings1748000001000
+    ],
     subscribers: [],
     extra: {
         // Neon serverless-friendly pool settings

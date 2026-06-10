@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Users, UserCheck, Pill, Store,
   BarChart3, Settings, ChevronLeft, ChevronRight,
-  Activity, Heart
+  Activity, Heart, Building2
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -16,6 +16,7 @@ const navItems = [
   { to: '/admin/users', icon: Users, label: 'User Management' },
   { to: '/admin/patients', icon: UserCheck, label: 'Patients' },
   { to: '/admin/pharmacies', icon: Store, label: 'Pharmacies' },
+  { to: '/admin/clinics', icon: Building2, label: 'Clinics' },
   { to: '/admin/medications', icon: Pill, label: 'Medications' },
   { to: '/admin/diagnoses', icon: Activity, label: 'Diagnoses' },
   { to: '/admin/reports', icon: BarChart3, label: 'Reports' },

@@ -15,6 +15,11 @@ import fhirRoutes from './fhir.routes';
 import notificationRoutes from './notification.routes';
 import auditRoutes from './audit.routes';
 import reportRoutes from './report.routes';
+import adminClinicRoutes from './admin-clinic.routes';
+import clinicManagerRoutes from './clinic-manager.routes';
+import clinicsRoutes from './clinics.routes';
+import diseaseMappingsRoutes from './disease-mappings.routes';
+import adminDiseaseMappingRoutes from './admin-disease-mapping.routes';
 
 const router = Router();
 
@@ -35,5 +40,10 @@ router.use('/fhir', fhirRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/audit', auditRoutes);
 router.use('/reports', reportRoutes);
+router.use('/admin/clinics', adminClinicRoutes);
+router.use('/admin/disease-mappings', adminDiseaseMappingRoutes);
+router.use('/clinic-manager', clinicManagerRoutes);
+router.use('/clinics', clinicsRoutes);
+router.use('/disease-mappings', diseaseMappingsRoutes);
 
 export default router;

@@ -672,6 +672,272 @@ class EmailService {
     }
 
     /**
+     * Send clinic credentials email
+     * NEW: For clinic-specialized-recommendations feature
+     * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7
+     */
+    async sendClinicCredentialsEmail(data: {
+        email: string;
+        clinicName: string;
+        temporaryPassword: string;
+        loginUrl: string;
+    }): Promise<boolean> {
+        const subject = `Your Clinic Portal Access - ${data.clinicName}`;
+        const supportEmail = process.env.SUPPORT_EMAIL || 'support@clinic.rw';
+
+        const html = this.generateClinicCredentialsEmailTemplate(data, supportEmail);
+
+        try {
+            const result = await this.sendEmail({
+                to: data.email,
+                subject,
+                html,
+            });
+
+            if (result) {
+                logger.info(`Clinic credentials email sent successfully to ${data.email}`);
+            } else {
+                logger.warn(`Failed to send clinic credentials email to ${data.email}, but clinic creation will proceed`);
+            }
+
+            return result;
+        } catch (error) {
+            // Graceful degradation: log error but don't throw
+            logger.error(`Error sending clinic credentials email to ${data.email}:`, error);
+            return false;
+        }
+    }
+
+    /**
+     * Generate clinic credentials email template (HTML)
+     * Private helper for clinic credentials email
+     */
+    private generateClinicCredentialsEmailTemplate(
+        data: { email: string; clinicName: string; temporaryPassword: string; loginUrl: string },
+        supportEmail: string
+    ): string {
+        return `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>
+                    body {
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        line-height: 1.6;
+                        color: #333;
+                        margin: 0;
+                        padding: 0;
+                        background-color: #f4f4f4;
+                    }
+                    .container {
+                        max-width: 600px;
+                        margin: 20px auto;
+                        background: white;
+                        border-radius: 10px;
+                        overflow: hidden;
+                        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                    }
+                    .header {
+                        background: linear-gradient(135deg, #3B82F6 0%, #6366F1 100%);
+                        color: white;
+                        padding: 40px 20px;
+                        text-align: center;
+                    }
+                    .header h1 {
+                        margin: 0;
+                        font-size: 26px;
+                    }
+                    .header p {
+                        margin: 10px 0 0 0;
+                        opacity: 0.9;
+                    }
+                    .content {
+                        padding: 40px 30px;
+                    }
+                    .greeting {
+                        font-size: 18px;
+                        color: #3B82F6;
+                        margin-bottom: 20px;
+                    }
+                    .credentials-box {
+                        background: #eff6ff;
+                        border-left: 4px solid #3B82F6;
+                        padding: 20px;
+                        margin: 25px 0;
+                        border-radius: 5px;
+                    }
+                    .credentials-box h3 {
+                        margin-top: 0;
+                        color: #3B82F6;
+                    }
+                    .credential-item {
+                        margin: 15px 0;
+                        padding: 10px;
+                        background: white;
+                        border-radius: 5px;
+                        border: 1px solid #dbeafe;
+                    }
+                    .credential-label {
+                        font-weight: bold;
+                        color: #666;
+                        font-size: 12px;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                    }
+                    .credential-value {
+                        font-size: 16px;
+                        color: #333;
+                        margin-top: 5px;
+                        font-family: 'Courier New', monospace;
+                        word-break: break-all;
+                    }
+                    .button {
+                        display: inline-block;
+                        padding: 15px 40px;
+                        background: #3B82F6;
+                        color: white;
+                        text-decoration: none;
+                        border-radius: 5px;
+                        margin: 20px 0;
+                        font-weight: bold;
+                    }
+                    .button:hover {
+                        background: #2563eb;
+                    }
+                    .warning {
+                        background: #fff3cd;
+                        border-left: 4px solid #ffc107;
+                        padding: 15px;
+                        margin: 20px 0;
+                        border-radius: 5px;
+                    }
+                    .warning strong {
+                        color: #856404;
+                    }
+                    .features {
+                        background: #eff6ff;
+                        padding: 20px;
+                        border-radius: 5px;
+                        margin: 25px 0;
+                    }
+                    .features h3 {
+                        margin-top: 0;
+                        color: #3B82F6;
+                    }
+                    .features ul {
+                        margin: 10px 0;
+                        padding-left: 20px;
+                    }
+                    .features li {
+                        margin: 8px 0;
+                    }
+                    .footer {
+                        background: #f8f9fa;
+                        padding: 30px;
+                        text-align: center;
+                        color: #666;
+                        font-size: 14px;
+                    }
+                    .footer a {
+                        color: #3B82F6;
+                        text-decoration: none;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <!-- Header -->
+                    <div class="header">
+                        <h1>🏥 Clinic Portal Access</h1>
+                        <p>Welcome to AI Health Companion</p>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="content">
+                        <p class="greeting">Dear ${data.clinicName} Team,</p>
+                        
+                        <p>Welcome to the AI Health Companion Clinic Portal!</p>
+                        
+                        <p>Your clinic has been registered in our system. Please use the following credentials to access your clinic dashboard:</p>
+
+                        <!-- Credentials Box -->
+                        <div class="credentials-box">
+                            <h3>🔐 Your Login Credentials</h3>
+                            
+                            <div class="credential-item">
+                                <div class="credential-label">Login URL</div>
+                                <div class="credential-value">${data.loginUrl}</div>
+                            </div>
+                            
+                            <div class="credential-item">
+                                <div class="credential-label">Email</div>
+                                <div class="credential-value">${data.email}</div>
+                            </div>
+                            
+                            <div class="credential-item">
+                                <div class="credential-label">Temporary Password</div>
+                                <div class="credential-value">${data.temporaryPassword}</div>
+                            </div>
+                        </div>
+
+                        <!-- Security Warning -->
+                        <div class="warning">
+                            <strong>⚠️ IMPORTANT:</strong>
+                            <p style="margin: 10px 0;">For security reasons, you will be required to change your password on first login.</p>
+                        </div>
+
+                        <!-- Dashboard Features -->
+                        <div class="features">
+                            <h3>📋 From your clinic dashboard, you can:</h3>
+                            <ul>
+                                <li>Update your clinic profile and contact information</li>
+                                <li>Manage your medical specialties</li>
+                                <li>View clinic recommendations sent to patients</li>
+                                <li>Update your operating hours</li>
+                            </ul>
+                        </div>
+
+                        <!-- Action Button -->
+                        <div style="text-align: center;">
+                            <a href="${data.loginUrl}" class="button">🚀 Access Clinic Dashboard</a>
+                        </div>
+
+                        <!-- Support Information -->
+                        <div style="background: #f8f9fa; padding: 20px; border-radius: 5px; margin-top: 30px;">
+                            <h4 style="margin-top: 0;">Need Assistance?</h4>
+                            <p style="margin-bottom: 10px;">If you have any questions or need assistance, please contact our support team:</p>
+                            <p style="margin: 5px 0;">
+                                📧 Email: <a href="mailto:${supportEmail}" style="color: #3B82F6;">${supportEmail}</a>
+                            </p>
+                        </div>
+
+                        <p style="margin-top: 30px;">Thank you for being part of our healthcare network!</p>
+                        
+                        <p>Best regards,<br>
+                        <strong>AI Health Companion Team</strong></p>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="footer">
+                        <p><strong>AI Health Companion</strong></p>
+                        <p>Empowering Rural Healthcare with AI Technology</p>
+                        <p style="margin-top: 20px;">
+                            This is an automated email. Please do not reply.<br>
+                            If you received this email by mistake, please contact <a href="mailto:${supportEmail}">${supportEmail}</a>
+                        </p>
+                        <p style="margin-top: 20px; font-size: 12px; color: #999;">
+                            &copy; 2026 AI Health Companion. All rights reserved.
+                        </p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+    }
+
+    /**
      * Test email configuration
      */
     async testConnection(): Promise<boolean> {

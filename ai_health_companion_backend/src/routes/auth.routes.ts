@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { register, login, refreshToken, logout, forgotPassword, resetPassword, changePassword } from '../controllers/auth.controller';
-import { authLimiter } from '../middleware/rate-limiter';
+import { authLimiter, passwordChangeLimiter } from '../middleware/rate-limiter';
 import { authenticate } from '../middleware/auth';
 
 const router = Router();
@@ -52,6 +52,6 @@ router.post('/reset-password', authLimiter, resetPassword);
  * @desc    Change password (for first-time users or authenticated users)
  * @access  Private
  */
-router.post('/change-password', authenticate, changePassword);
+router.post('/change-password', authenticate, passwordChangeLimiter, changePassword);
 
 export default router;

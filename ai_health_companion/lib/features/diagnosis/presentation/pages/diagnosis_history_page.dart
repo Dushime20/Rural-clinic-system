@@ -577,61 +577,137 @@ class _DiagnosisHistoryPageState extends ConsumerState<DiagnosisHistoryPage>
     }
   }
 
-  void _viewDiagnosisDetails(Map<String, dynamic> diagnosis) {
+  void _viewDiagnosisDetails(Map<String, dynamic> diagnosis) async {
+    // Navigate to DiagnosisResultPage with historical diagnosis data
+    // This will trigger re-evaluation of pattern detection and real-time clinic search
+    // using the patient's current location (not the historical location)
+    
+    // Show loading indicator while fetching updated data
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text('Diagnosis Details - ${diagnosis['patientName']}'),
-            content: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildDetailRow('Patient ID', diagnosis['patientId']),
-                  _buildDetailRow('Date', diagnosis['date']),
-                  _buildDetailRow('Time', diagnosis['time']),
-                  _buildDetailRow(
-                    'Primary Diagnosis',
-                    diagnosis['primaryDiagnosis'],
-                  ),
-                  _buildDetailRow(
-                    'Confidence',
-                    '${diagnosis['confidence'].toStringAsFixed(1)}%',
-                  ),
-                  _buildDetailRow('Severity', diagnosis['severity']),
-                  _buildDetailRow('Status', diagnosis['status']),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Symptoms:',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  ...(diagnosis['symptoms'] as List<String>).map(
-                    (symptom) => Text(
-                      '• $symptom',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Close'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  // TODO: Navigate to full diagnosis report
-                },
-                child: const Text('View Full Report'),
-              ),
-            ],
-          ),
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
     );
+
+    try {
+      // TODO: In production, use DiagnosisService to re-evaluate with current location
+      // final diagnosisService = ref.read(diagnosisServiceProvider);
+      // final updatedDiagnosis = await diagnosisService.reevaluateHistoricalDiagnosis(
+      //   diagnosis['id'],
+      //   latitude: currentLatitude,
+      //   longitude: currentLongitude,
+      // );
+      
+      // For now, using mock data structure
+      if (mounted) Navigator.of(context).pop(); // Close loading dialog
+      
+      if (mounted) {
+        context.push(
+          '/diagnosis/result',
+          extra: {
+            'diagnosis': _buildDiagnosisResponseFromHistory(diagnosis),
+            'patient': _buildPatientDataFromHistory(diagnosis),
+            'nearbyPharmacies': [], // Will be fetched with current location by backend
+            'isHistorical': true, // Flag to indicate this is historical data
+          },
+        );
+      }
+    } catch (e) {
+      if (mounted) Navigator.of(context).pop(); // Close loading dialog
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load diagnosis details: $e'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Build DiagnosisResponse model from historical diagnosis data
+  /// This creates a structure compatible with DiagnosisResultPage
+  Map<String, dynamic> _buildDiagnosisResponseFromHistory(
+    Map<String, dynamic> diagnosis,
+  ) {
+    return {
+      'id': diagnosis['id'],
+      'diagnosisId': diagnosis['id'],
+      'patientId': diagnosis['patientId'],
+      'aiPredictions': [
+        {
+          'disease': diagnosis['primaryDiagnosis'],
+          'confidence': diagnosis['confidence'] / 100.0,
+          'icd10Code': null,
+          'recommendations': [
+            'Follow up with healthcare provider',
+            'Monitor symptoms',
+          ],
+          'description':
+              'This is a historical diagnosis. Current recommendations based on your present location.',
+          'precautions': [],
+          'medications': [],
+          'diet': [],
+          'workout': [],
+        },
+      ],
+      'selectedDiagnosis': {
+        'disease': diagnosis['primaryDiagnosis'],
+        'confidence': diagnosis['confidence'] / 100.0,
+        'icd10Code': null,
+      },
+      'prescriptions': [], // Historical prescriptions not available in mock data
+      'symptoms':
+          (diagnosis['symptoms'] as List<String>)
+              .map(
+                (s) => {
+                  'name': s,
+                  'severity': diagnosis['severity'],
+                  'duration': null,
+                  'category': null,
+                },
+              )
+              .toList(),
+      'vitalSigns': {
+        'temperature': null,
+        'bloodPressureSystolic': null,
+        'bloodPressureDiastolic': null,
+        'heartRate': null,
+        'respiratoryRate': null,
+        'oxygenSaturation': null,
+        'weight': null,
+        'height': null,
+      },
+      'diagnosisDate':
+          '${diagnosis['date']}T${diagnosis['time']}:00.000Z',
+      'notes':
+          'Historical diagnosis - Clinic recommendations are based on your current location',
+      'followUpRequired': diagnosis['followUpRequired'],
+      'followUpDate': null,
+      // Recommendations will be fetched with current location
+      // The backend should re-evaluate pattern detection when viewing historical diagnoses
+      'recommendations': null, // Backend will populate this
+      'patternAnalysis': null, // Backend will populate this
+    };
+  }
+
+  /// Build patient data from historical diagnosis
+  Map<String, dynamic> _buildPatientDataFromHistory(
+    Map<String, dynamic> diagnosis,
+  ) {
+    // Extract first name and last name from patientName
+    final nameParts = (diagnosis['patientName'] as String).split(' ');
+    return {
+      'id': diagnosis['patientId'],
+      'firstName': nameParts.first,
+      'lastName': nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '',
+      'dateOfBirth':
+          '2000-01-01', // Not available in mock data, using placeholder
+      'gender': 'Unknown', // Not available in mock data
+      'phoneNumber': 'N/A', // Not available in mock data
+    };
   }
 
   Widget _buildDetailRow(String label, String value) {
