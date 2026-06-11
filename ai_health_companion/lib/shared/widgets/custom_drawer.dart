@@ -81,6 +81,15 @@ class CustomDrawer extends StatelessWidget {
                 ),
                 _buildDrawerItem(
                   context,
+                  icon: Icons.local_hospital,
+                  title: 'Clinics',
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.go('/clinics');
+                  },
+                ),
+                _buildDrawerItem(
+                  context,
                   icon: Icons.analytics,
                   title: 'Analytics',
                   onTap: () {

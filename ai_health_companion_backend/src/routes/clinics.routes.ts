@@ -6,6 +6,8 @@
 import { Router } from 'express';
 import {
     searchClinics,
+    getAllClinics,
+    getClinicById,
     validateClinicSearch,
 } from '../controllers/clinics.controller';
 import { authenticate } from '../middleware/auth';
@@ -22,5 +24,19 @@ router.use(authenticate);
  * @access  Private (Authenticated users)
  */
 router.post('/search', clinicSearchLimiter, validateClinicSearch, searchClinics);
+
+/**
+ * @route   GET /api/clinics/map
+ * @desc    Get all active clinics (for map view)
+ * @access  Private (Authenticated users)
+ */
+router.get('/map', getAllClinics);
+
+/**
+ * @route   GET /api/clinics/:id
+ * @desc    Get clinic details by ID
+ * @access  Private (Authenticated users)
+ */
+router.get('/:id', getClinicById);
 
 export default router;

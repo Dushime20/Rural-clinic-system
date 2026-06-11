@@ -112,6 +112,102 @@ export const searchClinics = async (
 };
 
 /**
+ * GET /api/clinics/map
+ * Get all active clinics (for map view)
+ */
+export const getAllClinics = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    try {
+        const { clinicService } = require('../services/clinic.service');
+        
+        logger.info('Fetching all active clinics for map view');
+
+        // Fetch all active clinics
+        const result = await clinicService.listClinics({
+            isActive: true,
+            limit: 1000, // Get all active clinics
+        });
+
+        // Format response
+        const clinicsFormatted = result.clinics.map((clinic: any) => ({
+            id: clinic.id,
+            name: clinic.name,
+            phoneNumber: clinic.phoneNumber,
+            address: clinic.address,
+            city: clinic.city,
+            district: clinic.district,
+            country: clinic.country,
+            latitude: clinic.latitude,
+            longitude: clinic.longitude,
+            openingHours: clinic.openingHours,
+            specialties: clinic.specialties?.map((s: any) => s.specialty) || [],
+            isActive: clinic.isActive,
+        }));
+
+        res.status(200).json({
+            success: true,
+            data: {
+                clinics: clinicsFormatted,
+                total: clinicsFormatted.length,
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * GET /api/clinics/:id
+ * Get clinic details by ID
+ */
+export const getClinicById = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const { clinicService } = require('../services/clinic.service');
+
+        logger.info(`Fetching clinic details for ID: ${id}`);
+
+        const clinic = await clinicService.getClinicById(id);
+
+        if (!clinic) {
+            throw new AppError('Clinic not found', 404);
+        }
+
+        // Format response
+        const clinicFormatted = {
+            id: clinic.id,
+            name: clinic.name,
+            phoneNumber: clinic.phoneNumber,
+            address: clinic.address,
+            city: clinic.city,
+            district: clinic.district,
+            country: clinic.country,
+            latitude: clinic.latitude,
+            longitude: clinic.longitude,
+            openingHours: clinic.openingHours,
+            specialties: clinic.specialties?.map((s: any) => s.specialty) || [],
+            isActive: clinic.isActive,
+        };
+
+        res.status(200).json({
+            success: true,
+            data: {
+                clinic: clinicFormatted,
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
  * GET /api/disease-mappings/search
  * Get specialties for a disease
  */

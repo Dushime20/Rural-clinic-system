@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../models/diagnosis_models.dart';
+import '../models/clinic_models.dart';
 import '../../../../core/services/api_service.dart';
 
 class DiagnosisService {
@@ -165,6 +166,49 @@ class DiagnosisService {
       throw _handleDioError(e);
     } catch (e) {
       throw Exception('Failed to get pharmacy details: $e');
+    }
+  }
+
+  /// Get all active clinics
+  Future<List<ClinicRecommendation>> getAllClinics() async {
+    try {
+      final response = await _apiService.get('/clinics/map');
+
+      if (response.data['success'] == true) {
+        final clinics = response.data['data']['clinics'] as List;
+        return clinics
+            .map((c) => ClinicRecommendation.fromJson(c as Map<String, dynamic>))
+            .toList();
+      } else {
+        throw Exception(
+          response.data['message'] ?? 'Failed to fetch clinics',
+        );
+      }
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    } catch (e) {
+      throw Exception('Failed to get clinics: $e');
+    }
+  }
+
+  /// Get clinic details by ID
+  Future<ClinicRecommendation> getClinicById(String clinicId) async {
+    try {
+      final response = await _apiService.get('/clinics/$clinicId');
+
+      if (response.data['success'] == true) {
+        return ClinicRecommendation.fromJson(
+          response.data['data']['clinic'] as Map<String, dynamic>,
+        );
+      } else {
+        throw Exception(
+          response.data['message'] ?? 'Failed to fetch clinic details',
+        );
+      }
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    } catch (e) {
+      throw Exception('Failed to get clinic details: $e');
     }
   }
 
