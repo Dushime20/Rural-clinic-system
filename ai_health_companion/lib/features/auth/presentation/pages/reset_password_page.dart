@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/services/auth_service.dart';
+import '../../../../generated/app_localizations.dart';
 
 class ResetPasswordPage extends ConsumerStatefulWidget {
   final String? token;
@@ -54,6 +55,8 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
 
     if (!mounted) return;
 
+    final l10n = AppLocalizations.of(context)!;
+
     if (result['success'] == true) {
       // Show success dialog
       showDialog(
@@ -64,27 +67,27 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              title: const Row(
+              title: Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.check_circle,
                     color: AppTheme.successColor,
                     size: 28,
                   ),
-                  SizedBox(width: 12),
-                  Text('Password Reset'),
+                  const SizedBox(width: 12),
+                  Text(l10n.passwordResetSuccess),
                 ],
               ),
-              content: const Text(
-                'Your password has been reset successfully. Please login with your new password.',
-                style: TextStyle(fontSize: 16),
+              content: Text(
+                l10n.passwordResetSuccessMessage,
+                style: const TextStyle(fontSize: 16),
               ),
               actions: [
                 TextButton(
                   onPressed: () {
                     context.go('/login');
                   },
-                  child: const Text('Go to Login'),
+                  child: Text(l10n.goToLogin),
                 ),
               ],
             ),
@@ -93,7 +96,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
       // Show error
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(result['message'] ?? 'Failed to reset password'),
+          content: Text(result['message'] ?? l10n.failedToResetPassword),
           backgroundColor: AppTheme.errorColor,
         ),
       );
@@ -102,6 +105,8 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
@@ -144,7 +149,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
 
                   // Title
                   Text(
-                    'Reset Password',
+                    l10n.resetPasswordTitle,
                     style: Theme.of(context).textTheme.displayMedium?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w800,
@@ -155,7 +160,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
 
                   // Subtitle
                   Text(
-                    'Enter the code from your email and\nyour new password',
+                    l10n.enterCodeAndNewPassword,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       color: Colors.white.withOpacity(0.9),
                     ),
@@ -196,7 +201,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                               fontWeight: FontWeight.w500,
                             ),
                             decoration: InputDecoration(
-                              labelText: 'Reset Code',
+                              labelText: l10n.resetCode,
                               labelStyle: TextStyle(
                                 color: Colors.white.withOpacity(0.7),
                                 fontWeight: FontWeight.w500,
@@ -229,7 +234,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'Please enter the reset code';
+                                return l10n.pleaseEnterResetCode;
                               }
                               return null;
                             },
@@ -247,7 +252,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                               fontWeight: FontWeight.w500,
                             ),
                             decoration: InputDecoration(
-                              labelText: 'New Password',
+                              labelText: l10n.newPassword,
                               labelStyle: TextStyle(
                                 color: Colors.white.withOpacity(0.7),
                                 fontWeight: FontWeight.w500,
@@ -293,10 +298,10 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'Please enter a new password';
+                                return l10n.pleaseEnterNewPasswordReset;
                               }
                               if (value.length < 8) {
-                                return 'Password must be at least 8 characters';
+                                return l10n.passwordMinLength8;
                               }
                               return null;
                             },
@@ -314,7 +319,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                               fontWeight: FontWeight.w500,
                             ),
                             decoration: InputDecoration(
-                              labelText: 'Confirm Password',
+                              labelText: l10n.confirmPassword,
                               labelStyle: TextStyle(
                                 color: Colors.white.withOpacity(0.7),
                                 fontWeight: FontWeight.w500,
@@ -361,10 +366,10 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'Please confirm your password';
+                                return l10n.pleaseConfirmPassword;
                               }
                               if (value != _passwordController.text) {
-                                return 'Passwords do not match';
+                                return l10n.passwordsDoNotMatch;
                               }
                               return null;
                             },
@@ -413,7 +418,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                                         ),
                                       )
                                       : Text(
-                                        'Reset Password',
+                                        l10n.resetPassword,
                                         style: Theme.of(
                                           context,
                                         ).textTheme.titleMedium?.copyWith(

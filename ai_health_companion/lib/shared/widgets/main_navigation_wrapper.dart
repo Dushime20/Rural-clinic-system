@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../generated/app_localizations.dart';
 
 class MainNavigationWrapper extends StatelessWidget {
   final Widget child;
@@ -35,26 +36,28 @@ class MainNavigationWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Scaffold(
       body: child,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: currentIndex,
         onTap: (index) => _onItemTapped(index, context),
         type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
+        items: [
+          BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: l10n.home),
           BottomNavigationBarItem(
             icon: Icon(Icons.psychology),
-            label: 'Diagnosis',
+            label: l10n.diagnosis,
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Patients'),
+          BottomNavigationBarItem(icon: Icon(Icons.people), label: l10n.patients),
           BottomNavigationBarItem(
             icon: Icon(Icons.local_pharmacy),
-            label: 'Pharmacies',
+            label: l10n.pharmacies,
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),
-            label: 'Settings',
+            label: l10n.settings,
           ),
         ],
       ),

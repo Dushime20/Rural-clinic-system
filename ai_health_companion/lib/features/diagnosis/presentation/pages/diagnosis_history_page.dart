@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../generated/app_localizations.dart';
 import '../../../../shared/widgets/search_bar_widget.dart';
 import '../../../../shared/widgets/app_header.dart';
 
@@ -141,23 +142,24 @@ class _DiagnosisHistoryPageState extends ConsumerState<DiagnosisHistoryPage>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final filteredDiagnoses = _getFilteredDiagnoses();
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppHeader(
-        title: 'Diagnosis History',
-        subtitle: '${_diagnosisHistory.length} records found',
+        title: l10n.diagnosisHistory,
+        subtitle: l10n.recordsFound(_diagnosisHistory.length),
         actions: [
           IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: _showFilterDialog,
-            tooltip: 'Filter',
+            tooltip: l10n.filterTooltip,
           ),
           IconButton(
             icon: const Icon(Icons.download),
             onPressed: _exportHistory,
-            tooltip: 'Export',
+            tooltip: l10n.exportTooltip,
           ),
         ],
       ),
@@ -174,7 +176,7 @@ class _DiagnosisHistoryPageState extends ConsumerState<DiagnosisHistoryPage>
                   Padding(
                     padding: const EdgeInsets.all(20),
                     child: SearchBarWidget(
-                      hintText: 'Search diagnoses...',
+                      hintText: l10n.searchDiagnoses,
                       onChanged: (query) {
                         setState(() {
                           _searchQuery = query;
@@ -222,6 +224,14 @@ class _DiagnosisHistoryPageState extends ConsumerState<DiagnosisHistoryPage>
   }
 
   Widget _buildFilterChips() {
+    final l10n = AppLocalizations.of(context)!;
+    final filterLabels = {
+      'All': l10n.filterAll,
+      'Recent': l10n.filterRecent,
+      'Critical': l10n.filterCritical,
+      'Follow-up': l10n.filterFollowUp,
+    };
+    
     return Container(
       height: 50,
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -234,7 +244,7 @@ class _DiagnosisHistoryPageState extends ConsumerState<DiagnosisHistoryPage>
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: FilterChip(
-              label: Text(filter),
+              label: Text(filterLabels[filter] ?? filter),
               selected: isSelected,
               onSelected: (selected) {
                 setState(() {
@@ -251,6 +261,7 @@ class _DiagnosisHistoryPageState extends ConsumerState<DiagnosisHistoryPage>
   }
 
   Widget _buildStatistics() {
+    final l10n = AppLocalizations.of(context)!;
     final totalDiagnoses = _diagnosisHistory.length;
     final criticalDiagnoses =
         _diagnosisHistory.where((d) => d['isCritical']).length;
@@ -269,7 +280,7 @@ class _DiagnosisHistoryPageState extends ConsumerState<DiagnosisHistoryPage>
         children: [
           Expanded(
             child: _buildStatItem(
-              'Total',
+              l10n.total,
               totalDiagnoses.toString(),
               AppTheme.primaryColor,
             ),
@@ -281,7 +292,7 @@ class _DiagnosisHistoryPageState extends ConsumerState<DiagnosisHistoryPage>
           ),
           Expanded(
             child: _buildStatItem(
-              'Critical',
+              l10n.critical,
               criticalDiagnoses.toString(),
               AppTheme.errorColor,
             ),
@@ -293,7 +304,7 @@ class _DiagnosisHistoryPageState extends ConsumerState<DiagnosisHistoryPage>
           ),
           Expanded(
             child: _buildStatItem(
-              'Follow-up',
+              l10n.followUp,
               followUpRequired.toString(),
               AppTheme.warningColor,
             ),
@@ -324,6 +335,38 @@ class _DiagnosisHistoryPageState extends ConsumerState<DiagnosisHistoryPage>
   }
 
   Widget _buildDiagnosisCard(Map<String, dynamic> diagnosis) {
+    final l10n = AppLocalizations.of(context)!;
+    
+    // Get localized status
+    String getLocalizedStatus(String status) {
+      switch (status) {
+        case 'Completed':
+          return l10n.statusCompleted;
+        case 'Follow-up Required':
+          return l10n.statusFollowUpRequired;
+        case 'Under Treatment':
+          return l10n.statusUnderTreatment;
+        case 'Hospitalized':
+          return l10n.statusHospitalized;
+        default:
+          return status;
+      }
+    }
+    
+    // Get localized severity
+    String getLocalizedSeverity(String severity) {
+      switch (severity) {
+        case 'Mild':
+          return l10n.severityMild;
+        case 'Moderate':
+          return l10n.severityModerate;
+        case 'Severe':
+          return l10n.severitySevere;
+        default:
+          return severity;
+      }
+    }
+    
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
@@ -354,7 +397,7 @@ class _DiagnosisHistoryPageState extends ConsumerState<DiagnosisHistoryPage>
                               ?.copyWith(fontWeight: FontWeight.w600),
                         ),
                         Text(
-                          'ID: ${diagnosis['patientId']}',
+                          '${l10n.idPrefix} ${diagnosis['patientId']}',
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: AppTheme.textSecondary),
                         ),
@@ -374,7 +417,7 @@ class _DiagnosisHistoryPageState extends ConsumerState<DiagnosisHistoryPage>
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      diagnosis['status'],
+                      getLocalizedStatus(diagnosis['status']),
                       style: TextStyle(
                         color:
                             diagnosis['isCritical']
@@ -407,7 +450,7 @@ class _DiagnosisHistoryPageState extends ConsumerState<DiagnosisHistoryPage>
                           ),
                         ),
                         Text(
-                          'Confidence: ${diagnosis['confidence'].toStringAsFixed(1)}%',
+                          '${l10n.confidenceLabel} ${l10n.confidencePercentage(diagnosis['confidence'].toStringAsFixed(1))}',
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: AppTheme.textSecondary),
                         ),
@@ -426,7 +469,7 @@ class _DiagnosisHistoryPageState extends ConsumerState<DiagnosisHistoryPage>
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      diagnosis['severity'],
+                      getLocalizedSeverity(diagnosis['severity']),
                       style: TextStyle(
                         color: _getSeverityColor(diagnosis['severity']),
                         fontWeight: FontWeight.w600,
@@ -441,7 +484,7 @@ class _DiagnosisHistoryPageState extends ConsumerState<DiagnosisHistoryPage>
 
               // Symptoms
               Text(
-                'Symptoms: ${(diagnosis['symptoms'] as List<String>).join(', ')}',
+                '${l10n.symptomsLabel} ${(diagnosis['symptoms'] as List<String>).join(', ')}',
                 style: Theme.of(
                   context,
                 ).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
@@ -487,7 +530,7 @@ class _DiagnosisHistoryPageState extends ConsumerState<DiagnosisHistoryPage>
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            'Follow-up',
+                            l10n.filterFollowUp,
                             style: TextStyle(
                               color: AppTheme.warningColor,
                               fontWeight: FontWeight.w600,
@@ -507,6 +550,7 @@ class _DiagnosisHistoryPageState extends ConsumerState<DiagnosisHistoryPage>
   }
 
   Widget _buildEmptyState() {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -514,14 +558,14 @@ class _DiagnosisHistoryPageState extends ConsumerState<DiagnosisHistoryPage>
           Icon(Icons.history, size: 80, color: AppTheme.textSecondary),
           const SizedBox(height: 16),
           Text(
-            'No diagnoses found',
+            l10n.noDiagnosesFound,
             style: Theme.of(
               context,
             ).textTheme.headlineSmall?.copyWith(color: AppTheme.textSecondary),
           ),
           const SizedBox(height: 8),
           Text(
-            'Try adjusting your search or filter criteria',
+            l10n.tryAdjustingSearch,
             style: Theme.of(
               context,
             ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
@@ -617,9 +661,10 @@ class _DiagnosisHistoryPageState extends ConsumerState<DiagnosisHistoryPage>
     } catch (e) {
       if (mounted) Navigator.of(context).pop(); // Close loading dialog
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to load diagnosis details: $e'),
+            content: Text(l10n.failedToLoadDetails(e.toString())),
             backgroundColor: AppTheme.errorColor,
           ),
         );
@@ -734,16 +779,24 @@ class _DiagnosisHistoryPageState extends ConsumerState<DiagnosisHistoryPage>
   }
 
   void _showFilterDialog() {
+    final l10n = AppLocalizations.of(context)!;
+    final filterLabels = {
+      'All': l10n.filterAll,
+      'Recent': l10n.filterRecent,
+      'Critical': l10n.filterCritical,
+      'Follow-up': l10n.filterFollowUp,
+    };
+    
     showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Filter Diagnoses'),
+            title: Text(l10n.filterTooltip + ' ' + l10n.diagnosisHistory),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Filter by Status:',
+                  '${l10n.filter}:',
                   style: Theme.of(
                     context,
                   ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
@@ -751,7 +804,7 @@ class _DiagnosisHistoryPageState extends ConsumerState<DiagnosisHistoryPage>
                 const SizedBox(height: 8),
                 ..._filters.map((filter) {
                   return RadioListTile<String>(
-                    title: Text(filter),
+                    title: Text(filterLabels[filter] ?? filter),
                     value: filter,
                     groupValue: _selectedFilter,
                     onChanged: (value) {
@@ -767,7 +820,7 @@ class _DiagnosisHistoryPageState extends ConsumerState<DiagnosisHistoryPage>
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
+                child: Text(l10n.cancel),
               ),
             ],
           ),
@@ -775,9 +828,10 @@ class _DiagnosisHistoryPageState extends ConsumerState<DiagnosisHistoryPage>
   }
 
   void _exportHistory() {
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Exporting diagnosis history...'),
+      SnackBar(
+        content: Text(l10n.exportingHistory),
         backgroundColor: AppTheme.primaryColor,
       ),
     );

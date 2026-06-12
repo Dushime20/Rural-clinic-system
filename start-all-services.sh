@@ -25,6 +25,11 @@ if [ ! -d "clinic_dashboard" ]; then
     exit 1
 fi
 
+if [ ! -d "mbaza" ]; then
+    echo "❌ Error: mbaza directory not found"
+    exit 1
+fi
+
 # Function to kill all background processes on script exit
 cleanup() {
     echo ""
@@ -73,7 +78,21 @@ echo "Starting services..."
 echo "=========================================="
 echo ""
 
+# Start Mbaza Translation Service
+echo "🚀 Starting Mbaza Translation Service (http://localhost:9000)..."
+cd mbaza
+python3 app_optimized.py > ../logs/mbaza.log 2>&1 &
+MBAZA_PID=$!
+cd ..
+echo "   Mbaza PID: $MBAZA_PID"
+echo "   Logs: logs/mbaza.log"
+echo "   ⏳ Waiting for Mbaza NLP model to load (10-20 seconds)..."
+
+# Wait for Mbaza to load model
+sleep 15
+
 # Start backend server
+echo ""
 echo "🚀 Starting Backend Server (http://localhost:3000)..."
 cd ai_health_companion_backend
 npm run dev > ../logs/backend.log 2>&1 &
@@ -111,11 +130,13 @@ echo "✅ All services started successfully!"
 echo "=========================================="
 echo ""
 echo "Services running:"
-echo "  • Backend:          http://localhost:3000"
-echo "  • Admin Dashboard:  http://localhost:5173"
-echo "  • Clinic Dashboard: http://localhost:5175"
+echo "  • Mbaza Translation: http://localhost:9000"
+echo "  • Backend:           http://localhost:3000"
+echo "  • Admin Dashboard:   http://localhost:5173"
+echo "  • Clinic Dashboard:  http://localhost:5175"
 echo ""
 echo "To view logs:"
+echo "  • Mbaza:            tail -f logs/mbaza.log"
 echo "  • Backend:          tail -f logs/backend.log"
 echo "  • Admin Dashboard:  tail -f logs/admin-dashboard.log"
 echo "  • Clinic Dashboard: tail -f logs/clinic-dashboard.log"

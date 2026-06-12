@@ -32,6 +32,12 @@ if not exist "ai_health_companion_backend\model-training" (
     exit /b 1
 )
 
+if not exist "mbaza" (
+    echo Error: mbaza directory not found
+    pause
+    exit /b 1
+)
+
 REM Create logs directory if it doesn't exist
 if not exist "logs" mkdir logs
 
@@ -68,6 +74,14 @@ echo Starting services in separate windows...
 echo ==========================================
 echo.
 
+REM Start Mbaza Translation Service in new window
+echo Starting Mbaza Translation Service (http://localhost:9000)...
+start "Mbaza Translation Service" cmd /k "cd mbaza && python app_optimized.py"
+
+REM Wait for Mbaza to load model (takes 10-20 seconds)
+echo Waiting for Mbaza NLP model to load...
+timeout /t 15 /nobreak >nul
+
 REM Start Python ML API in new window
 echo Starting Python ML API (http://localhost:5001)...
 start "Python ML API" cmd /k "cd ai_health_companion_backend\model-training && python api.py"
@@ -96,10 +110,11 @@ echo All services started successfully!
 echo ==========================================
 echo.
 echo Services running in separate windows:
-echo   - Python ML API:    http://localhost:5001
-echo   - Backend:          http://localhost:5000
-echo   - Admin Dashboard:  http://localhost:3000
-echo   - Clinic Dashboard: http://localhost:5175
+echo   - Mbaza Translation: http://localhost:9000
+echo   - Python ML API:     http://localhost:5001
+echo   - Backend:           http://localhost:5000
+echo   - Admin Dashboard:   http://localhost:3000
+echo   - Clinic Dashboard:  http://localhost:5175
 echo.
 echo To start Flutter app (in new terminal):
 echo   cd ai_health_companion

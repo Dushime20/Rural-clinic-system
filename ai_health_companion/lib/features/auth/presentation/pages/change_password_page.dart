@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../generated/app_localizations.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/services/auth_service.dart';
 
@@ -32,10 +33,10 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
     super.dispose();
   }
 
-  String _getPasswordStrength(String password) {
+  String _getPasswordStrength(String password, AppLocalizations l10n) {
     if (password.isEmpty) return '';
-    if (password.length < 6) return 'Weak';
-    if (password.length < 8) return 'Fair';
+    if (password.length < 6) return l10n.passwordWeak;
+    if (password.length < 8) return l10n.passwordFair;
 
     bool hasUppercase = password.contains(RegExp(r'[A-Z]'));
     bool hasLowercase = password.contains(RegExp(r'[a-z]'));
@@ -50,29 +51,23 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
     if (hasDigits) strength++;
     if (hasSpecialCharacters) strength++;
 
-    if (strength >= 3 && password.length >= 10) return 'Strong';
-    if (strength >= 2 && password.length >= 8) return 'Good';
-    return 'Fair';
+    if (strength >= 3 && password.length >= 10) return l10n.passwordStrong;
+    if (strength >= 2 && password.length >= 8) return l10n.passwordGood;
+    return l10n.passwordFair;
   }
 
-  Color _getStrengthColor(String strength) {
-    switch (strength) {
-      case 'Weak':
-        return AppTheme.errorColor;
-      case 'Fair':
-        return Colors.orange;
-      case 'Good':
-        return Colors.blue;
-      case 'Strong':
-        return AppTheme.successColor;
-      default:
-        return Colors.grey;
-    }
+  Color _getStrengthColor(String strength, AppLocalizations l10n) {
+    if (strength == l10n.passwordWeak) return AppTheme.errorColor;
+    if (strength == l10n.passwordFair) return Colors.orange;
+    if (strength == l10n.passwordGood) return Colors.blue;
+    if (strength == l10n.passwordStrong) return AppTheme.successColor;
+    return Colors.grey;
   }
 
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final l10n = AppLocalizations.of(context)!;
     setState(() => _isLoading = true);
 
     final authService = AuthService();
@@ -95,27 +90,27 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              title: const Row(
+              title: Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.check_circle,
                     color: AppTheme.successColor,
                     size: 28,
                   ),
-                  SizedBox(width: 12),
-                  Text('Password Changed'),
+                  const SizedBox(width: 12),
+                  Text(l10n.passwordChanged),
                 ],
               ),
-              content: const Text(
-                'Your password has been changed successfully. You can now use your new password to login.',
-                style: TextStyle(fontSize: 16),
+              content: Text(
+                l10n.passwordChangedSuccessMessage,
+                style: const TextStyle(fontSize: 16),
               ),
               actions: [
                 TextButton(
                   onPressed: () {
                     context.go('/home');
                   },
-                  child: const Text('Continue'),
+                  child: Text(l10n.continueButton),
                 ),
               ],
             ),
@@ -124,7 +119,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
       // Show error
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(result['message'] ?? 'Failed to change password'),
+          content: Text(result['message'] ?? l10n.failedToChangePassword),
           backgroundColor: AppTheme.errorColor,
         ),
       );
@@ -133,15 +128,16 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
 
   @override
   Widget build(BuildContext context) {
-    final passwordStrength = _getPasswordStrength(_newPasswordController.text);
+    final l10n = AppLocalizations.of(context)!;
+    final passwordStrength = _getPasswordStrength(_newPasswordController.text, l10n);
 
     return WillPopScope(
       onWillPop: () async {
         // Prevent back navigation if first-time password change
         if (widget.isFirstTime) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('You must change your password before continuing'),
+            SnackBar(
+              content: Text(l10n.mustChangePasswordBeforeContinuing),
               backgroundColor: AppTheme.warningColor,
             ),
           );
@@ -196,8 +192,8 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                     // Title
                     Text(
                       widget.isFirstTime
-                          ? 'Change Your Password'
-                          : 'Update Password',
+                          ? l10n.changeYourPassword
+                          : l10n.updatePassword,
                       style: Theme.of(
                         context,
                       ).textTheme.displayMedium?.copyWith(
@@ -211,8 +207,8 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                     // Subtitle
                     Text(
                       widget.isFirstTime
-                          ? 'For security, please change your\ndefault password'
-                          : 'Enter your current password and\nchoose a new one',
+                          ? l10n.forSecurityChangePassword
+                          : l10n.enterCurrentPasswordChooseNew,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: Colors.white.withOpacity(0.9),
                       ),
@@ -240,7 +236,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'This is required for first-time login',
+                                l10n.requiredForFirstTimeLogin,
                                 style: TextStyle(
                                   color: Colors.white.withOpacity(0.9),
                                   fontSize: 13,
@@ -287,7 +283,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                                 fontWeight: FontWeight.w500,
                               ),
                               decoration: InputDecoration(
-                                labelText: 'Current Password',
+                                labelText: l10n.currentPasswordLabel,
                                 labelStyle: TextStyle(
                                   color: Colors.white.withOpacity(0.7),
                                   fontWeight: FontWeight.w500,
@@ -334,7 +330,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                               ),
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
-                                  return 'Please enter your current password';
+                                  return l10n.pleaseEnterCurrentPassword;
                                 }
                                 return null;
                               },
@@ -353,7 +349,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                                 fontWeight: FontWeight.w500,
                               ),
                               decoration: InputDecoration(
-                                labelText: 'New Password',
+                                labelText: l10n.newPasswordLabel,
                                 labelStyle: TextStyle(
                                   color: Colors.white.withOpacity(0.7),
                                   fontWeight: FontWeight.w500,
@@ -400,13 +396,13 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                               ),
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
-                                  return 'Please enter a new password';
+                                  return l10n.pleaseEnterNewPassword;
                                 }
                                 if (value.length < 8) {
-                                  return 'Password must be at least 8 characters';
+                                  return l10n.passwordMinLength8;
                                 }
                                 if (value == _currentPasswordController.text) {
-                                  return 'New password must be different';
+                                  return l10n.newPasswordMustBeDifferent;
                                 }
                                 return null;
                               },
@@ -418,7 +414,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                               Row(
                                 children: [
                                   Text(
-                                    'Strength: ',
+                                    l10n.strengthLabel,
                                     style: TextStyle(
                                       color: Colors.white.withOpacity(0.7),
                                       fontSize: 12,
@@ -429,6 +425,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                                     style: TextStyle(
                                       color: _getStrengthColor(
                                         passwordStrength,
+                                        l10n,
                                       ),
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
@@ -450,7 +447,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                                 fontWeight: FontWeight.w500,
                               ),
                               decoration: InputDecoration(
-                                labelText: 'Confirm New Password',
+                                labelText: l10n.confirmNewPassword,
                                 labelStyle: TextStyle(
                                   color: Colors.white.withOpacity(0.7),
                                   fontWeight: FontWeight.w500,
@@ -497,10 +494,10 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                               ),
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
-                                  return 'Please confirm your password';
+                                  return l10n.pleaseConfirmPassword;
                                 }
                                 if (value != _newPasswordController.text) {
-                                  return 'Passwords do not match';
+                                  return l10n.passwordsDoNotMatch;
                                 }
                                 return null;
                               },
@@ -549,7 +546,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                                           ),
                                         )
                                         : Text(
-                                          'Change Password',
+                                          l10n.changePassword,
                                           style: Theme.of(
                                             context,
                                           ).textTheme.titleMedium?.copyWith(

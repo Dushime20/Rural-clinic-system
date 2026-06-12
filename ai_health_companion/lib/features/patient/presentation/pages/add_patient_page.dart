@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/services/patient_service.dart';
+import '../../../../generated/app_localizations.dart';
 import '../../../../shared/widgets/app_header.dart';
 
 class AddPatientPage extends ConsumerStatefulWidget {
@@ -73,10 +74,11 @@ class _AddPatientPageState extends ConsumerState<AddPatientPage> {
 
   Future<void> _savePatient() async {
     if (!_formKey.currentState!.validate()) return;
+    final l10n = AppLocalizations.of(context)!;
     if (_dateOfBirth == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select date of birth'),
+        SnackBar(
+          content: Text(l10n.pleaseSelectDateOfBirth),
           backgroundColor: AppTheme.errorColor,
         ),
       );
@@ -120,8 +122,8 @@ class _AddPatientPageState extends ConsumerState<AddPatientPage> {
 
     if (result['success'] == true) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Patient created successfully'),
+        SnackBar(
+          content: Text(l10n.patientCreatedSuccessfully),
           backgroundColor: AppTheme.successColor,
         ),
       );
@@ -129,7 +131,7 @@ class _AddPatientPageState extends ConsumerState<AddPatientPage> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(result['message'] ?? 'Failed to create patient'),
+          content: Text(result['message'] ?? l10n.failedToCreatePatient),
           backgroundColor: AppTheme.errorColor,
         ),
       );
@@ -138,10 +140,26 @@ class _AddPatientPageState extends ConsumerState<AddPatientPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
+    // Get localized gender labels
+    String getLocalizedGender(String gender) {
+      switch (gender) {
+        case 'male':
+          return l10n.male;
+        case 'female':
+          return l10n.female;
+        case 'other':
+          return l10n.other;
+        default:
+          return gender;
+      }
+    }
+    
     return Scaffold(
       appBar: AppHeader(
-        title: 'Add New Patient',
-        subtitle: 'Register a new patient',
+        title: l10n.addNewPatient,
+        subtitle: l10n.registerNewPatient,
         actions: [
           if (_isLoading)
             const Padding(
@@ -159,7 +177,7 @@ class _AddPatientPageState extends ConsumerState<AddPatientPage> {
             IconButton(
               icon: const Icon(Icons.save),
               onPressed: _savePatient,
-              tooltip: 'Save',
+              tooltip: l10n.save,
             ),
         ],
       ),
@@ -170,24 +188,24 @@ class _AddPatientPageState extends ConsumerState<AddPatientPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _sectionTitle('Personal Information'),
+              _sectionTitle(l10n.personalInformation),
               Row(
                 children: [
                   Expanded(
                     child: _textField(
                       _firstNameController,
-                      'First Name',
+                      l10n.firstName,
                       Icons.person,
-                      validator: (v) => v!.trim().isEmpty ? 'Required' : null,
+                      validator: (v) => v!.trim().isEmpty ? l10n.required : null,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: _textField(
                       _lastNameController,
-                      'Last Name',
+                      l10n.lastName,
                       Icons.person,
-                      validator: (v) => v!.trim().isEmpty ? 'Required' : null,
+                      validator: (v) => v!.trim().isEmpty ? l10n.required : null,
                     ),
                   ),
                 ],
@@ -212,8 +230,8 @@ class _AddPatientPageState extends ConsumerState<AddPatientPage> {
                       const SizedBox(width: 12),
                       Text(
                         _dateOfBirth == null
-                            ? 'Date of Birth *'
-                            : 'DOB: ${_dateOfBirth!.toIso8601String().split('T')[0]}',
+                            ? l10n.dateOfBirthRequired
+                            : '${l10n.dobPrefix} ${_dateOfBirth!.toIso8601String().split('T')[0]}',
                         style: TextStyle(
                           color:
                               _dateOfBirth == null
@@ -230,25 +248,26 @@ class _AddPatientPageState extends ConsumerState<AddPatientPage> {
 
               _dropdown<String>(
                 value: _selectedGender,
-                label: 'Gender *',
+                label: l10n.genderRequired,
                 icon: Icons.person_outline,
                 items: _genders,
                 onChanged: (v) => setState(() => _selectedGender = v),
-                validator: (v) => v == null ? 'Select gender' : null,
+                validator: (v) => v == null ? l10n.selectGender : null,
+                displayText: getLocalizedGender,
               ),
               const SizedBox(height: 24),
 
-              _sectionTitle('Contact Information'),
+              _sectionTitle(l10n.contactInformation),
               _textField(
                 _phoneController,
-                'Phone Number',
+                l10n.phoneNumber,
                 Icons.phone,
                 keyboardType: TextInputType.phone,
               ),
               const SizedBox(height: 16),
               _textField(
                 _emailController,
-                'Email (Optional)',
+                l10n.emailOptional,
                 Icons.email,
                 keyboardType: TextInputType.emailAddress,
               ),
@@ -258,7 +277,7 @@ class _AddPatientPageState extends ConsumerState<AddPatientPage> {
                   Expanded(
                     child: _textField(
                       _streetController,
-                      'Street',
+                      l10n.street,
                       Icons.location_on,
                     ),
                   ),
@@ -266,7 +285,7 @@ class _AddPatientPageState extends ConsumerState<AddPatientPage> {
                   Expanded(
                     child: _textField(
                       _cityController,
-                      'City',
+                      l10n.city,
                       Icons.location_city,
                     ),
                   ),
@@ -274,13 +293,14 @@ class _AddPatientPageState extends ConsumerState<AddPatientPage> {
               ),
               const SizedBox(height: 24),
 
-              _sectionTitle('Medical Information'),
+              _sectionTitle(l10n.medicalInformation),
               _dropdown<String>(
                 value: _selectedBloodType,
-                label: 'Blood Type',
+                label: l10n.bloodType,
                 icon: Icons.bloodtype,
                 items: _bloodTypes,
                 onChanged: (v) => setState(() => _selectedBloodType = v),
+                displayText: (bloodType) => bloodType == 'unknown' ? l10n.unknown : bloodType,
               ),
               const SizedBox(height: 16),
               Row(
@@ -288,7 +308,7 @@ class _AddPatientPageState extends ConsumerState<AddPatientPage> {
                   Expanded(
                     child: _textField(
                       _weightController,
-                      'Weight (kg)',
+                      l10n.weightKg,
                       Icons.monitor_weight,
                       keyboardType: TextInputType.number,
                     ),
@@ -297,7 +317,7 @@ class _AddPatientPageState extends ConsumerState<AddPatientPage> {
                   Expanded(
                     child: _textField(
                       _heightController,
-                      'Height (cm)',
+                      l10n.heightCm,
                       Icons.height,
                       keyboardType: TextInputType.number,
                     ),
@@ -307,13 +327,13 @@ class _AddPatientPageState extends ConsumerState<AddPatientPage> {
               const SizedBox(height: 16),
               _textField(
                 _allergiesController,
-                'Allergies (comma-separated)',
+                l10n.allergiesCommaSeparated,
                 Icons.warning_amber,
               ),
               const SizedBox(height: 16),
               _textField(
                 _chronicController,
-                'Chronic Conditions (comma-separated)',
+                l10n.chronicConditionsCommaSeparated,
                 Icons.local_hospital,
               ),
               const SizedBox(height: 32),
@@ -333,7 +353,7 @@ class _AddPatientPageState extends ConsumerState<AddPatientPage> {
                             ),
                           )
                           : const Icon(Icons.save),
-                  label: Text(_isLoading ? 'Saving...' : 'Save Patient'),
+                  label: Text(_isLoading ? l10n.saving : l10n.savePatient),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -391,6 +411,7 @@ class _AddPatientPageState extends ConsumerState<AddPatientPage> {
     required List<T> items,
     required void Function(T?) onChanged,
     String? Function(T?)? validator,
+    String Function(T)? displayText,
   }) {
     return DropdownButtonFormField<T>(
       value: value,
@@ -399,7 +420,7 @@ class _AddPatientPageState extends ConsumerState<AddPatientPage> {
               .map(
                 (item) => DropdownMenuItem<T>(
                   value: item,
-                  child: Text(item.toString()),
+                  child: Text(displayText != null ? displayText(item) : item.toString()),
                 ),
               )
               .toList(),

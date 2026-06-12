@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../generated/app_localizations.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/services/patient_service.dart';
 import '../../../../shared/widgets/app_header.dart';
@@ -68,6 +69,7 @@ class _PatientListPageState extends ConsumerState<PatientListPage> {
   }
 
   Future<void> _deletePatient(dynamic patient) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder:
@@ -75,21 +77,24 @@ class _PatientListPageState extends ConsumerState<PatientListPage> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
-            title: const Text('Delete Patient'),
+            title: Text(l10n.deletePatient),
             content: Text(
-              'Are you sure you want to delete ${patient['firstName']} ${patient['lastName']}?\n\nThis is a soft delete — the record can be restored by an admin.',
+              l10n.deletePatientConfirm(
+                patient['firstName'],
+                patient['lastName'],
+              ),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel'),
+                child: Text(l10n.cancel),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(ctx, true),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.errorColor,
                 ),
-                child: const Text('Delete'),
+                child: Text(l10n.delete),
               ),
             ],
           ),
@@ -104,8 +109,11 @@ class _PatientListPageState extends ConsumerState<PatientListPage> {
       SnackBar(
         content: Text(
           result['success'] == true
-              ? '${patient['firstName']} ${patient['lastName']} deleted'
-              : result['message'] ?? 'Delete failed',
+              ? l10n.patientDeleted(
+                  patient['firstName'],
+                  patient['lastName'],
+                )
+              : result['message'] ?? l10n.deleteFailed,
         ),
         backgroundColor:
             result['success'] == true
@@ -118,12 +126,13 @@ class _PatientListPageState extends ConsumerState<PatientListPage> {
   }
 
   String _getAge(dynamic patient) {
+    final l10n = AppLocalizations.of(context)!;
     final dob = patient['dateOfBirth'];
     if (dob == null) return '—';
     try {
       final birth = DateTime.parse(dob.toString());
       final age = DateTime.now().difference(birth).inDays ~/ 365;
-      return '$age yrs';
+      return '$age ${l10n.years}';
     } catch (_) {
       return '—';
     }
@@ -131,11 +140,12 @@ class _PatientListPageState extends ConsumerState<PatientListPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       drawer: const CustomDrawer(),
       appBar: AppHeader(
-        title: 'Patients',
-        subtitle: '${_patients.length} patients',
+        title: l10n.patients,
+        subtitle: l10n.patientsCount(_patients.length),
         showBackButton: false,
         leading: Builder(
           builder: (context) => IconButton(
@@ -147,7 +157,7 @@ class _PatientListPageState extends ConsumerState<PatientListPage> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () => _loadPatients(reset: true),
-            tooltip: 'Refresh',
+            tooltip: l10n.refresh,
           ),
           IconButton(
             icon: const Icon(Icons.person_add),
@@ -155,7 +165,7 @@ class _PatientListPageState extends ConsumerState<PatientListPage> {
               await context.push('/patient/add');
               _loadPatients(reset: true);
             },
-            tooltip: 'Add Patient',
+            tooltip: l10n.addPatient,
           ),
         ],
       ),
@@ -167,7 +177,7 @@ class _PatientListPageState extends ConsumerState<PatientListPage> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search by name...',
+                hintText: l10n.searchByName,
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon:
                     _searchQuery.isNotEmpty
@@ -207,15 +217,17 @@ class _PatientListPageState extends ConsumerState<PatientListPage> {
           _loadPatients(reset: true);
         },
         icon: const Icon(Icons.person_add),
-        label: const Text('Add Patient'),
+        label: Text(l10n.addPatient),
         backgroundColor: AppTheme.primaryColor,
       ),
     );
   }
 
   Widget _buildContent() {
+    final l10n = AppLocalizations.of(context)!;
+    
     if (_isLoading && _patients.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(child: CircularProgressIndicator());
     }
 
     if (_error != null && _patients.isEmpty) {
@@ -238,7 +250,7 @@ class _PatientListPageState extends ConsumerState<PatientListPage> {
             ElevatedButton.icon(
               onPressed: () => _loadPatients(reset: true),
               icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+              label: Text(l10n.retry),
             ),
           ],
         ),
@@ -257,7 +269,7 @@ class _PatientListPageState extends ConsumerState<PatientListPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              _searchQuery.isEmpty ? 'No patients yet' : 'No patients found',
+              _searchQuery.isEmpty ? l10n.noPatientYet : l10n.noPatientsFound,
               style: const TextStyle(
                 fontSize: 18,
                 color: AppTheme.textSecondary,
@@ -270,7 +282,7 @@ class _PatientListPageState extends ConsumerState<PatientListPage> {
                 _loadPatients(reset: true);
               },
               icon: const Icon(Icons.person_add),
-              label: const Text('Add First Patient'),
+              label: Text(l10n.addFirstPatient),
             ),
           ],
         ),
@@ -291,7 +303,7 @@ class _PatientListPageState extends ConsumerState<PatientListPage> {
                   setState(() => _currentPage++);
                   _loadPatients();
                 },
-                child: const Text('Load More'),
+                child: Text(l10n.loadMore),
               ),
             );
           }
@@ -302,6 +314,7 @@ class _PatientListPageState extends ConsumerState<PatientListPage> {
   }
 
   Widget _buildPatientCard(dynamic patient) {
+    final l10n = AppLocalizations.of(context)!;
     final name =
         '${patient['firstName'] ?? ''} ${patient['lastName'] ?? ''}'.trim();
     final gender = (patient['gender'] ?? '').toString();
@@ -349,7 +362,7 @@ class _PatientListPageState extends ConsumerState<PatientListPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '$age • $gender • ID: $patientId',
+                      '$age • $gender • ${l10n.patientId}: $patientId',
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppTheme.textSecondary,
@@ -358,7 +371,7 @@ class _PatientListPageState extends ConsumerState<PatientListPage> {
                     if (lastVisit != null) ...[
                       const SizedBox(height: 2),
                       Text(
-                        'Last visit: ${lastVisit.toString().split('T')[0]}',
+                        '${l10n.lastVisit}: ${lastVisit.toString().split('T')[0]}',
                         style: const TextStyle(
                           fontSize: 11,
                           color: AppTheme.textSecondary,
@@ -382,23 +395,23 @@ class _PatientListPageState extends ConsumerState<PatientListPage> {
                 },
                 itemBuilder:
                     (_) => [
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'edit',
                         child: Row(
                           children: [
-                            Icon(Icons.edit, size: 18),
-                            SizedBox(width: 8),
-                            Text('Edit'),
+                            const Icon(Icons.edit, size: 18),
+                            const SizedBox(width: 8),
+                            Text(l10n.edit),
                           ],
                         ),
                       ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'delete',
                         child: Row(
                           children: [
-                            Icon(Icons.delete, size: 18, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Delete', style: TextStyle(color: Colors.red)),
+                            const Icon(Icons.delete, size: 18, color: Colors.red),
+                            const SizedBox(width: 8),
+                            Text(l10n.delete, style: const TextStyle(color: Colors.red)),
                           ],
                         ),
                       ),

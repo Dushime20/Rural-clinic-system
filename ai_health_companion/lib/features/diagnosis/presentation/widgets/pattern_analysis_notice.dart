@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../generated/app_localizations.dart';
 import '../../data/models/clinic_models.dart';
 
 /// Pattern Analysis Notice Widget
@@ -13,6 +14,8 @@ class PatternAnalysisNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     if (!patternAnalysis.hasPattern) {
       return const SizedBox.shrink();
     }
@@ -40,7 +43,7 @@ class PatternAnalysisNotice extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  _getTitle(),
+                  _getTitle(l10n),
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -52,14 +55,14 @@ class PatternAnalysisNotice extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            _getMessage(),
+            _getMessage(l10n),
             style: TextStyle(
               fontSize: 14,
               color: colorScheme.textColor.withOpacity(0.9),
               height: 1.4,
             ),
           ),
-          if (_getDetails() != null) ...[
+          if (_getDetails(l10n) != null) ...[
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.all(12),
@@ -77,7 +80,7 @@ class PatternAnalysisNotice extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      _getDetails()!,
+                      _getDetails(l10n)!,
                       style: TextStyle(
                         fontSize: 13,
                         color: colorScheme.textColor,
@@ -136,42 +139,42 @@ class PatternAnalysisNotice extends StatelessWidget {
     return Icons.info_rounded;
   }
 
-  String _getTitle() {
+  String _getTitle(AppLocalizations l10n) {
     if (patternAnalysis.matchesChronicCondition) {
-      return 'Chronic Condition Detected';
+      return l10n.chronicConditionDetected;
     } else if (patternAnalysis.isPersistent) {
-      return 'Persistent Condition Detected';
+      return l10n.persistentConditionDetected;
     } else if (patternAnalysis.isRecurring) {
-      return 'Recurring Condition Detected';
+      return l10n.recurringConditionDetected;
     }
-    return 'Pattern Detected';
+    return l10n.patternDetected;
   }
 
-  String _getMessage() {
+  String _getMessage(AppLocalizations l10n) {
     if (patternAnalysis.matchesChronicCondition) {
-      return 'Your symptoms match a chronic medical condition that may require specialized ongoing care. We recommend visiting a specialized clinic for comprehensive evaluation and long-term management.';
+      return l10n.chronicConditionMessage;
     } else if (patternAnalysis.isPersistent) {
-      return 'This condition has been active for an extended period. Persistent conditions often benefit from specialized medical attention to ensure proper treatment and recovery.';
+      return l10n.persistentConditionMessage;
     } else if (patternAnalysis.isRecurring) {
-      return 'This condition has occurred multiple times recently. Recurring health issues may indicate an underlying problem that requires specialized medical evaluation.';
+      return l10n.recurringConditionMessage;
     }
-    return 'Based on your diagnosis history, we recommend consulting with a specialized clinic for comprehensive care.';
+    return l10n.patternDetectedMessage;
   }
 
-  String? _getDetails() {
+  String? _getDetails(AppLocalizations l10n) {
     if (patternAnalysis.matchesChronicCondition &&
         patternAnalysis.matchedCondition != null) {
-      return 'Matched condition: ${patternAnalysis.matchedCondition}';
+      return l10n.matchedCondition(patternAnalysis.matchedCondition!);
     } else if (patternAnalysis.isPersistent &&
         patternAnalysis.durationDays != null) {
       final days = patternAnalysis.durationDays!;
       if (days > 60) {
-        return 'Active for $days days (${(days / 30).floor()} months+)';
+        return l10n.activeForDaysMonths(days, (days / 30).floor());
       }
-      return 'Active for $days days';
+      return l10n.activeForDays(days);
     } else if (patternAnalysis.isRecurring &&
         patternAnalysis.occurrenceCount != null) {
-      return '${patternAnalysis.occurrenceCount} occurrences in the last 90 days';
+      return l10n.occurrencesInLast90Days(patternAnalysis.occurrenceCount!);
     }
     return null;
   }

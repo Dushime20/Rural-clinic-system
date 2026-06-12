@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../shared/widgets/app_header.dart';
+import '../../../../generated/app_localizations.dart';
 
 class PharmacyStockPage extends StatefulWidget {
   const PharmacyStockPage({super.key});
@@ -11,17 +12,19 @@ class PharmacyStockPage extends StatefulWidget {
 class _PharmacyStockPageState extends State<PharmacyStockPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  String _selectedCategory = 'All';
+  String _selectedCategory = '';
   bool _isLoading = false;
 
-  final List<String> _categories = [
-    'All',
-    'Antibiotics',
-    'Analgesics',
-    'Antidiabetic',
-    'Cardiovascular',
-    'Respiratory',
-  ];
+  List<String> _getCategories(AppLocalizations l10n) {
+    return [
+      l10n.allCategory,
+      l10n.antibioticsCategory,
+      l10n.analgesicsCategory,
+      l10n.antidiabeticCategory,
+      l10n.cardiovascularCategory,
+      l10n.respiratoryCategory,
+    ];
+  }
 
   final List<Map<String, dynamic>> _stockData = [
     {
@@ -87,9 +90,21 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
   }
 
   List<Map<String, dynamic>> get _filteredStock {
-    if (_selectedCategory == 'All') return _stockData;
+    final l10n = AppLocalizations.of(context)!;
+    if (_selectedCategory == l10n.allCategory || _selectedCategory.isEmpty) return _stockData;
+    
+    // Map localized category names back to English for data filtering
+    final categoryMap = {
+      l10n.antibioticsCategory: 'Antibiotics',
+      l10n.analgesicsCategory: 'Analgesics',
+      l10n.antidiabeticCategory: 'Antidiabetic',
+      l10n.cardiovascularCategory: 'Cardiovascular',
+      l10n.respiratoryCategory: 'Respiratory',
+    };
+    
+    final englishCategory = categoryMap[_selectedCategory] ?? _selectedCategory;
     return _stockData
-        .where((item) => item['category'] == _selectedCategory)
+        .where((item) => item['category'] == englishCategory)
         .toList();
   }
 
@@ -110,15 +125,23 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final categories = _getCategories(l10n);
+    
+    // Initialize selected category if not set
+    if (_selectedCategory.isEmpty) {
+      _selectedCategory = categories[0];
+    }
+    
     return Scaffold(
       appBar: AppHeader(
-        title: 'Stock Management',
-        subtitle: 'Monitor medication inventory',
+        title: l10n.stockManagementTitle,
+        subtitle: l10n.monitorMedicationInventory,
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () {},
-            tooltip: 'Add Stock',
+            tooltip: l10n.addStockTooltip,
           ),
         ],
         bottom: TabBar(
@@ -126,7 +149,10 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white70,
           indicatorColor: Colors.white,
-          tabs: const [Tab(text: 'Overview'), Tab(text: 'Alerts')],
+          tabs: [
+            Tab(text: l10n.overviewTab),
+            Tab(text: l10n.alertsTab),
+          ],
         ),
       ),
       body: TabBarView(
@@ -136,12 +162,15 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _refreshStock,
         icon: const Icon(Icons.refresh),
-        label: const Text('Sync e-LMIS'),
+        label: Text(l10n.syncELMIS),
       ),
     );
   }
 
   Widget _buildOverviewTab() {
+    final l10n = AppLocalizations.of(context)!;
+    final categories = _getCategories(l10n);
+    
     return Column(
       children: [
         // Summary Cards
@@ -151,7 +180,7 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
             children: [
               Expanded(
                 child: _buildSummaryCard(
-                  'Total Items',
+                  l10n.totalItems,
                   '${_stockData.length}',
                   Icons.inventory_2,
                   Colors.blue,
@@ -160,7 +189,7 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
               const SizedBox(width: 12),
               Expanded(
                 child: _buildSummaryCard(
-                  'Low Stock',
+                  l10n.lowStock,
                   '${_getLowStockCount()}',
                   Icons.warning,
                   Colors.orange,
@@ -169,7 +198,7 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
               const SizedBox(width: 12),
               Expanded(
                 child: _buildSummaryCard(
-                  'Out of Stock',
+                  l10n.outOfStock,
                   '${_getOutOfStockCount()}',
                   Icons.error,
                   Colors.red,
@@ -185,9 +214,9 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: _categories.length,
+            itemCount: categories.length,
             itemBuilder: (context, index) {
-              final category = _categories[index];
+              final category = categories[index];
               final isSelected = category == _selectedCategory;
               return Padding(
                 padding: const EdgeInsets.only(right: 8),
@@ -224,6 +253,7 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
   }
 
   Widget _buildAlertsTab() {
+    final l10n = AppLocalizations.of(context)!;
     final alerts =
         _stockData.where((item) {
           return item['totalStock'] < item['lowStockThreshold'];
@@ -236,13 +266,13 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
             children: [
               Icon(Icons.check_circle, size: 80, color: Colors.green[300]),
               const SizedBox(height: 16),
-              const Text(
-                'No Stock Alerts',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Text(
+                l10n.noStockAlerts,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
-                'All medications are adequately stocked',
+                l10n.allMedicationsAdequatelyStocked,
                 style: TextStyle(color: Colors.grey[600]),
               ),
             ],
@@ -265,14 +295,14 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 subtitle: Text(
-                  'Total Stock: ${item['totalStock']} units\nThreshold: ${item['lowStockThreshold']} units',
+                  '${l10n.totalStockLabel.replaceAll('{stock}', '${item['totalStock']}')}\n${l10n.thresholdLabel.replaceAll('{threshold}', '${item['lowStockThreshold']}')}',
                 ),
                 trailing: ElevatedButton(
                   onPressed: () {
                     _showReorderDialog(item);
                   },
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  child: const Text('Reorder'),
+                  child: Text(l10n.reorderButton),
                 ),
               ),
             );
@@ -367,9 +397,9 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Stock by Location',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                Text(
+                  AppLocalizations.of(context)!.stockByLocation,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 const SizedBox(height: 12),
                 ...List.generate((item['locations'] as List).length, (index) {
@@ -423,6 +453,8 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
   }
 
   void _refreshStock() {
+    final l10n = AppLocalizations.of(context)!;
+    
     setState(() {
       _isLoading = true;
     });
@@ -432,8 +464,8 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
         _isLoading = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Stock data synchronized with e-LMIS'),
+        SnackBar(
+          content: Text(l10n.stockDataSynchronized),
           backgroundColor: Colors.green,
         ),
       );
@@ -441,30 +473,32 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
   }
 
   void _showReorderDialog(Map<String, dynamic> item) {
+    final l10n = AppLocalizations.of(context)!;
+    
     showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Reorder Medication'),
+            title: Text(l10n.reorderMedicationTitle),
             content: Text(
-              'Would you like to create a reorder request for ${item['name']}?',
+              l10n.reorderMedicationMessage.replaceAll('{medication}', item['name']),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
+                child: Text(l10n.cancelButton),
               ),
               ElevatedButton(
                 onPressed: () {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Reorder request submitted'),
+                    SnackBar(
+                      content: Text(l10n.reorderRequestSubmitted),
                       backgroundColor: Colors.green,
                     ),
                   );
                 },
-                child: const Text('Submit Request'),
+                child: Text(l10n.submitRequestButton),
               ),
             ],
           ),

@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../generated/app_localizations.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/services/location_service.dart';
 import '../../../../core/services/patient_service.dart';
 import '../../../../core/constants/symptoms_constants.dart';
+import '../../../../core/l10n/symptom_translations_data.dart';
 import '../../../../shared/widgets/app_header.dart';
 import '../../../../shared/widgets/custom_drawer.dart';
 import '../../data/models/diagnosis_models.dart';
@@ -136,6 +138,21 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
     }).toList();
   }
 
+  /// Helper method to get translated symptom name for display
+  /// Returns translated name for UI, but keeps English names for backend
+  String _getSymptomTranslation(BuildContext context, String englishSymptom) {
+    final locale = Localizations.localeOf(context);
+    
+    if (locale.languageCode == 'fr') {
+      return SymptomTranslationsData.frenchTranslations[englishSymptom] ?? englishSymptom;
+    } else if (locale.languageCode == 'rw') {
+      return SymptomTranslationsData.kinyarwandaTranslations[englishSymptom] ?? englishSymptom;
+    }
+    
+    // Default to English
+    return englishSymptom;
+  }
+
   void _selectPatient(dynamic patient) {
     setState(() {
       _selectedPatient = Map<String, dynamic>.from(patient as Map);
@@ -181,10 +198,11 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
   // Voice recording method removed - not needed
 
   Future<void> _runDiagnosis() async {
+    final l10n = AppLocalizations.of(context)!;
     if (_selectedPatient == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a patient first'),
+        SnackBar(
+          content: Text(l10n.pleaseSelectPatientFirst),
           backgroundColor: Colors.orange,
         ),
       );
@@ -194,8 +212,8 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
 
     if (_selectedSymptoms.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please provide symptoms'),
+        SnackBar(
+          content: Text(l10n.pleaseProvideSymptoms),
           backgroundColor: Colors.orange,
         ),
       );
@@ -207,7 +225,7 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
       context: context,
       barrierDismissible: false,
       builder:
-          (context) => const Center(
+          (context) => Center(
             child: Card(
               margin: EdgeInsets.all(24),
               child: Padding(
@@ -218,7 +236,7 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
                     CircularProgressIndicator(),
                     SizedBox(height: 16),
                     Text(
-                      'Running AI Diagnosis...',
+                      l10n.runningAIDiagnosis,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -226,7 +244,7 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
                     ),
                     SizedBox(height: 8),
                     Text(
-                      'This may take a few moments',
+                      l10n.thisMayTakeFewMoments,
                       style: TextStyle(fontSize: 14, color: Colors.grey),
                     ),
                   ],
@@ -424,13 +442,14 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
 
       // Show error
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Diagnosis failed: ${e.toString()}'),
+            content: Text(l10n.diagnosisFailed(e.toString())),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 5),
             action: SnackBarAction(
-              label: 'Retry',
+              label: l10n.retry,
               textColor: Colors.white,
               onPressed: _runDiagnosis,
             ),
@@ -442,6 +461,7 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       drawer: const CustomDrawer(),
       appBar: AppHeader(
@@ -452,16 +472,16 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
             onPressed: () => Scaffold.of(context).openDrawer(),
           ),
         ),
-        title: 'AI Diagnosis Assistant',
+        title: l10n.aiDiagnosisAssistant,
         subtitle:
             _selectedPatient != null
-                ? 'Patient: ${_patientFullName(_selectedPatient)}'
-                : 'Select a patient to begin',
+                ? '${l10n.patient}: ${_patientFullName(_selectedPatient)}'
+                : l10n.selectPatientToBegin,
         actions: [
           IconButton(
             icon: const Icon(Icons.history),
             onPressed: () => context.push('/diagnosis/history'),
-            tooltip: 'History',
+            tooltip: l10n.history,
           ),
         ],
         bottom: TabBar(
@@ -470,12 +490,12 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
           unselectedLabelColor: Colors.white70,
           indicatorColor: Colors.white,
           isScrollable: true,
-          tabs: const [
-            Tab(icon: Icon(Icons.people), text: 'Select Patient'),
-            Tab(icon: Icon(Icons.person), text: 'Patient Info'),
-            Tab(icon: Icon(Icons.sick), text: 'Symptoms'),
-            Tab(icon: Icon(Icons.favorite), text: 'Vital Signs'),
-            Tab(icon: Icon(Icons.preview), text: 'Review'),
+          tabs: [
+            Tab(icon: Icon(Icons.people), text: l10n.selectPatient),
+            Tab(icon: Icon(Icons.person), text: l10n.patientInfo),
+            Tab(icon: Icon(Icons.sick), text: l10n.symptoms),
+            Tab(icon: Icon(Icons.favorite), text: l10n.vitalSigns),
+            Tab(icon: Icon(Icons.preview), text: l10n.review),
           ],
         ),
       ),
@@ -498,6 +518,7 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
 
   // Tab 1: Patient Selection
   Widget _buildPatientSelectionTab() {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
         Padding(
@@ -505,7 +526,7 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
           child: TextField(
             controller: _searchController,
             decoration: InputDecoration(
-              hintText: 'Search patients...',
+              hintText: l10n.searchPatients,
               prefixIcon: const Icon(Icons.search),
               suffixIcon:
                   _searchQuery.isNotEmpty
@@ -539,6 +560,7 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
   }
 
   Widget _buildPatientList() {
+    final l10n = AppLocalizations.of(context)!;
     if (_patientsLoading && _patients.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -559,7 +581,7 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
             ElevatedButton.icon(
               onPressed: () => _loadPatients(reset: true),
               icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+              label: Text(l10n.retry),
             ),
           ],
         ),
@@ -577,8 +599,8 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
             const SizedBox(height: 16),
             Text(
               _searchQuery.isEmpty
-                  ? 'No patients found'
-                  : 'No matching patients',
+                  ? l10n.noPatientsFound
+                  : l10n.noMatchingPatients,
               style: TextStyle(
                 fontSize: 18,
                 color: Colors.grey[600],
@@ -651,6 +673,7 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
 
   // Tab 2: Patient Info (Read-only)
   Widget _buildPatientInfoTab() {
+    final l10n = AppLocalizations.of(context)!;
     if (_selectedPatient == null) {
       return Center(
         child: Column(
@@ -659,7 +682,7 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
             Icon(Icons.person_outline, size: 80, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
-              'No patient selected',
+              l10n.noPatientSelected,
               style: TextStyle(
                 fontSize: 18,
                 color: Colors.grey[600],
@@ -668,14 +691,14 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
             ),
             const SizedBox(height: 8),
             Text(
-              'Please select a patient from the first tab',
+              l10n.pleaseSelectPatient,
               style: TextStyle(fontSize: 14, color: Colors.grey[500]),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () => _tabController.animateTo(0),
               icon: const Icon(Icons.arrow_back),
-              label: const Text('Select Patient'),
+              label: Text(l10n.selectPatient),
             ),
           ],
         ),
@@ -733,21 +756,21 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
                     runSpacing: 8,
                     alignment: WrapAlignment.center,
                     children: [
-                      _buildInfoChip('$age yrs', Icons.cake),
+                      _buildInfoChip('$age ${l10n.years}', Icons.cake),
                       _buildInfoChip(gender, Icons.person),
                       _buildInfoChip(bloodType, Icons.bloodtype),
                     ],
                   ),
                   const SizedBox(height: 20),
-                  _buildDetailRow(Icons.phone, 'Phone', phone),
+                  _buildDetailRow(Icons.phone, l10n.phoneNumber, phone),
                   const Divider(),
                   _buildDetailRow(
                     Icons.calendar_today,
-                    'Last Visit',
+                    l10n.lastVisit,
                     lastVisit,
                   ),
                   const Divider(),
-                  _buildDetailRow(Icons.badge, 'Patient ID', patientId),
+                  _buildDetailRow(Icons.badge, l10n.patientId, patientId),
                 ],
               ),
             ),
@@ -766,7 +789,7 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Patient information is read-only. Proceed to next tab to record symptoms.',
+                    l10n.patientInfoReadOnly,
                     style: TextStyle(fontSize: 13, color: Colors.grey[700]),
                   ),
                 ),
@@ -780,7 +803,7 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
             child: ElevatedButton.icon(
               onPressed: () => _tabController.animateTo(2), // Go to Symptoms tab
               icon: const Icon(Icons.arrow_forward),
-              label: const Text('Next: Record Symptoms'),
+              label: Text(l10n.nextRecordSymptoms),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
@@ -796,14 +819,15 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
 
   // Tab 3: Symptoms
   Widget _buildSymptomsTab() {
+    final l10n = AppLocalizations.of(context)!;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionHeader(
-            'Symptoms Assessment',
-            'Select all symptoms the patient is experiencing',
+            l10n.symptomsAssessment,
+            l10n.selectAllSymptoms,
             Icons.sick,
           ),
           const SizedBox(height: 20),
@@ -815,17 +839,17 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
           ),
           
           const SizedBox(height: 24),
-          _buildSectionTitle('Medical History'),
+          _buildSectionTitle(l10n.medicalHistory),
           const SizedBox(height: 12),
           _buildMedicalHistoryGrid(),
           const SizedBox(height: 24),
-          _buildSectionTitle('Additional Notes'),
+          _buildSectionTitle(l10n.additionalNotes),
           const SizedBox(height: 12),
           TextFormField(
             controller: _additionalNotesController,
             maxLines: 4,
             decoration: InputDecoration(
-              hintText: 'Any additional observations or patient complaints...',
+              hintText: l10n.additionalObservations,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -840,7 +864,7 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
             child: ElevatedButton.icon(
               onPressed: () => _tabController.animateTo(3), // Go to Vital Signs tab
               icon: const Icon(Icons.arrow_forward),
-              label: const Text('Next: Record Vital Signs'),
+              label: Text(l10n.nextRecordVitalSigns),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
@@ -856,59 +880,60 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
 
   // Tab 4: Vital Signs
   Widget _buildVitalSignsTab() {
+    final l10n = AppLocalizations.of(context)!;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionHeader(
-            'Vital Signs',
-            'Record patient\'s vital measurements',
+            l10n.vitalSigns,
+            l10n.recordVitalMeasurements,
             Icons.favorite,
           ),
           const SizedBox(height: 20),
           _buildVitalSignCard(
-            'Temperature',
+            l10n.temperature,
             _temperatureController,
             '°C',
             Icons.thermostat,
-            'Normal: 36.5-37.5°C',
+            l10n.normalRange('36.5-37.5°C'),
             Colors.red,
           ),
           const SizedBox(height: 16),
           _buildVitalSignCard(
-            'Blood Pressure',
+            l10n.bloodPressure,
             _bloodPressureController,
             'mmHg',
             Icons.favorite,
-            'Normal: 120/80 mmHg',
+            l10n.normalRange('120/80 mmHg'),
             Colors.pink,
           ),
           const SizedBox(height: 16),
           _buildVitalSignCard(
-            'Heart Rate',
+            l10n.heartRate,
             _heartRateController,
             'bpm',
             Icons.monitor_heart,
-            'Normal: 60-100 bpm',
+            l10n.normalRange('60-100 bpm'),
             Colors.purple,
           ),
           const SizedBox(height: 16),
           _buildVitalSignCard(
-            'Respiratory Rate',
+            l10n.respiratoryRate,
             _respiratoryRateController,
             'breaths/min',
             Icons.air,
-            'Normal: 12-20 breaths/min',
+            l10n.normalRange('12-20 breaths/min'),
             Colors.blue,
           ),
           const SizedBox(height: 16),
           _buildVitalSignCard(
-            'Oxygen Saturation',
+            l10n.oxygenSaturation,
             _oxygenSaturationController,
             '%',
             Icons.water_drop,
-            'Normal: 95-100%',
+            l10n.normalRange('95-100%'),
             Colors.cyan,
           ),
           const SizedBox(height: 24),
@@ -918,7 +943,7 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
             child: ElevatedButton.icon(
               onPressed: () => _tabController.animateTo(4), // Go to Review tab
               icon: const Icon(Icons.arrow_forward),
-              label: const Text('Next: Review & Submit'),
+              label: Text(l10n.nextReviewSubmit),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
@@ -936,6 +961,7 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
 
   // Tab 5: Review
   Widget _buildReviewTab() {
+    final l10n = AppLocalizations.of(context)!;
     if (_selectedPatient == null) {
       return Center(
         child: Column(
@@ -944,7 +970,7 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
             Icon(Icons.warning_amber, size: 80, color: Colors.orange[400]),
             const SizedBox(height: 16),
             Text(
-              'No patient selected',
+              l10n.noPatientSelected,
               style: TextStyle(
                 fontSize: 18,
                 color: Colors.grey[600],
@@ -962,44 +988,44 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionHeader(
-            'Review & Submit',
-            'Review all information before running diagnosis',
+            l10n.reviewAndSubmit,
+            l10n.reviewBeforeDiagnosis,
             Icons.preview,
           ),
           const SizedBox(height: 20),
-          _buildReviewSection('Patient Information', Icons.person, [
-            'Name: ${_patientFullName(_selectedPatient)}',
-            'Age: ${_patientAge(_selectedPatient)} years',
-            'Gender: ${_selectedPatient!['gender'] ?? '—'}',
-            'Blood Type: ${_selectedPatient!['bloodType'] ?? '—'}',
+          _buildReviewSection(l10n.patientInfo, Icons.person, [
+            '${l10n.firstName}: ${_patientFullName(_selectedPatient)}',
+            '${l10n.age}: ${_patientAge(_selectedPatient)} ${l10n.years}',
+            '${l10n.gender}: ${_selectedPatient!['gender'] ?? '—'}',
+            '${l10n.bloodType}: ${_selectedPatient!['bloodType'] ?? '—'}',
           ]),
           const SizedBox(height: 16),
           _buildReviewSection(
-            'Symptoms (${_selectedSymptoms.length})',
+            l10n.symptomsCount(_selectedSymptoms.length),
             Icons.sick,
             _selectedSymptoms.isEmpty
-                ? ['No symptoms selected']
-                : _selectedSymptoms,
+                ? [l10n.noSymptomsSelected]
+                : _selectedSymptoms.map((s) => _getSymptomTranslation(context, s)).toList(),
           ),
           const SizedBox(height: 16),
           _buildReviewSection(
-            'Medical History (${_selectedMedicalHistory.length})',
+            l10n.medicalHistoryCount(_selectedMedicalHistory.length),
             Icons.history,
             _selectedMedicalHistory.isEmpty
-                ? ['No medical history selected']
+                ? [l10n.noMedicalHistorySelected]
                 : _selectedMedicalHistory,
           ),
           const SizedBox(height: 16),
-          _buildReviewSection('Vital Signs', Icons.favorite, [
-            'Temperature: ${_temperatureController.text.isEmpty ? 'Not recorded' : '${_temperatureController.text}°C'}',
-            'Blood Pressure: ${_bloodPressureController.text.isEmpty ? 'Not recorded' : '${_bloodPressureController.text} mmHg'}',
-            'Heart Rate: ${_heartRateController.text.isEmpty ? 'Not recorded' : '${_heartRateController.text} bpm'}',
-            'Respiratory Rate: ${_respiratoryRateController.text.isEmpty ? 'Not recorded' : '${_respiratoryRateController.text} breaths/min'}',
-            'Oxygen Saturation: ${_oxygenSaturationController.text.isEmpty ? 'Not recorded' : '${_oxygenSaturationController.text}%'}',
+          _buildReviewSection(l10n.vitalSigns, Icons.favorite, [
+            '${l10n.temperature}: ${_temperatureController.text.isEmpty ? l10n.notRecorded : '${_temperatureController.text}°C'}',
+            '${l10n.bloodPressure}: ${_bloodPressureController.text.isEmpty ? l10n.notRecorded : '${_bloodPressureController.text} mmHg'}',
+            '${l10n.heartRate}: ${_heartRateController.text.isEmpty ? l10n.notRecorded : '${_heartRateController.text} bpm'}',
+            '${l10n.respiratoryRate}: ${_respiratoryRateController.text.isEmpty ? l10n.notRecorded : '${_respiratoryRateController.text} breaths/min'}',
+            '${l10n.oxygenSaturation}: ${_oxygenSaturationController.text.isEmpty ? l10n.notRecorded : '${_oxygenSaturationController.text}%'}',
           ]),
           if (_additionalNotesController.text.isNotEmpty) ...[
             const SizedBox(height: 16),
-            _buildReviewSection('Additional Notes', Icons.note, [
+            _buildReviewSection(l10n.additionalNotes, Icons.note, [
               _additionalNotesController.text,
             ]),
           ],
@@ -1017,7 +1043,7 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Review the information above, then tap the button to run the AI diagnosis.',
+                    l10n.reviewInformation,
                     style: TextStyle(fontSize: 13, color: Colors.grey[700]),
                   ),
                 ),
@@ -1030,7 +1056,7 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
             child: ElevatedButton.icon(
               onPressed: _runDiagnosis,
               icon: const Icon(Icons.psychology),
-              label: const Text('Run AI Diagnosis'),
+              label: Text(l10n.runAIDiagnosis),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(

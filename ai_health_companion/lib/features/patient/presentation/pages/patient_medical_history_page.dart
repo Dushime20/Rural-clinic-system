@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/app_header.dart';
+import '../../../../generated/app_localizations.dart';
 
 class PatientMedicalHistoryPage extends ConsumerStatefulWidget {
   final String patientId;
@@ -136,21 +137,23 @@ class _PatientMedicalHistoryPageState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppHeader(
-        title: '${_patient['name']} - Medical History',
-        subtitle: 'Patient ID: ${widget.patientId}',
+        title: '${_patient['name']} - ${l10n.medicalHistoryTitle}',
+        subtitle: l10n.patientIdLabel(widget.patientId),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: _addNewEntry,
-            tooltip: 'Add Entry',
+            tooltip: l10n.addEntryTooltip,
           ),
           IconButton(
             icon: const Icon(Icons.download),
             onPressed: _exportHistory,
-            tooltip: 'Export',
+            tooltip: l10n.exportTooltip,
           ),
         ],
         bottom: TabBar(
@@ -158,10 +161,10 @@ class _PatientMedicalHistoryPageState
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white70,
           indicatorColor: Colors.white,
-          tabs: const [
-            Tab(text: 'Timeline', icon: Icon(Icons.timeline)),
-            Tab(text: 'Medications', icon: Icon(Icons.medication)),
-            Tab(text: 'Lab Results', icon: Icon(Icons.science)),
+          tabs: [
+            Tab(text: l10n.timelineTab, icon: const Icon(Icons.timeline)),
+            Tab(text: l10n.medicationsTab, icon: const Icon(Icons.medication)),
+            Tab(text: l10n.labResultsTab, icon: const Icon(Icons.science)),
           ],
         ),
       ),
@@ -188,6 +191,8 @@ class _PatientMedicalHistoryPageState
   }
 
   Widget _buildTimelineTab() {
+    final l10n = AppLocalizations.of(context)!;
+    
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -202,14 +207,14 @@ class _PatientMedicalHistoryPageState
           Row(
             children: [
               Text(
-                'Medical Timeline',
+                l10n.medicalTimeline,
                 style: Theme.of(
                   context,
                 ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
               ),
               const Spacer(),
               Text(
-                '${_medicalHistory.length} entries',
+                l10n.entriesCount(_medicalHistory.length),
                 style: Theme.of(
                   context,
                 ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
@@ -227,6 +232,8 @@ class _PatientMedicalHistoryPageState
   }
 
   Widget _buildPatientSummaryCard() {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -269,7 +276,7 @@ class _PatientMedicalHistoryPageState
                       ),
                     ),
                     Text(
-                      '${_patient['age']} years old • ${_patient['gender']}',
+                      '${l10n.yearsOld(_patient['age'])} • ${_patient['gender']}',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Colors.white.withOpacity(0.9),
                       ),
@@ -287,21 +294,21 @@ class _PatientMedicalHistoryPageState
             children: [
               Expanded(
                 child: _buildQuickStat(
-                  'Blood Type',
+                  l10n.bloodTypeLabel,
                   _patient['bloodType'],
                   Icons.bloodtype,
                 ),
               ),
               Expanded(
                 child: _buildQuickStat(
-                  'Allergies',
+                  l10n.allergiesLabel,
                   '${_patient['allergies'].length}',
                   Icons.warning,
                 ),
               ),
               Expanded(
                 child: _buildQuickStat(
-                  'Medications',
+                  l10n.medicationsLabel,
                   '${_patient['currentMedications'].length}',
                   Icons.medication,
                 ),
@@ -348,6 +355,8 @@ class _PatientMedicalHistoryPageState
   }
 
   Widget _buildTimelineEntry(Map<String, dynamic> entry) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -400,7 +409,7 @@ class _PatientMedicalHistoryPageState
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  entry['status'],
+                  _getStatusLabel(entry['status'], l10n),
                   style: TextStyle(
                     color: _getStatusColor(entry['status']),
                     fontWeight: FontWeight.w600,
@@ -430,7 +439,7 @@ class _PatientMedicalHistoryPageState
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  'Provider: ${entry['provider']}',
+                  l10n.providerLabel(entry['provider']),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppTheme.textSecondary,
                   ),
@@ -443,7 +452,7 @@ class _PatientMedicalHistoryPageState
               (entry['medications'] as List).isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(
-              'Medications:',
+              l10n.medicationsColon,
               style: Theme.of(
                 context,
               ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
@@ -488,7 +497,7 @@ class _PatientMedicalHistoryPageState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Results:',
+                    l10n.resultsColon,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
@@ -506,7 +515,7 @@ class _PatientMedicalHistoryPageState
           if (entry['notes'] != null) ...[
             const SizedBox(height: 12),
             Text(
-              'Notes:',
+              l10n.notesColon,
               style: Theme.of(
                 context,
               ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
@@ -525,6 +534,7 @@ class _PatientMedicalHistoryPageState
   }
 
   Widget _buildMedicationsTab() {
+    final l10n = AppLocalizations.of(context)!;
     final currentMeds = _patient['currentMedications'] as List<String>;
     final historicalMeds =
         _medicalHistory
@@ -540,7 +550,7 @@ class _PatientMedicalHistoryPageState
         children: [
           // Current Medications
           Text(
-            'Current Medications',
+            l10n.currentMedications,
             style: Theme.of(
               context,
             ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
@@ -548,7 +558,7 @@ class _PatientMedicalHistoryPageState
           const SizedBox(height: 16),
 
           if (currentMeds.isEmpty)
-            _buildEmptyState('No current medications')
+            _buildEmptyState(l10n.noCurrentMedications)
           else
             ...currentMeds.map((med) => _buildMedicationCard(med, true)),
 
@@ -556,7 +566,7 @@ class _PatientMedicalHistoryPageState
 
           // Medication History
           Text(
-            'Medication History',
+            l10n.medicationHistory,
             style: Theme.of(
               context,
             ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
@@ -564,7 +574,7 @@ class _PatientMedicalHistoryPageState
           const SizedBox(height: 16),
 
           if (historicalMeds.isEmpty)
-            _buildEmptyState('No medication history')
+            _buildEmptyState(l10n.noMedicationHistory)
           else
             ...historicalMeds.map((med) => _buildMedicationCard(med, false)),
         ],
@@ -573,6 +583,8 @@ class _PatientMedicalHistoryPageState
   }
 
   Widget _buildMedicationCard(String medication, bool isCurrent) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -614,7 +626,7 @@ class _PatientMedicalHistoryPageState
                   ),
                 ),
                 Text(
-                  isCurrent ? 'Currently taking' : 'Previously prescribed',
+                  isCurrent ? l10n.currentlyTaking : l10n.previouslyPrescribed,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppTheme.textSecondary,
                   ),
@@ -630,8 +642,8 @@ class _PatientMedicalHistoryPageState
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                'Active',
-                style: TextStyle(
+                l10n.activeStatus,
+                style: const TextStyle(
                   color: AppTheme.successColor,
                   fontWeight: FontWeight.w600,
                   fontSize: 12,
@@ -644,6 +656,7 @@ class _PatientMedicalHistoryPageState
   }
 
   Widget _buildLabResultsTab() {
+    final l10n = AppLocalizations.of(context)!;
     final labResults =
         _medicalHistory.where((entry) => entry['type'] == 'Lab Test').toList();
 
@@ -653,7 +666,7 @@ class _PatientMedicalHistoryPageState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Lab Results',
+            l10n.labResults,
             style: Theme.of(
               context,
             ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
@@ -661,7 +674,7 @@ class _PatientMedicalHistoryPageState
           const SizedBox(height: 16),
 
           if (labResults.isEmpty)
-            _buildEmptyState('No lab results available')
+            _buildEmptyState(l10n.noLabResultsAvailable)
           else
             ...labResults.map((result) => _buildLabResultCard(result)),
         ],
@@ -670,6 +683,8 @@ class _PatientMedicalHistoryPageState
   }
 
   Widget _buildLabResultCard(Map<String, dynamic> result) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
@@ -722,7 +737,7 @@ class _PatientMedicalHistoryPageState
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  result['status'],
+                  _getStatusLabel(result['status'], l10n),
                   style: const TextStyle(
                     color: AppTheme.successColor,
                     fontWeight: FontWeight.w600,
@@ -752,7 +767,7 @@ class _PatientMedicalHistoryPageState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Results:',
+                    l10n.resultsColon,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
@@ -770,7 +785,7 @@ class _PatientMedicalHistoryPageState
           if (result['notes'] != null) ...[
             const SizedBox(height: 12),
             Text(
-              'Notes:',
+              l10n.notesColon,
               style: Theme.of(
                 context,
               ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
@@ -850,30 +865,32 @@ class _PatientMedicalHistoryPageState
   }
 
   void _addNewEntry() {
+    final l10n = AppLocalizations.of(context)!;
+    
     showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Add New Entry'),
-            content: const Text(
-              'Add new medical history entry form will be implemented here.',
+            title: Text(l10n.addNewEntry),
+            content: Text(
+              l10n.addNewEntryFormWillBeImplemented,
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
+                child: Text(l10n.cancel),
               ),
               ElevatedButton(
                 onPressed: () {
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('New entry added successfully'),
+                    SnackBar(
+                      content: Text(l10n.newEntryAddedSuccessfully),
                       backgroundColor: AppTheme.successColor,
                     ),
                   );
                 },
-                child: const Text('Add'),
+                child: Text(l10n.add),
               ),
             ],
           ),
@@ -881,11 +898,30 @@ class _PatientMedicalHistoryPageState
   }
 
   void _exportHistory() {
+    final l10n = AppLocalizations.of(context)!;
+    
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Exporting medical history...'),
+      SnackBar(
+        content: Text(l10n.exportingMedicalHistory),
         backgroundColor: AppTheme.primaryColor,
       ),
     );
+  }
+  
+  String _getStatusLabel(String status, AppLocalizations l10n) {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return l10n.completedStatus;
+      case 'resolved':
+        return l10n.resolvedStatus;
+      case 'active':
+        return l10n.activeStatus;
+      case 'under treatment':
+        return l10n.underTreatmentStatus;
+      case 'hospitalized':
+        return l10n.hospitalizedStatus;
+      default:
+        return status;
+    }
   }
 }

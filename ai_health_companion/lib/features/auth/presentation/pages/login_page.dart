@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/services/auth_service.dart';
+import '../../../../generated/app_localizations.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -147,6 +148,8 @@ class _LoginPageState extends ConsumerState<LoginPage>
   }
 
   Widget _buildLogoSection() {
+    final l10n = AppLocalizations.of(context)!;
+    
     return AnimatedBuilder(
       animation: _logoController,
       builder: (context, child) {
@@ -193,7 +196,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
               ),
               const SizedBox(height: 8),
               Text(
-                'Empowering Rural Healthcare',
+                l10n.empoweringRuralHealthcare,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: Colors.white.withAlpha(230),
                   fontWeight: FontWeight.w400,
@@ -207,6 +210,8 @@ class _LoginPageState extends ConsumerState<LoginPage>
   }
 
   Widget _buildLoginForm() {
+    final l10n = AppLocalizations.of(context)!;
+    
     return AnimatedBuilder(
       animation: _formController,
       builder: (context, child) {
@@ -234,7 +239,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      'Welcome Back',
+                      l10n.welcomeBack,
                       style: Theme.of(
                         context,
                       ).textTheme.headlineMedium?.copyWith(
@@ -245,7 +250,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Sign in to continue',
+                      l10n.signInToContinue,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: Colors.white.withAlpha(204),
                       ),
@@ -256,12 +261,12 @@ class _LoginPageState extends ConsumerState<LoginPage>
                     // Email field
                     _buildInputField(
                       controller: _emailController,
-                      label: 'Email',
+                      label: l10n.email,
                       icon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Email is required';
+                          return l10n.emailIsRequired;
                         }
                         final trimmed = value.trim();
                         // Full RFC-compliant-ish email regex
@@ -270,16 +275,16 @@ class _LoginPageState extends ConsumerState<LoginPage>
                         );
                         if (!emailRegex.hasMatch(trimmed)) {
                           if (!trimmed.contains('@')) {
-                            return 'Email must contain @';
+                            return l10n.emailMustContainAt;
                           }
                           final parts = trimmed.split('@');
                           if (parts.length != 2 || parts[1].isEmpty) {
-                            return 'Enter a valid domain (e.g. gmail.com)';
+                            return l10n.enterValidDomain;
                           }
                           if (!parts[1].contains('.')) {
-                            return 'Domain must contain a dot (e.g. .com, .org)';
+                            return l10n.domainMustContainDot;
                           }
-                          return 'Please enter a valid email address';
+                          return l10n.pleaseEnterValidEmail;
                         }
                         return null;
                       },
@@ -290,7 +295,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                     // Password field
                     _buildInputField(
                       controller: _passwordController,
-                      label: 'Password',
+                      label: l10n.password,
                       icon: Icons.lock_outlined,
                       obscureText: !_isPasswordVisible,
                       suffixIcon: IconButton(
@@ -307,10 +312,10 @@ class _LoginPageState extends ConsumerState<LoginPage>
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter your password';
+                          return l10n.pleaseEnterPassword;
                         }
                         if (value.length < 6) {
-                          return 'Password must be at least 6 characters';
+                          return l10n.passwordMinLength;
                         }
                         return null;
                       },
@@ -329,7 +334,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                         context.push('/forgot-password');
                       },
                       child: Text(
-                        'Forgot Password?',
+                        l10n.forgotPassword,
                         style: TextStyle(
                           color: Colors.white.withAlpha(204),
                           fontWeight: FontWeight.w500,
@@ -396,6 +401,8 @@ class _LoginPageState extends ConsumerState<LoginPage>
   }
 
   Widget _buildLoginButton() {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Container(
       height: 56,
       decoration: BoxDecoration(
@@ -423,7 +430,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
           ),
         ),
         child: Text(
-          'Sign In',
+          l10n.signIn,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             color: AppTheme.primaryColor,
             fontWeight: FontWeight.w700,
@@ -438,6 +445,8 @@ class _LoginPageState extends ConsumerState<LoginPage>
   }
 
   void _handleLogin() async {
+    final l10n = AppLocalizations.of(context)!;
+    
     if (!_formKey.currentState!.validate()) return;
 
     // Show loading
@@ -478,7 +487,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  result['message'] ?? 'Login failed. Please try again.',
+                  result['message'] ?? l10n.loginFailed,
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w500,

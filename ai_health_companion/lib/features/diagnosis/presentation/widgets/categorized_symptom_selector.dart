@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/symptoms_constants.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../generated/app_localizations.dart';
+import '../../../../core/l10n/symptom_translations_data.dart';
 
 class CategorizedSymptomSelector extends StatefulWidget {
   final List<String> selectedSymptoms;
@@ -103,6 +105,8 @@ class _CategorizedSymptomSelectorState
   }
 
   Widget _buildSearchBar() {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -118,7 +122,7 @@ class _CategorizedSymptomSelectorState
       child: TextField(
         controller: _searchController,
         decoration: InputDecoration(
-          hintText: 'Search symptoms... (e.g., fever, headache, cough)',
+          hintText: l10n.searchSymptomsPlaceholder,
           prefixIcon: const Icon(Icons.search, color: AppTheme.primaryColor),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
@@ -148,6 +152,7 @@ class _CategorizedSymptomSelectorState
   }
 
   Widget _buildSymptomCounter() {
+    final l10n = AppLocalizations.of(context)!;
     final count = widget.selectedSymptoms.length;
     final isGoodCount = count >= 8 && count <= 12;
     final isFewSymptoms = count < 8;
@@ -202,10 +207,10 @@ class _CategorizedSymptomSelectorState
               children: [
                 Text(
                   isGoodCount
-                      ? '✓ Good selection!'
+                      ? l10n.goodSelection
                       : isFewSymptoms
-                          ? 'Select more symptoms'
-                          : 'Symptoms selected',
+                          ? l10n.selectMoreSymptoms
+                          : l10n.symptomsSelected,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -219,10 +224,10 @@ class _CategorizedSymptomSelectorState
                 const SizedBox(height: 4),
                 Text(
                   isGoodCount
-                      ? 'This should give accurate results'
+                      ? l10n.accurateResultsExpected
                       : isFewSymptoms
-                          ? 'Select 8-10 symptoms for best accuracy'
-                          : 'You can add more if needed',
+                          ? l10n.selectEightToTenSymptoms
+                          : l10n.canAddMoreSymptoms,
                   style: TextStyle(
                     fontSize: 13,
                     color: Colors.grey[700],
@@ -250,6 +255,7 @@ class _CategorizedSymptomSelectorState
   }
 
   Widget _buildSearchResults() {
+    final l10n = AppLocalizations.of(context)!;
     final results = _filteredSymptoms;
 
     if (results.isEmpty) {
@@ -260,7 +266,7 @@ class _CategorizedSymptomSelectorState
             Icon(Icons.search_off, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
-              'No symptoms found',
+              l10n.noSymptomsFound,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -269,7 +275,7 @@ class _CategorizedSymptomSelectorState
             ),
             const SizedBox(height: 8),
             Text(
-              'Try different keywords',
+              l10n.tryDifferentKeywords,
               style: TextStyle(fontSize: 14, color: Colors.grey[500]),
             ),
           ],
@@ -283,7 +289,7 @@ class _CategorizedSymptomSelectorState
         Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: Text(
-            'Search Results (${results.length})',
+            l10n.searchResultsCount(results.length),
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -304,6 +310,8 @@ class _CategorizedSymptomSelectorState
   }
 
   Widget _buildCategorizedSymptoms() {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Column(
       children: SymptomsConstants.symptomsByCategory.entries.map((entry) {
         final category = entry.key;
@@ -311,6 +319,9 @@ class _CategorizedSymptomSelectorState
         final isExpanded = _expandedCategory == category;
         final selectedCount =
             symptoms.where((s) => widget.selectedSymptoms.contains(s)).length;
+
+        // Translate category name
+        final translatedCategory = _getCategoryTranslation(context, category);
 
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
@@ -351,7 +362,7 @@ class _CategorizedSymptomSelectorState
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              category,
+                              translatedCategory,
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -359,7 +370,7 @@ class _CategorizedSymptomSelectorState
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${symptoms.length} symptoms',
+                              l10n.symptomsCategoryCount(symptoms.length),
                               style: TextStyle(
                                 fontSize: 13,
                                 color: Colors.grey[600],
@@ -418,9 +429,65 @@ class _CategorizedSymptomSelectorState
     );
   }
 
+  /// Helper method to get translated category name
+  String _getCategoryTranslation(BuildContext context, String englishCategory) {
+    final l10n = AppLocalizations.of(context)!;
+    
+    switch (englishCategory) {
+      case 'General':
+        return l10n.categoryGeneral;
+      case 'Respiratory':
+        return l10n.categoryRespiratory;
+      case 'Digestive':
+        return l10n.categoryDigestive;
+      case 'Skin & Nails':
+        return l10n.categorySkinNails;
+      case 'Pain & Discomfort':
+        return l10n.categoryPainDiscomfort;
+      case 'Neurological':
+        return l10n.categoryNeurological;
+      case 'Eyes & Vision':
+        return l10n.categoryEyesVision;
+      case 'Urinary':
+        return l10n.categoryUrinary;
+      case 'Cardiovascular':
+        return l10n.categoryCardiovascular;
+      case 'Mental & Behavioral':
+        return l10n.categoryMentalBehavioral;
+      case 'Liver & Digestive System':
+        return l10n.categoryLiverDigestive;
+      case 'Throat & Mouth':
+        return l10n.categoryThroatMouth;
+      case 'Endocrine & Metabolic':
+        return l10n.categoryEndocrineMetabolic;
+      case 'Other':
+        return l10n.categoryOther;
+      default:
+        return englishCategory; // Fallback
+    }
+  }
+
+  /// Helper method to get translated symptom name for display
+  /// Returns translated name for UI, but selectedSymptoms list keeps English names
+  String _getSymptomTranslation(BuildContext context, String englishSymptom) {
+    final locale = Localizations.localeOf(context);
+    
+    if (locale.languageCode == 'fr') {
+      return SymptomTranslationsData.frenchTranslations[englishSymptom] ?? englishSymptom;
+    } else if (locale.languageCode == 'rw') {
+      return SymptomTranslationsData.kinyarwandaTranslations[englishSymptom] ?? englishSymptom;
+    }
+    
+    // Default to English
+    return englishSymptom;
+  }
+
   Widget _buildSymptomChip(String symptom, bool isSelected) {
+    // Get translated symptom name for display
+    final translatedSymptom = _getSymptomTranslation(context, symptom);
+    
     return InkWell(
-      onTap: () => widget.onSymptomToggle(symptom),
+      onTap: () => widget.onSymptomToggle(symptom), // Still passes English name to parent
       borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -442,7 +509,7 @@ class _CategorizedSymptomSelectorState
             ),
             const SizedBox(width: 6),
             Text(
-              symptom,
+              translatedSymptom, // Show translated name
               style: TextStyle(
                 color: isSelected ? Colors.white : Colors.black87,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,

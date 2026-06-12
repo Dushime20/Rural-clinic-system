@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/services/auth_service.dart';
+import '../../../../generated/app_localizations.dart';
 
 class ForgotPasswordPage extends ConsumerStatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -37,6 +38,8 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
 
     if (!mounted) return;
 
+    final l10n = AppLocalizations.of(context)!;
+
     if (result['success'] == true) {
       // Show success dialog
       showDialog(
@@ -47,20 +50,19 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              title: const Row(
+              title: Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.check_circle,
                     color: AppTheme.successColor,
                     size: 28,
                   ),
-                  SizedBox(width: 12),
-                  Text('Email Sent'),
+                  const SizedBox(width: 12),
+                  Text(l10n.emailSent),
                 ],
               ),
               content: Text(
-                result['message'] ??
-                    'Check your email for password reset instructions.',
+                result['message'] ?? l10n.checkEmailForInstructions,
                 style: const TextStyle(fontSize: 16),
               ),
               actions: [
@@ -69,7 +71,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                     context.pop(); // Close dialog
                     context.pop(); // Go back to login
                   },
-                  child: const Text('OK'),
+                  child: Text(l10n.ok),
                 ),
               ],
             ),
@@ -78,7 +80,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
       // Show error
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(result['message'] ?? 'Failed to send reset email'),
+          content: Text(result['message'] ?? l10n.failedToSendResetEmail),
           backgroundColor: AppTheme.errorColor,
         ),
       );
@@ -87,6 +89,8 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
@@ -129,7 +133,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
 
                   // Title
                   Text(
-                    'Forgot Password?',
+                    l10n.forgotPasswordTitle,
                     style: Theme.of(context).textTheme.displayMedium?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w800,
@@ -140,7 +144,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
 
                   // Subtitle
                   Text(
-                    'Enter your email address and we\'ll send you\ninstructions to reset your password',
+                    l10n.forgotPasswordSubtitle,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       color: Colors.white.withOpacity(0.9),
                     ),
@@ -182,7 +186,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                               fontWeight: FontWeight.w500,
                             ),
                             decoration: InputDecoration(
-                              labelText: 'Email',
+                              labelText: l10n.email,
                               labelStyle: TextStyle(
                                 color: Colors.white.withOpacity(0.7),
                                 fontWeight: FontWeight.w500,
@@ -221,10 +225,10 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'Please enter your email';
+                                return l10n.pleaseEnterEmail;
                               }
                               if (!value.contains('@')) {
-                                return 'Please enter a valid email';
+                                return l10n.pleaseEnterValidEmailAddress;
                               }
                               return null;
                             },
@@ -273,7 +277,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                                         ),
                                       )
                                       : Text(
-                                        'Send Reset Link',
+                                        l10n.sendResetLink,
                                         style: Theme.of(
                                           context,
                                         ).textTheme.titleMedium?.copyWith(
@@ -294,7 +298,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                   TextButton(
                     onPressed: () => context.pop(),
                     child: Text(
-                      'Back to Login',
+                      l10n.backToLogin,
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.8),
                         fontWeight: FontWeight.w500,

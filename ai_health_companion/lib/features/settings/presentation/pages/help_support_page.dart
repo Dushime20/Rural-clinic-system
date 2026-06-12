@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/app_header.dart';
+import '../../../../generated/app_localizations.dart';
 
 class HelpSupportPage extends ConsumerStatefulWidget {
   const HelpSupportPage({super.key});
@@ -21,77 +22,74 @@ class _HelpSupportPageState extends ConsumerState<HelpSupportPage>
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
-  final List<Map<String, dynamic>> _faqItems = [
-    {
-      'question': 'How does AI diagnosis work?',
-      'answer':
-          'The AI diagnosis feature uses machine learning models trained on medical data to analyze symptoms, vital signs, and patient information to provide probable disease predictions with confidence scores.',
-      'category': 'AI Diagnosis',
-    },
-    {
-      'question': 'How do I add a new patient?',
-      'answer':
-          'Go to the Patients tab and tap the "+" button or "Add Patient" button. Fill out the patient information form with personal, medical, and contact details.',
-      'category': 'Patient Management',
-    },
-    {
-      'question': 'Is my data secure?',
-      'answer':
-          'Yes, all patient data is encrypted and stored securely. The app complies with healthcare privacy standards and uses end-to-end encryption.',
-      'category': 'Security',
-    },
-    {
-      'question': 'Can I export patient reports?',
-      'answer':
-          'Yes, you can export diagnosis reports and patient data. Use the export button in the diagnosis results or patient details pages.',
-      'category': 'Reports',
-    },
-    {
-      'question': 'What if the AI diagnosis is wrong?',
-      'answer':
-          'The AI provides suggestions based on symptoms, but always consult with qualified healthcare professionals for final diagnosis and treatment decisions.',
-      'category': 'AI Diagnosis',
-    },
-    {
-      'question': 'How do I update patient information?',
-      'answer':
-          'Go to the patient\'s detail page and tap the edit button. You can update any patient information including medical history and contact details.',
-      'category': 'Patient Management',
-    },
-    {
-      'question': 'How do I find nearby pharmacies?',
-      'answer':
-          'After a diagnosis, the app will show nearby pharmacies that have the prescribed medications in stock. You can also browse all pharmacies in the Pharmacies tab.',
-      'category': 'Pharmacies',
-    },
-  ];
+  List<Map<String, dynamic>> _getFAQItems(AppLocalizations l10n) {
+    return [
+      {
+        'question': l10n.faqHowDoesAIDiagnosisWork,
+        'answer': l10n.faqAIDiagnosisAnswer,
+        'category': l10n.faqCategoryAIDiagnosis,
+      },
+      {
+        'question': l10n.faqHowDoIAddNewPatient,
+        'answer': l10n.faqAddNewPatientAnswer,
+        'category': l10n.faqCategoryPatientManagement,
+      },
+      {
+        'question': l10n.faqIsMyDataSecure,
+        'answer': l10n.faqDataSecurityAnswer,
+        'category': l10n.faqCategorySecurity,
+      },
+      {
+        'question': l10n.faqCanIExportPatientReports,
+        'answer': l10n.faqExportReportsAnswer,
+        'category': l10n.faqCategoryReports,
+      },
+      {
+        'question': l10n.faqWhatIfAIDiagnosisIsWrong,
+        'answer': l10n.faqAIDiagnosisWrongAnswer,
+        'category': l10n.faqCategoryAIDiagnosis,
+      },
+      {
+        'question': l10n.faqHowDoIUpdatePatientInfo,
+        'answer': l10n.faqUpdatePatientInfoAnswer,
+        'category': l10n.faqCategoryPatientManagement,
+      },
+      {
+        'question': l10n.faqHowDoIFindNearbyPharmacies,
+        'answer': l10n.faqFindNearbyPharmaciesAnswer,
+        'category': l10n.faqCategoryPharmacies,
+      },
+    ];
+  }
 
-  final List<Map<String, dynamic>> _tutorialSteps = [
-    {
-      'title': 'Getting Started',
-      'description': 'Learn the basics of using the AI Health Companion app',
-      'icon': Icons.play_circle_outline,
-      'color': AppTheme.primaryColor,
-    },
-    {
-      'title': 'AI Diagnosis',
-      'description': 'How to perform AI-powered disease diagnosis',
-      'icon': Icons.psychology,
-      'color': AppTheme.secondaryColor,
-    },
-    {
-      'title': 'Patient Management',
-      'description': 'Adding and managing patient records',
-      'icon': Icons.people,
-      'color': AppTheme.accentColor,
-    },
-    {
-      'title': 'Pharmacy Finder',
-      'description': 'Finding pharmacies with available medications',
-      'icon': Icons.local_pharmacy,
-      'color': AppTheme.successColor,
-    },
-  ];
+  List<Map<String, dynamic>> _getTutorialSteps(AppLocalizations l10n) {
+    return [
+      {
+        'title': l10n.gettingStarted,
+        'description': l10n.gettingStartedDescription,
+        'icon': Icons.play_circle_outline,
+        'color': AppTheme.primaryColor,
+      },
+      {
+        'title': l10n.aiDiagnosisTutorial,
+        'description': l10n.aiDiagnosisTutorialDescription,
+        'icon': Icons.psychology,
+        'color': AppTheme.secondaryColor,
+      },
+      {
+        'title': l10n.patientManagementTutorial,
+        'description': l10n.patientManagementTutorialDescription,
+        'icon': Icons.people,
+        'color': AppTheme.accentColor,
+      },
+      {
+        'title': l10n.pharmacyFinderTutorial,
+        'description': l10n.pharmacyFinderTutorialDescription,
+        'icon': Icons.local_pharmacy,
+        'color': AppTheme.successColor,
+      },
+    ];
+  }
 
   @override
   void initState() {
@@ -136,24 +134,26 @@ class _HelpSupportPageState extends ConsumerState<HelpSupportPage>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppHeader(
-        title: 'Help & Support',
-        subtitle: 'Get help and learn more',
+        title: l10n.helpSupportTitle,
+        subtitle: l10n.getHelpLearnMore,
         actions: [
           IconButton(
             icon: const Icon(Icons.contact_support),
             onPressed: _contactSupport,
-            tooltip: 'Contact Support',
+            tooltip: l10n.contactSupportTooltip,
           ),
         ],
         bottom: TabBar(
           controller: _tabController,
-          tabs: const [
-            Tab(text: 'FAQ', icon: Icon(Icons.help_outline)),
-            Tab(text: 'Tutorials', icon: Icon(Icons.play_circle_outline)),
-            Tab(text: 'Contact', icon: Icon(Icons.contact_support)),
+          tabs: [
+            Tab(text: l10n.faqTab, icon: const Icon(Icons.help_outline)),
+            Tab(text: l10n.tutorialsTab, icon: const Icon(Icons.play_circle_outline)),
+            Tab(text: l10n.contactTab, icon: const Icon(Icons.contact_support)),
           ],
         ),
       ),
@@ -180,8 +180,11 @@ class _HelpSupportPageState extends ConsumerState<HelpSupportPage>
   }
 
   Widget _buildFAQTab() {
+    final l10n = AppLocalizations.of(context)!;
+    final faqItems = _getFAQItems(l10n);
+    
     final filteredFAQs =
-        _faqItems.where((faq) {
+        faqItems.where((faq) {
           return faq['question'].toLowerCase().contains(
                 _searchQuery.toLowerCase(),
               ) ||
@@ -206,7 +209,7 @@ class _HelpSupportPageState extends ConsumerState<HelpSupportPage>
               });
             },
             decoration: InputDecoration(
-              hintText: 'Search FAQ...',
+              hintText: l10n.searchFAQ,
               prefixIcon: const Icon(Icons.search),
               suffixIcon:
                   _searchQuery.isNotEmpty
@@ -233,7 +236,7 @@ class _HelpSupportPageState extends ConsumerState<HelpSupportPage>
         Expanded(
           child:
               filteredFAQs.isEmpty
-                  ? _buildEmptyState('No FAQ items found')
+                  ? _buildEmptyState(l10n.noFAQItemsFound)
                   : ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     itemCount: filteredFAQs.length,
@@ -296,27 +299,30 @@ class _HelpSupportPageState extends ConsumerState<HelpSupportPage>
   }
 
   Widget _buildTutorialsTab() {
+    final l10n = AppLocalizations.of(context)!;
+    final tutorialSteps = _getTutorialSteps(l10n);
+    
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Interactive Tutorials',
+            l10n.interactiveTutorials,
             style: Theme.of(
               context,
             ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 8),
           Text(
-            'Learn how to use the app with step-by-step guides',
+            l10n.learnHowToUseApp,
             style: Theme.of(
               context,
             ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
           ),
           const SizedBox(height: 24),
 
-          ..._tutorialSteps.map((tutorial) {
+          ...tutorialSteps.map((tutorial) {
             return Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: _buildTutorialCard(tutorial),
@@ -380,20 +386,22 @@ class _HelpSupportPageState extends ConsumerState<HelpSupportPage>
   }
 
   Widget _buildContactTab() {
+    final l10n = AppLocalizations.of(context)!;
+    
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Get Support',
+            l10n.getSupport,
             style: Theme.of(
               context,
             ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 8),
           Text(
-            'Need help? Contact our support team',
+            l10n.needHelpContactSupport,
             style: Theme.of(
               context,
             ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
@@ -402,8 +410,8 @@ class _HelpSupportPageState extends ConsumerState<HelpSupportPage>
 
           // Contact Methods
           _buildContactMethod(
-            'Email Support',
-            'Send us an email and we\'ll respond within 24 hours',
+            l10n.emailSupport,
+            l10n.emailSupportDescription,
             Icons.email,
             AppTheme.primaryColor,
             () => _sendEmail(),
@@ -412,8 +420,8 @@ class _HelpSupportPageState extends ConsumerState<HelpSupportPage>
           const SizedBox(height: 16),
 
           _buildContactMethod(
-            'Phone Support',
-            'Call our support line for immediate assistance',
+            l10n.phoneSupport,
+            l10n.phoneSupportDescription,
             Icons.phone,
             AppTheme.successColor,
             () => _makePhoneCall(),
@@ -422,8 +430,8 @@ class _HelpSupportPageState extends ConsumerState<HelpSupportPage>
           const SizedBox(height: 16),
 
           _buildContactMethod(
-            'Live Chat',
-            'Chat with our support team in real-time',
+            l10n.liveChat,
+            l10n.liveChatDescription,
             Icons.chat,
             AppTheme.accentColor,
             () => _startLiveChat(),
@@ -502,6 +510,8 @@ class _HelpSupportPageState extends ConsumerState<HelpSupportPage>
   }
 
   Widget _buildSupportHours() {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -517,7 +527,7 @@ class _HelpSupportPageState extends ConsumerState<HelpSupportPage>
               Icon(Icons.schedule, color: AppTheme.primaryColor, size: 20),
               const SizedBox(width: 8),
               Text(
-                'Support Hours',
+                l10n.supportHours,
                 style: Theme.of(
                   context,
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
@@ -526,10 +536,10 @@ class _HelpSupportPageState extends ConsumerState<HelpSupportPage>
           ),
           const SizedBox(height: 16),
 
-          _buildHoursRow('Monday - Friday', '9:00 AM - 6:00 PM'),
-          _buildHoursRow('Saturday', '10:00 AM - 4:00 PM'),
-          _buildHoursRow('Sunday', 'Closed'),
-          _buildHoursRow('Emergency', '24/7 via email'),
+          _buildHoursRow(l10n.mondayFriday, l10n.mondayFridayHours),
+          _buildHoursRow(l10n.saturday, l10n.saturdayHours),
+          _buildHoursRow(l10n.sunday, l10n.sundayClosed),
+          _buildHoursRow(l10n.emergency, l10n.emergency24x7),
         ],
       ),
     );
@@ -559,6 +569,8 @@ class _HelpSupportPageState extends ConsumerState<HelpSupportPage>
   }
 
   Widget _buildReportIssue() {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -574,7 +586,7 @@ class _HelpSupportPageState extends ConsumerState<HelpSupportPage>
               Icon(Icons.bug_report, color: AppTheme.errorColor, size: 20),
               const SizedBox(width: 8),
               Text(
-                'Report an Issue',
+                l10n.reportAnIssue,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                   color: AppTheme.errorColor,
@@ -584,7 +596,7 @@ class _HelpSupportPageState extends ConsumerState<HelpSupportPage>
           ),
           const SizedBox(height: 8),
           Text(
-            'Found a bug or experiencing issues? Report it to help us improve the app.',
+            l10n.foundBugReportIt,
             style: Theme.of(
               context,
             ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
@@ -602,7 +614,7 @@ class _HelpSupportPageState extends ConsumerState<HelpSupportPage>
                 ),
               ),
               icon: const Icon(Icons.report),
-              label: const Text('Report Issue'),
+              label: Text(l10n.reportIssue),
             ),
           ),
         ],
@@ -631,18 +643,20 @@ class _HelpSupportPageState extends ConsumerState<HelpSupportPage>
   }
 
   void _startTutorial(Map<String, dynamic> tutorial) {
+    final l10n = AppLocalizations.of(context)!;
+    
     showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
-            title: Text('${tutorial['title']} Tutorial'),
+            title: Text(l10n.tutorialDialogTitle(tutorial['title'])),
             content: Text(
-              'Interactive tutorial for "${tutorial['title']}" will be implemented here.',
+              l10n.tutorialWillBeImplemented(tutorial['title']),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Close'),
+                child: Text(l10n.closeTutorial),
               ),
               ElevatedButton(
                 onPressed: () {
@@ -650,13 +664,13 @@ class _HelpSupportPageState extends ConsumerState<HelpSupportPage>
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        'Starting ${tutorial['title']} tutorial...',
+                        l10n.startingTutorial(tutorial['title']),
                       ),
                       backgroundColor: tutorial['color'],
                     ),
                   );
                 },
-                child: const Text('Start Tutorial'),
+                child: Text(l10n.startTutorial),
               ),
             ],
           ),
@@ -664,32 +678,34 @@ class _HelpSupportPageState extends ConsumerState<HelpSupportPage>
   }
 
   void _contactSupport() {
+    final l10n = AppLocalizations.of(context)!;
+    
     showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Contact Support'),
-            content: const Text(
-              'How would you like to contact our support team?',
+            title: Text(l10n.contactSupportDialog),
+            content: Text(
+              l10n.howToContactSupport,
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
+                child: Text(l10n.cancel),
               ),
               ElevatedButton(
                 onPressed: () {
                   Navigator.of(context).pop();
                   _sendEmail();
                 },
-                child: const Text('Email'),
+                child: Text(l10n.emailButton),
               ),
               ElevatedButton(
                 onPressed: () {
                   Navigator.of(context).pop();
                   _makePhoneCall();
                 },
-                child: const Text('Call'),
+                child: Text(l10n.callButton),
               ),
             ],
           ),
@@ -697,57 +713,65 @@ class _HelpSupportPageState extends ConsumerState<HelpSupportPage>
   }
 
   void _sendEmail() {
+    final l10n = AppLocalizations.of(context)!;
+    
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Opening email client...'),
+      SnackBar(
+        content: Text(l10n.openingEmailClient),
         backgroundColor: AppTheme.primaryColor,
       ),
     );
   }
 
   void _makePhoneCall() {
+    final l10n = AppLocalizations.of(context)!;
+    
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Opening phone dialer...'),
+      SnackBar(
+        content: Text(l10n.openingPhoneDialer),
         backgroundColor: AppTheme.successColor,
       ),
     );
   }
 
   void _startLiveChat() {
+    final l10n = AppLocalizations.of(context)!;
+    
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Starting live chat...'),
+      SnackBar(
+        content: Text(l10n.startingLiveChat),
         backgroundColor: AppTheme.accentColor,
       ),
     );
   }
 
   void _reportIssue() {
+    final l10n = AppLocalizations.of(context)!;
+    
     showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Report Issue'),
-            content: const Text(
-              'Issue reporting form will be implemented here.',
+            title: Text(l10n.reportIssueDialog),
+            content: Text(
+              l10n.issueReportingFormWillBeImplemented,
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
+                child: Text(l10n.cancel),
               ),
               ElevatedButton(
                 onPressed: () {
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Issue reported successfully'),
+                    SnackBar(
+                      content: Text(l10n.issueReportedSuccessfully),
                       backgroundColor: AppTheme.successColor,
                     ),
                   );
                 },
-                child: const Text('Submit'),
+                child: Text(l10n.submitButton),
               ),
             ],
           ),

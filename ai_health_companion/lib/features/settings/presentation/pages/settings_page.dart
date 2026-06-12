@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../generated/app_localizations.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../../core/services/user_service.dart';
@@ -65,21 +66,23 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       _profile?['clinicId'] ?? _auth.currentUser?.clinicId ?? '';
 
   String _formatRole(String role) {
+    final l10n = AppLocalizations.of(context)!;
     switch (role.toLowerCase()) {
       case 'admin':
-        return 'System Administrator';
+        return l10n.systemAdministrator;
       case 'health_worker':
-        return 'Health Worker';
+        return l10n.healthWorker;
       case 'clinic_staff':
-        return 'Clinic Staff';
+        return l10n.clinicStaff;
       case 'supervisor':
-        return 'Supervisor';
+        return l10n.supervisor;
       default:
         return role;
     }
   }
 
   Future<void> _logout() async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder:
@@ -87,19 +90,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
-            title: const Text('Logout'),
-            content: const Text('Are you sure you want to logout?'),
+            title: Text(l10n.logout),
+            content: Text(l10n.logoutConfirm),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel'),
+                child: Text(l10n.cancel),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(ctx, true),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.errorColor,
                 ),
-                child: const Text('Logout'),
+                child: Text(l10n.logout),
               ),
             ],
           ),
@@ -112,22 +115,23 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppHeader(
-        title: 'Settings',
-        subtitle: 'Manage your account',
+        title: l10n.settings,
+        subtitle: l10n.manageYourAccount,
         showBackButton: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadProfile,
-            tooltip: 'Refresh',
+            tooltip: l10n.refresh,
           ),
         ],
       ),
       body:
           _isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? Center(child: CircularProgressIndicator())
               : SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
                 child: Column(
@@ -147,6 +151,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Widget _buildProfileCard(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -172,7 +177,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              _fullName.isEmpty ? 'Loading...' : _fullName,
+              _fullName.isEmpty ? l10n.loading : _fullName,
               style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -210,7 +215,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             if (_clinicId.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
-                'Clinic: $_clinicId',
+                '${l10n.clinic}: $_clinicId',
                 style: const TextStyle(fontSize: 12, color: Colors.white60),
               ),
             ],
@@ -220,7 +225,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               child: ElevatedButton.icon(
                 onPressed: () => _showEditProfileSheet(context),
                 icon: const Icon(Icons.edit, size: 18),
-                label: const Text('Edit Profile'),
+                label: Text(l10n.editProfile),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: AppTheme.primaryColor,
@@ -239,17 +244,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Widget _buildAccountSection(BuildContext context) {
-    return _buildSection('Account', [
+    final l10n = AppLocalizations.of(context)!;
+    return _buildSection(l10n.account, [
       _tile(
         icon: Icons.lock_outline,
-        title: 'Change Password',
-        subtitle: 'Update your password',
+        title: l10n.changePassword,
+        subtitle: l10n.updateYourPassword,
         onTap: () => context.push('/change-password'),
       ),
       _tile(
         icon: Icons.verified_user_outlined,
-        title: 'Account Status',
-        subtitle: _profile?['isActive'] == true ? 'Active' : 'Inactive',
+        title: l10n.accountStatus,
+        subtitle: _profile?['isActive'] == true ? l10n.active : l10n.inactive,
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
@@ -260,7 +266,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
-            _profile?['isActive'] == true ? 'Active' : 'Inactive',
+            _profile?['isActive'] == true ? l10n.active : l10n.inactive,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
@@ -275,14 +281,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       ),
       _tile(
         icon: Icons.access_time,
-        title: 'Last Login',
+        title: l10n.lastLogin,
         subtitle: _formatDate(_profile?['lastLogin']),
         onTap: null,
         showArrow: false,
       ),
       _tile(
         icon: Icons.calendar_today_outlined,
-        title: 'Member Since',
+        title: l10n.memberSince,
         subtitle: _formatDate(_profile?['createdAt']),
         onTap: null,
         showArrow: false,
@@ -291,14 +297,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Widget _buildAppSection(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isDarkMode = ref.watch(isDarkModeProvider);
     final currentLanguage = ref.watch(currentLanguageProvider);
 
-    return _buildSection('App', [
+    return _buildSection(l10n.app, [
       _tile(
         icon: isDarkMode ? Icons.dark_mode : Icons.light_mode,
-        title: 'Theme',
-        subtitle: isDarkMode ? 'Dark Mode' : 'Light Mode',
+        title: l10n.theme,
+        subtitle: isDarkMode ? l10n.darkMode : l10n.lightMode,
         trailing: Switch(
           value: isDarkMode,
           onChanged: (value) {
@@ -311,19 +318,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       ),
       _tile(
         icon: Icons.language,
-        title: 'Language',
+        title: l10n.language,
         subtitle: currentLanguage.nativeName,
         onTap: () => _showLanguageSelector(context),
       ),
       _tile(
         icon: Icons.help_outline,
-        title: 'Help & Support',
-        subtitle: 'Get help and contact support',
+        title: l10n.helpAndSupport,
+        subtitle: l10n.getHelpContactSupport,
         onTap: () => context.go('/help'),
       ),
       _tile(
         icon: Icons.info_outline,
-        title: 'App Version',
+        title: l10n.appVersion,
         subtitle: AppConstants.appVersion,
         onTap: null,
         showArrow: false,
@@ -332,11 +339,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Widget _buildDangerSection(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return _buildSection('', [
       _tile(
         icon: Icons.logout,
-        title: 'Logout',
-        subtitle: 'Sign out of your account',
+        title: l10n.logout,
+        subtitle: l10n.signOutOfAccount,
         color: AppTheme.errorColor,
         onTap: _logout,
       ),
@@ -442,6 +450,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   // ── Edit Profile Bottom Sheet ──────────────────────────────────────────────
 
   void _showEditProfileSheet(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final firstNameCtrl = TextEditingController(
       text: _profile?['firstName'] ?? '',
     );
@@ -492,9 +501,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                           ),
                         ),
                         const SizedBox(height: 20),
-                        const Text(
-                          'Edit Profile',
-                          style: TextStyle(
+                        Text(
+                          l10n.editProfile,
+                          style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
@@ -507,7 +516,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                               child: TextFormField(
                                 controller: firstNameCtrl,
                                 decoration: InputDecoration(
-                                  labelText: 'First Name',
+                                  labelText: l10n.firstName,
                                   prefixIcon: const Icon(Icons.person),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -515,7 +524,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                 ),
                                 validator:
                                     (v) =>
-                                        v!.trim().isEmpty ? 'Required' : null,
+                                        v!.trim().isEmpty ? l10n.required : null,
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -523,7 +532,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                               child: TextFormField(
                                 controller: lastNameCtrl,
                                 decoration: InputDecoration(
-                                  labelText: 'Last Name',
+                                  labelText: l10n.lastName,
                                   prefixIcon: const Icon(Icons.person),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -531,7 +540,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                 ),
                                 validator:
                                     (v) =>
-                                        v!.trim().isEmpty ? 'Required' : null,
+                                        v!.trim().isEmpty ? l10n.required : null,
                               ),
                             ),
                           ],
@@ -542,7 +551,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                           controller: phoneCtrl,
                           keyboardType: TextInputType.phone,
                           decoration: InputDecoration(
-                            labelText: 'Phone Number',
+                            labelText: l10n.phoneNumber,
                             prefixIcon: const Icon(Icons.phone),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -583,9 +592,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                         SnackBar(
                                           content: Text(
                                             result['success'] == true
-                                                ? 'Profile updated successfully'
+                                                ? l10n.profileUpdatedSuccessfully
                                                 : result['message'] ??
-                                                    'Update failed',
+                                                    l10n.updateFailed,
                                           ),
                                           backgroundColor:
                                               result['success'] == true
@@ -614,7 +623,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                       ),
                                     )
                                     : const Icon(Icons.save),
-                            label: Text(saving ? 'Saving...' : 'Save Changes'),
+                            label: Text(saving ? l10n.saving : l10n.saveChanges),
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
@@ -634,6 +643,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   // ── Language Selector Bottom Sheet ────────────────────────────────────────
 
   void _showLanguageSelector(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final currentLanguage = ref.read(currentLanguageProvider);
 
     showModalBottomSheet(
@@ -665,14 +675,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'Select Language',
+                  l10n.selectLanguagePrompt,
                   style: Theme.of(
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Choose your preferred language',
+                  l10n.choosePreferredLanguage,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: AppTheme.textSecondary,
                   ),
@@ -729,7 +739,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            'Language changed to ${language.nativeName}',
+                            l10n.languageChangedTo(language.nativeName),
                           ),
                           backgroundColor: AppTheme.successColor,
                           duration: const Duration(seconds: 2),

@@ -9,6 +9,7 @@ import '../../../../shared/widgets/feature_card.dart';
 import '../../../../shared/widgets/quick_action_button.dart';
 import '../../../../shared/widgets/animated_counter.dart';
 import '../../../../shared/widgets/custom_drawer.dart';
+import '../../../../generated/app_localizations.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -198,6 +199,7 @@ class _HomePageState extends ConsumerState<HomePage>
                     child: AnimatedBuilder(
                       animation: _headerAnimation,
                       builder: (context, child) {
+                        final l10n = AppLocalizations.of(context)!;
                         return Transform.translate(
                           offset: Offset(0, 20 * (1 - _headerAnimation.value)),
                           child: Opacity(
@@ -207,7 +209,7 @@ class _HomePageState extends ConsumerState<HomePage>
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
-                                  'Good ${_getGreeting()}',
+                                  _getGreeting(l10n),
                                   style: Theme.of(
                                     context,
                                   ).textTheme.bodyMedium?.copyWith(
@@ -215,7 +217,7 @@ class _HomePageState extends ConsumerState<HomePage>
                                   ),
                                 ),
                                 Text(
-                                  _auth.currentUser?.fullName ?? 'Welcome',
+                                  _auth.currentUser?.fullName ?? l10n.welcome,
                                   style: Theme.of(
                                     context,
                                   ).textTheme.titleLarge?.copyWith(
@@ -242,6 +244,8 @@ class _HomePageState extends ConsumerState<HomePage>
   }
 
   Widget _buildWelcomeSection() {
+    final l10n = AppLocalizations.of(context)!;
+    
     return AnimatedBuilder(
       animation: _cardsAnimation,
       builder: (context, child) {
@@ -283,7 +287,7 @@ class _HomePageState extends ConsumerState<HomePage>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'AI Diagnosis Ready',
+                              l10n.aiDiagnosisReady,
                               style: Theme.of(
                                 context,
                               ).textTheme.titleLarge?.copyWith(
@@ -292,7 +296,7 @@ class _HomePageState extends ConsumerState<HomePage>
                               ),
                             ),
                             Text(
-                              'Your AI assistant is ready to help with patient diagnosis',
+                              l10n.yourAIAssistantReady,
                               style: Theme.of(
                                 context,
                               ).textTheme.bodyMedium?.copyWith(
@@ -319,9 +323,9 @@ class _HomePageState extends ConsumerState<HomePage>
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
                       icon: const Icon(Icons.add),
-                      label: const Text(
-                        'Start New Diagnosis',
-                        style: TextStyle(fontWeight: FontWeight.w600),
+                      label: Text(
+                        l10n.startNewDiagnosis,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                     ),
                   ),
@@ -421,6 +425,8 @@ class _HomePageState extends ConsumerState<HomePage>
   }
 
   Widget _buildQuickActionsSection() {
+    final l10n = AppLocalizations.of(context)!;
+    
     return AnimatedBuilder(
       animation: _cardsAnimation,
       builder: (context, child) {
@@ -432,7 +438,7 @@ class _HomePageState extends ConsumerState<HomePage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Quick Actions',
+                  l10n.quickActions,
                   style: Theme.of(
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
@@ -442,7 +448,7 @@ class _HomePageState extends ConsumerState<HomePage>
                   children: [
                     Expanded(
                       child: QuickActionButton(
-                        title: 'New Patient',
+                        title: l10n.newPatient,
                         icon: Icons.person_add,
                         color: AppTheme.primaryColor,
                         onTap: () {
@@ -453,7 +459,7 @@ class _HomePageState extends ConsumerState<HomePage>
                     const SizedBox(width: 16),
                     Expanded(
                       child: QuickActionButton(
-                        title: 'View Patients',
+                        title: l10n.viewPatients,
                         icon: Icons.people,
                         color: AppTheme.secondaryColor,
                         onTap: () => context.go('/patients'),
@@ -470,6 +476,8 @@ class _HomePageState extends ConsumerState<HomePage>
   }
 
   Widget _buildMainFeaturesSection() {
+    final l10n = AppLocalizations.of(context)!;
+    
     return AnimatedBuilder(
       animation: _cardsAnimation,
       builder: (context, child) {
@@ -481,7 +489,7 @@ class _HomePageState extends ConsumerState<HomePage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Main Features',
+                  l10n.mainFeatures,
                   style: Theme.of(
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
@@ -496,29 +504,29 @@ class _HomePageState extends ConsumerState<HomePage>
                   childAspectRatio: 1.1,
                   children: [
                     FeatureCard(
-                      title: 'AI Diagnosis',
-                      description: 'Get AI-powered disease predictions',
+                      title: l10n.aiDiagnosis,
+                      description: l10n.getAIPoweredPredictions,
                       icon: Icons.psychology,
                       color: AppTheme.primaryColor,
                       onTap: () => context.go('/diagnosis'),
                     ),
                     FeatureCard(
-                      title: 'Patient Records',
-                      description: 'Manage patient information',
+                      title: l10n.patients,
+                      description: l10n.managePatientInformation,
                       icon: Icons.folder_shared,
                       color: AppTheme.secondaryColor,
                       onTap: () => context.go('/patients'),
                     ),
                     FeatureCard(
-                      title: 'Pharmacies',
-                      description: 'Find nearby pharmacies',
+                      title: l10n.pharmacies,
+                      description: l10n.findNearbyPharmacies,
                       icon: Icons.local_pharmacy,
                       color: AppTheme.accentColor,
                       onTap: () => context.go('/pharmacies'),
                     ),
                     FeatureCard(
-                      title: 'Analytics',
-                      description: 'View health statistics',
+                      title: l10n.analytics,
+                      description: l10n.viewHealthStatistics,
                       icon: Icons.analytics,
                       color: AppTheme.successColor,
                       onTap: () => context.go('/analytics'),
@@ -534,6 +542,7 @@ class _HomePageState extends ConsumerState<HomePage>
   }
 
   Widget _buildRecentActivitySection() {
+    final l10n = AppLocalizations.of(context)!;
     final recentDiagnoses = (_stats['recentDiagnoses'] as List?) ?? [];
     final recentPatients = (_stats['recentPatients'] as List?) ?? [];
 
@@ -541,19 +550,19 @@ class _HomePageState extends ConsumerState<HomePage>
     final activities = <Map<String, dynamic>>[];
     for (final d in recentDiagnoses.take(2)) {
       activities.add({
-        'title': 'Diagnosis recorded',
+        'title': l10n.diagnosisRecorded,
         'subtitle':
             d['disease'] ?? d['selectedDiagnosis']?['disease'] ?? 'Unknown',
-        'time': _formatTime(d['diagnosisDate'] ?? d['createdAt']),
+        'time': _formatTime(d['diagnosisDate'] ?? d['createdAt'], l10n),
         'icon': Icons.psychology,
         'color': AppTheme.primaryColor,
       });
     }
     for (final p in recentPatients.take(2)) {
       activities.add({
-        'title': 'Patient added',
+        'title': l10n.patientAdded,
         'subtitle': '${p['firstName'] ?? ''} ${p['lastName'] ?? ''}'.trim(),
-        'time': _formatTime(p['createdAt']),
+        'time': _formatTime(p['createdAt'], l10n),
         'icon': Icons.person_add,
         'color': AppTheme.secondaryColor,
       });
@@ -573,14 +582,14 @@ class _HomePageState extends ConsumerState<HomePage>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Recent Activity',
+                      l10n.recentActivity,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     TextButton(
                       onPressed: () => context.go('/recent-activity'),
-                      child: const Text('View All'),
+                      child: Text(l10n.viewAll),
                     ),
                   ],
                 ),
@@ -594,12 +603,12 @@ class _HomePageState extends ConsumerState<HomePage>
                   ),
                   child:
                       activities.isEmpty
-                          ? const Center(
+                          ? Center(
                             child: Padding(
-                              padding: EdgeInsets.all(16),
+                              padding: const EdgeInsets.all(16),
                               child: Text(
-                                'No recent activity',
-                                style: TextStyle(color: AppTheme.textSecondary),
+                                l10n.noRecentActivity,
+                                style: const TextStyle(color: AppTheme.textSecondary),
                               ),
                             ),
                           )
@@ -633,14 +642,14 @@ class _HomePageState extends ConsumerState<HomePage>
     );
   }
 
-  String _formatTime(dynamic dateStr) {
+  String _formatTime(dynamic dateStr, AppLocalizations l10n) {
     if (dateStr == null) return '';
     try {
       final date = DateTime.parse(dateStr.toString());
       final diff = DateTime.now().difference(date);
-      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-      if (diff.inHours < 24) return '${diff.inHours}h ago';
-      return '${diff.inDays}d ago';
+      if (diff.inMinutes < 60) return l10n.minutesAgo(diff.inMinutes);
+      if (diff.inHours < 24) return l10n.hoursAgo(diff.inHours);
+      return l10n.daysAgo(diff.inDays);
     } catch (_) {
       return '';
     }
@@ -715,10 +724,10 @@ class _HomePageState extends ConsumerState<HomePage>
   //   );
   // }
 
-  String _getGreeting() {
+  String _getGreeting(AppLocalizations l10n) {
     final hour = DateTime.now().hour;
-    if (hour < 12) return 'Morning';
-    if (hour < 17) return 'Afternoon';
-    return 'Evening';
+    if (hour < 12) return l10n.goodMorning;
+    if (hour < 17) return l10n.goodAfternoon;
+    return l10n.goodEvening;
   }
 }

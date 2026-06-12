@@ -9,8 +9,11 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:dio/dio.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/services/api_service.dart';
+import '../../../../generated/app_localizations.dart';
 import '../../../../shared/widgets/app_header.dart';
 import '../../data/models/diagnosis_models.dart';
 import '../../data/models/clinic_models.dart';
@@ -33,6 +36,12 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
   List<NearbyPharmacy> _nearbyPharmacies = [];
   bool _isGeneratingPdf = false;
   bool _isHistorical = false; // Flag to indicate historical diagnosis
+  
+  // Translation state
+  Map<String, dynamic>? _translatedReport;
+  bool _isTranslating = false;
+  bool _translationFailed = false;
+  
   // Clinic filter state
   List<String> _selectedSpecialties = [];
   List<ClinicRecommendation> get _filteredClinics {
@@ -51,6 +60,99 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
   void initState() {
     super.initState();
     _extractData();
+    // Check and translate if needed after build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAndTranslate();
+    });
+  }
+
+  Future<void> _checkAndTranslate() async {
+    final locale = Localizations.localeOf(context);
+    
+    // Only translate if user selected Kinyarwanda
+    if (locale.languageCode == 'rw' && _diagnosis != null) {
+      await _translateReport();
+    }
+  }
+
+  Future<void> _translateReport() async {
+    if (_diagnosis == null) return;
+    
+    setState(() {
+      _isTranslating = true;
+      _translationFailed = false;
+    });
+    
+    try {
+      final diagnosisId = _diagnosis!.id;
+      
+      // Use ApiService with automatic auth token
+      // Translation can take 2-3+ minutes for large reports with prescriptions
+      final apiService = ApiService();
+      final response = await apiService.get(
+        '/diagnosis/$diagnosisId/translate',
+        options: Options(
+          receiveTimeout: const Duration(seconds: 180), // 3 minutes for translation
+        ),
+      );
+      
+      if (response.statusCode == 200 && response.data != null) {
+        final result = response.data;
+        if (result['success'] == true && result['translated'] != null) {
+          setState(() {
+            _translatedReport = result['translated'] as Map<String, dynamic>;
+            _isTranslating = false;
+          });
+        } else {
+          throw Exception('Translation response invalid');
+        }
+      } else if (response.statusCode == 503) {
+        // Service unavailable - translation service down
+        debugPrint('Translation service unavailable');
+        setState(() {
+          _isTranslating = false;
+          _translationFailed = true;
+        });
+      } else {
+        throw Exception('Translation failed: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      debugPrint('Translation API error: ${e.message}');
+      debugPrint('Status code: ${e.response?.statusCode}');
+      if (e.response?.statusCode == 503) {
+        debugPrint('Translation service unavailable');
+      } else if (e.response?.statusCode == 401) {
+        debugPrint('Authentication error - user not logged in');
+      }
+      setState(() {
+        _isTranslating = false;
+        _translationFailed = true;
+      });
+    } catch (e) {
+      debugPrint('Translation error: $e');
+      setState(() {
+        _isTranslating = false;
+        _translationFailed = true;
+      });
+    }
+  }
+
+  /// Get display text based on locale - returns translated or original
+  String _getDisplayText(String originalText, String? translatedText) {
+    final locale = Localizations.localeOf(context);
+    if (locale.languageCode == 'rw' && translatedText != null && translatedText.isNotEmpty) {
+      return translatedText;
+    }
+    return originalText;
+  }
+
+  /// Get display list based on locale - returns translated or original
+  List<String> _getDisplayList(List<String> originalList, List<dynamic>? translatedList) {
+    final locale = Localizations.localeOf(context);
+    if (locale.languageCode == 'rw' && translatedList != null && translatedList.isNotEmpty) {
+      return translatedList.cast<String>();
+    }
+    return originalList;
   }
 
   void _extractData() {
@@ -381,6 +483,8 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
   }
 
   Future<void> _downloadPdf() async {
+    final l10n = AppLocalizations.of(context)!;
+    
     setState(() => _isGeneratingPdf = true);
     try {
       final file = await _buildPdf();
@@ -391,7 +495,10 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('PDF error: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(l10n.pdfError('$e')),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -400,6 +507,8 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
   }
 
   Future<void> _shareReport(String method) async {
+    final l10n = AppLocalizations.of(context)!;
+    
     setState(() => _isGeneratingPdf = true);
     try {
       final file = await _buildPdf();
@@ -447,7 +556,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Share error: $e'),
+            content: Text(l10n.shareError('$e')),
             backgroundColor: Colors.red,
           ),
         );
@@ -458,6 +567,8 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
   }
 
   void _showShareSheet() {
+    final l10n = AppLocalizations.of(context)!;
+    
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -479,9 +590,9 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Share Report',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Text(
+                    l10n.shareReport,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   ListTile(
@@ -489,8 +600,8 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                       backgroundColor: Color(0xFF25D366),
                       child: Icon(Icons.chat, color: Colors.white),
                     ),
-                    title: const Text('WhatsApp'),
-                    subtitle: const Text("Send to patient's WhatsApp"),
+                    title: Text(l10n.whatsapp),
+                    subtitle: Text(l10n.sendToPatientWhatsapp),
                     onTap: () {
                       Navigator.pop(context);
                       _shareReport('whatsapp');
@@ -501,8 +612,8 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                       backgroundColor: Colors.blue,
                       child: Icon(Icons.email, color: Colors.white),
                     ),
-                    title: const Text('Email'),
-                    subtitle: const Text('Send via email'),
+                    title: Text(l10n.emailLabel),
+                    subtitle: Text(l10n.sendViaEmail),
                     onTap: () {
                       Navigator.pop(context);
                       _shareReport('email');
@@ -513,8 +624,8 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                       backgroundColor: AppTheme.primaryColor,
                       child: const Icon(Icons.share, color: Colors.white),
                     ),
-                    title: const Text('Other'),
-                    subtitle: const Text('Share via any app'),
+                    title: Text(l10n.other),
+                    subtitle: Text(l10n.shareViaAnyApp),
                     onTap: () {
                       Navigator.pop(context);
                       _shareReport('other');
@@ -531,17 +642,19 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     if (_diagnosis == null) {
       return Scaffold(
-        appBar: AppHeader(title: 'Diagnosis Results', subtitle: ''),
-        body: const Center(child: Text('No diagnosis data available')),
+        appBar: AppHeader(title: l10n.diagnosisResults, subtitle: ''),
+        body: Center(child: Text(l10n.noDiagnosisData)),
       );
     }
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppHeader(
-        title: 'Diagnosis Report',
+        title: l10n.diagnosisReport,
         subtitle: _diagnosis!.diagnosisId,
         actions: [
           if (_isGeneratingPdf)
@@ -559,12 +672,12 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
           else ...[
             IconButton(
               icon: const Icon(Icons.download),
-              tooltip: 'Download PDF',
+              tooltip: l10n.downloadPDF,
               onPressed: _downloadPdf,
             ),
             IconButton(
               icon: const Icon(Icons.share),
-              tooltip: 'Share',
+              tooltip: l10n.share,
               onPressed: _showShareSheet,
             ),
           ],
@@ -575,6 +688,58 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Translation loading indicator
+            if (_isTranslating) ...[
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        l10n.translatingToKinyarwanda,
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            // Translation failed notice
+            if (_translationFailed) ...[
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber, color: Colors.orange),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        l10n.translationFailed,
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             // Historical diagnosis indicator
             if (_isHistorical) _buildHistoricalDiagnosisNotice(),
             if (_isHistorical) const SizedBox(height: 16),
@@ -594,19 +759,25 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
             if (_topPrediction?.diet?.isNotEmpty == true) ...[
               const SizedBox(height: 16),
               _buildListCard(
-                'Recommended Diet',
+                l10n.recommendedDiet,
                 Icons.restaurant,
                 Colors.orange,
-                _topPrediction!.diet!,
+                _getDisplayList( // Use translated list
+                  _topPrediction!.diet!,
+                  _translatedReport?['diet'] as List<dynamic>?,
+                ),
               ),
             ],
             if (_topPrediction?.workout?.isNotEmpty == true) ...[
               const SizedBox(height: 16),
               _buildListCard(
-                'Lifestyle & Exercise',
+                l10n.lifestyleAndExercise,
                 Icons.fitness_center,
                 Colors.blue,
-                _topPrediction!.workout!,
+                _getDisplayList( // Use translated list
+                  _topPrediction!.workout!,
+                  _translatedReport?['workout'] as List<dynamic>?,  // Fixed: use 'workout' key
+                ),
               ),
             ],
             if (_diagnosis!.prescriptions?.isNotEmpty == true) ...[
@@ -659,6 +830,8 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
   // ── section cards ─────────────────────────────────────────────────────────
 
   Widget _buildHistoricalDiagnosisNotice() {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -689,7 +862,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Historical Diagnosis',
+                  l10n.historicalDiagnosis,
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
@@ -698,7 +871,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Viewing past diagnosis. Clinic recommendations are based on your current location, not the original diagnosis location.',
+                  l10n.historicalDiagnosisNotice,
                   style: TextStyle(
                     fontSize: 13,
                     color: Colors.blue.shade800,
@@ -788,8 +961,10 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
   // ── Patient card ──────────────────────────────────────────────────────────
 
   Widget _buildPatientCard() {
+    final l10n = AppLocalizations.of(context)!;
+    
     return _buildSectionCard(
-      title: 'Patient Information',
+      title: l10n.patientInformation,
       icon: Icons.person,
       color: AppTheme.primaryColor,
       child: Column(
@@ -822,7 +997,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '$_patientAge yrs • $_patientGender',
+                      '$_patientAge ${l10n.years} • $_patientGender',
                       style: const TextStyle(
                         fontSize: 13,
                         color: AppTheme.textSecondary,
@@ -836,9 +1011,9 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
           const SizedBox(height: 14),
           const Divider(height: 1),
           const SizedBox(height: 12),
-          _buildInfoRow('Phone', _patientPhone),
-          _buildInfoRow('Diagnosis Date', _diagnosisDate),
-          _buildInfoRow('Report ID', _diagnosis?.diagnosisId ?? '—'),
+          _buildInfoRow(l10n.phone, _patientPhone),
+          _buildInfoRow(l10n.diagnosisDate, _diagnosisDate),
+          _buildInfoRow(l10n.reportID, _diagnosis?.diagnosisId ?? '—'),
         ],
       ),
     );
@@ -847,13 +1022,17 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
   // ── Primary diagnosis card ────────────────────────────────────────────────
 
   Widget _buildPrimaryDiagnosisCard() {
+    final l10n = AppLocalizations.of(context)!;
     final top = _topPrediction;
     if (top == null) return const SizedBox.shrink();
     final color = _confidenceColor(top.confidence);
     final pct = (top.confidence * 100).toStringAsFixed(1);
 
+    // Disease name is always kept in English (not translated) for medical accuracy
+    final displayDisease = top.disease;
+
     return _buildSectionCard(
-      title: 'Primary Diagnosis',
+      title: l10n.primaryDiagnosis,
       icon: Icons.medical_services,
       color: color,
       child: Column(
@@ -863,7 +1042,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
             children: [
               Expanded(
                 child: Text(
-                  top.disease,
+                  displayDisease, // Always English for medical accuracy
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -893,7 +1072,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
           if (top.icd10Code != null) ...[
             const SizedBox(height: 4),
             Text(
-              'ICD-10: ${top.icd10Code}',
+              '${l10n.icd10}: ${top.icd10Code}',
               style: const TextStyle(
                 fontSize: 12,
                 color: AppTheme.textSecondary,
@@ -908,9 +1087,9 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Confidence',
-                    style: TextStyle(
+                  Text(
+                    l10n.confidence,
+                    style: const TextStyle(
                       fontSize: 12,
                       color: AppTheme.textSecondary,
                     ),
@@ -945,9 +1124,10 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
   // ── Differential diagnoses ────────────────────────────────────────────────
 
   Widget _buildDifferentialCard() {
+    final l10n = AppLocalizations.of(context)!;
     final others = _diagnosis!.aiPredictions.skip(1).toList();
     return _buildSectionCard(
-      title: 'Differential Diagnoses',
+      title: l10n.differentialDiagnoses,
       icon: Icons.compare_arrows,
       color: Colors.orange,
       child: Column(
@@ -981,7 +1161,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                           ),
                           if (p.icd10Code != null)
                             Text(
-                              'ICD-10: ${p.icd10Code}',
+                              '${l10n.icd10}: ${p.icd10Code}',
                               style: const TextStyle(
                                 fontSize: 11,
                                 color: AppTheme.textSecondary,
@@ -1008,15 +1188,23 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
   // ── Recommendations ───────────────────────────────────────────────────────
 
   Widget _buildRecommendationsCard() {
+    final l10n = AppLocalizations.of(context)!;
     final recs = _topPrediction?.recommendations ?? [];
     if (recs.isEmpty) return const SizedBox.shrink();
+    
+    // Get translated recommendations (they map to precautions in backend)
+    final displayRecs = _getDisplayList(
+      recs,
+      _translatedReport?['precautions'] as List<dynamic>?,
+    );
+    
     return _buildSectionCard(
-      title: 'Recommendations',
+      title: l10n.recommendations,
       icon: Icons.lightbulb_outline,
       color: Colors.teal,
       child: Column(
         children:
-            recs
+            displayRecs // Use translated list
                 .map(
                   (r) => Padding(
                     padding: const EdgeInsets.only(bottom: 8),
@@ -1044,14 +1232,30 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
   // ── Prescriptions ─────────────────────────────────────────────────────────
 
   Widget _buildPrescriptionsCard() {
+    final l10n = AppLocalizations.of(context)!;
     final prescriptions = _diagnosis!.prescriptions!;
+    final translatedPrescriptions = _translatedReport?['prescriptions'] as List<dynamic>?;
+    
     return _buildSectionCard(
-      title: 'Prescriptions',
+      title: l10n.prescriptions,
       icon: Icons.medication,
       color: Colors.purple,
       child: Column(
         children:
-            prescriptions.map((p) {
+            prescriptions.asMap().entries.map((entry) {
+              final index = entry.key;
+              final p = entry.value;
+              
+              // Get translated values if available
+              final translatedPrescription = translatedPrescriptions != null && 
+                                             index < translatedPrescriptions.length
+                  ? translatedPrescriptions[index] as Map<String, dynamic>
+                  : null;
+              
+              final dosage = translatedPrescription?['dosage'] ?? p.dosage;
+              final frequency = translatedPrescription?['frequency'] ?? p.frequency;
+              final duration = translatedPrescription?['duration'] ?? p.duration;
+              
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(14),
@@ -1073,9 +1277,9 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    _buildInfoRow('Dosage', p.dosage),
-                    _buildInfoRow('Frequency', p.frequency),
-                    _buildInfoRow('Duration', p.duration),
+                    _buildInfoRow(l10n.dosage, dosage),
+                    _buildInfoRow(l10n.frequency, frequency),
+                    _buildInfoRow(l10n.duration, duration),
                   ],
                 ),
               );
@@ -1087,11 +1291,12 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
   // ── Pharmacies ────────────────────────────────────────────────────────────
 
   Widget _buildPharmaciesCard() {
+    final l10n = AppLocalizations.of(context)!;
     // Calculate total prescribed medicines for "Has all" badge
     final totalPrescribedMedicines = _diagnosis?.prescriptions?.length ?? 0;
     
     return _buildSectionCard(
-      title: 'Nearby Pharmacies',
+      title: l10n.nearbyPharmacies,
       icon: Icons.local_pharmacy,
       color: Colors.green,
       child: Column(
@@ -1154,7 +1359,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
-                                        'Has all medicines',
+                                        l10n.hasAllMedicines,
                                         style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w600,
@@ -1226,9 +1431,9 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'Available Medicines',
-                            style: TextStyle(
+                          Text(
+                            l10n.availableMedicines,
+                            style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: AppTheme.textSecondary,
@@ -1334,8 +1539,8 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                                   } else {
                                     if (context.mounted) {
                                       ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('Cannot open phone dialer'),
+                                        SnackBar(
+                                          content: Text(l10n.cannotOpenDialer),
                                           backgroundColor: Colors.red,
                                         ),
                                       );
@@ -1346,7 +1551,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
-                                        content: Text('Error: $e'),
+                                        content: Text('${l10n.error}: $e'),
                                         backgroundColor: Colors.red,
                                       ),
                                     );
@@ -1354,7 +1559,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                                 }
                               },
                               icon: const Icon(Icons.phone, size: 16),
-                              label: const Text('Call'),
+                              label: Text(l10n.call),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: Colors.green,
                                 side: const BorderSide(color: Colors.green),
@@ -1383,8 +1588,8 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                                 } else {
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Cannot open maps'),
+                                      SnackBar(
+                                        content: Text(l10n.cannotOpenMaps),
                                         backgroundColor: Colors.red,
                                       ),
                                     );
@@ -1395,7 +1600,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text('Error: $e'),
+                                      content: Text('${l10n.error}: $e'),
                                       backgroundColor: Colors.red,
                                     ),
                                   );
@@ -1403,7 +1608,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                               }
                             },
                             icon: const Icon(Icons.navigation, size: 16),
-                            label: const Text('Navigate'),
+                            label: Text(l10n.navigate),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green,
                               foregroundColor: Colors.white,
@@ -1426,6 +1631,8 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
   }
 
   void _showPharmacyDetails(NearbyPharmacy pharmacy) {
+    final l10n = AppLocalizations.of(context)!;
+    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1494,9 +1701,9 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                               color: Colors.green.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: const Text(
-                              'Active',
-                              style: TextStyle(
+                            child: Text(
+                              l10n.active,
+                              style: const TextStyle(
                                 fontSize: 11,
                                 color: Colors.green,
                                 fontWeight: FontWeight.w600,
@@ -1515,34 +1722,34 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
               // Details
               _buildPharmacyDetailRow(
                 Icons.location_on,
-                'Address',
+                l10n.address,
                 pharmacy.fullAddress,
               ),
               const SizedBox(height: 12),
               if (pharmacy.distance != null)
                 _buildPharmacyDetailRow(
                   Icons.directions,
-                  'Distance',
+                  l10n.distance,
                   pharmacy.distanceText,
                 ),
               if (pharmacy.distance != null) const SizedBox(height: 12),
               if (pharmacy.phoneNumber != null)
                 _buildPharmacyDetailRow(
                   Icons.phone,
-                  'Phone',
+                  l10n.phone,
                   pharmacy.phoneNumber!,
                 ),
               if (pharmacy.phoneNumber != null) const SizedBox(height: 12),
               if (pharmacy.openingHours != null)
                 _buildPharmacyDetailRow(
                   Icons.access_time,
-                  'Opening Hours',
+                  l10n.openingHours,
                   pharmacy.openingHours!,
                 ),
               if (pharmacy.openingHours != null) const SizedBox(height: 12),
               _buildPharmacyDetailRow(
                 Icons.gps_fixed,
-                'Coordinates',
+                l10n.coordinates,
                 '${pharmacy.latitude.toStringAsFixed(4)}, ${pharmacy.longitude.toStringAsFixed(4)}',
               ),
 
@@ -1551,9 +1758,9 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                 const SizedBox(height: 20),
                 const Divider(),
                 const SizedBox(height: 16),
-                const Text(
-                  'Available Medicines',
-                  style: TextStyle(
+                Text(
+                  l10n.availableMedicines,
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
@@ -1654,7 +1861,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                           }
                         },
                         icon: const Icon(Icons.phone, size: 18),
-                        label: const Text('Call'),
+                        label: Text(l10n.call),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.green,
                           side: const BorderSide(color: Colors.green),
@@ -1685,7 +1892,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                         }
                       },
                       icon: const Icon(Icons.navigation, size: 18),
-                      label: const Text('Navigate'),
+                      label: Text(l10n.navigate),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
                         foregroundColor: Colors.white,
@@ -1739,8 +1946,10 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
   }
 
   Widget _buildNoPharmaciesCard() {
+    final l10n = AppLocalizations.of(context)!;
+    
     return _buildSectionCard(
-      title: 'Pharmacy Recommendations',
+      title: l10n.pharmacyRecommendations,
       icon: Icons.local_pharmacy,
       color: Colors.orange,
       child: Column(
@@ -1763,7 +1972,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'No Nearby Pharmacies Found',
+                  l10n.noNearbyPharmaciesFound,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -1773,7 +1982,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'We couldn\'t find any pharmacies within 50 km that have the prescribed medicines in stock.',
+                  l10n.noNearbyPharmaciesMessage,
                   style: TextStyle(
                     fontSize: 13,
                     color: Colors.orange.shade800,
@@ -1794,7 +2003,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Suggestions:',
+                        '${l10n.suggestions}:',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
@@ -1805,10 +2014,10 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                _buildSuggestionItem('Contact pharmacies directly to check availability'),
-                _buildSuggestionItem('Try searching in the Pharmacies tab'),
-                _buildSuggestionItem('Consider alternative medicine brands'),
-                _buildSuggestionItem('Check back later as stock updates regularly'),
+                _buildSuggestionItem(l10n.contactPharmaciesDirectly),
+                _buildSuggestionItem(l10n.trySearchingPharmaciesTab),
+                _buildSuggestionItem(l10n.considerAlternativeBrands),
+                _buildSuggestionItem(l10n.checkBackLater),
               ],
             ),
           ),
@@ -1820,7 +2029,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                 context.go('/pharmacies');
               },
               icon: const Icon(Icons.local_pharmacy),
-              label: const Text('Browse All Pharmacies'),
+              label: Text(l10n.browseAllPharmacies),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange,
                 foregroundColor: Colors.white,
@@ -1870,6 +2079,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
   // ── Clinic recommendations ────────────────────────────────────────────────
 
   Widget _buildClinicsCard() {
+    final l10n = AppLocalizations.of(context)!;
     final clinics = _filteredClinics; // Use filtered clinics
     final totalClinics = _diagnosis?.recommendations?.clinics?.length ?? 0;
     final reason = _diagnosis?.recommendations?.clinicRecommendationReason;
@@ -1880,7 +2090,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
     }
 
     return _buildSectionCard(
-      title: 'Clinic Recommendations',
+      title: l10n.clinicRecommendations,
       icon: Icons.local_hospital,
       color: Colors.blue,
       child: Column(
@@ -1907,7 +2117,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'These clinic recommendations are based on your current location and updated pattern analysis.',
+                      l10n.clinicLocationNotice,
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.lightBlue.shade900,
@@ -2000,7 +2210,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'No Specialized Clinics Found',
+                    l10n.noSpecializedClinicsFound,
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -2010,7 +2220,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    'We couldn\'t find clinics with the recommended specialties in your area.',
+                    l10n.noSpecializedClinicsMessage,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 14,
@@ -2037,7 +2247,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'Suggestions:',
+                              '${l10n.suggestions}:',
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
@@ -2047,9 +2257,9 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                           ],
                         ),
                         const SizedBox(height: 8),
-                        _buildSuggestionItem('Visit a General Medicine clinic'),
-                        _buildSuggestionItem('Expand your search radius'),
-                        _buildSuggestionItem('Contact your primary care doctor'),
+                        _buildSuggestionItem(l10n.visitGeneralMedicineClinic),
+                        _buildSuggestionItem(l10n.expandSearchRadius),
+                        _buildSuggestionItem(l10n.contactPrimaryCareDoctor),
                       ],
                     ),
                   ),
@@ -2074,7 +2284,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Showing ${clinics.length} of $totalClinics clinics',
+                        l10n.showingClinicsFiltered(clinics.length, totalClinics),
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
@@ -2100,7 +2310,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                     Icon(Icons.filter_alt_off, size: 48, color: Colors.grey.shade400),
                     const SizedBox(height: 12),
                     Text(
-                      'No clinics match selected specialties',
+                      l10n.noClinicsMatchFilter,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -2109,7 +2319,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Try selecting different specialties or clear filters',
+                      l10n.tryDifferentSpecialties,
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.grey.shade600,
@@ -2131,6 +2341,8 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
   }
 
   String _getClinicReasonExplanation(String reason) {
+    final l10n = AppLocalizations.of(context)!;
+    
     // Check if we have pharmacy recommendations
     // Use _nearbyPharmacies list (populated by Flutter) instead of backend recommendations
     final bool hasPharmacies = _nearbyPharmacies.isNotEmpty;
@@ -2165,49 +2377,57 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
     // Handle persistent/chronic conditions
     if (!shouldIgnoreNoPharmacyReason && normalizedReason.contains('persistent')) {
       if (hasPharmacies) {
-        return 'This condition has persisted for an extended period. While pharmacies are available for medication, we also recommend visiting a specialized clinic for in-depth evaluation and comprehensive treatment.';
+        return l10n.persistentConditionMessage;
       }
-      return 'This condition has persisted for an extended period. We recommend visiting a specialized clinic for in-depth evaluation and treatment.';
+      return l10n.persistentConditionNoPharmacyMessage;
     }
     
     // Handle recurring patterns
     if (!shouldIgnoreNoPharmacyReason && normalizedReason.contains('recurring')) {
       if (hasPharmacies) {
-        return 'Your diagnosis history shows a recurring pattern. In addition to obtaining medication from nearby pharmacies, we recommend specialized clinic care to help prevent future occurrences.';
+        return l10n.recurringPatternMessage;
       }
-      return 'Your diagnosis history shows a recurring pattern. Specialized clinics can provide comprehensive care and help prevent future occurrences.';
+      return l10n.recurringPatternNoPharmacyMessage;
     }
     
     // Handle chronic conditions
     if (!shouldIgnoreNoPharmacyReason && normalizedReason.contains('chronic')) {
       if (hasPharmacies) {
-        return 'Your symptoms match a chronic condition. While medication is available at nearby pharmacies, specialized clinics offer long-term management and expert care for ongoing treatment.';
+        return l10n.chronicConditionMessage;
       }
-      return 'Your symptoms match a chronic condition. Specialized clinics offer long-term management and expert care for chronic conditions.';
+      return l10n.chronicConditionNoPharmacyMessage;
     }
     
     // Handle no pharmacy found case (only if pharmacies were NOT actually found)
     if (!shouldIgnoreNoPharmacyReason && normalizedReason.contains('no pharmacy') && !hasPharmacies) {
-      return 'No nearby pharmacies were found with the prescribed medications. We recommend visiting these specialized clinics for alternative treatment options.';
+      return l10n.noPharmacyFoundMessage;
     }
     
     // Default message - check if pharmacies are available
     if (hasPharmacies) {
-      return 'Based on your diagnosis, medication is available at nearby pharmacies. We also recommend consulting with these specialized clinics for comprehensive care and expert medical guidance.';
+      return l10n.defaultClinicMessage;
     }
     
-    return 'Based on your diagnosis, we recommend consulting with these specialized clinics for comprehensive care.';
+    return l10n.defaultClinicNoPharmacyMessage;
   }
 
   // ── Disease description ───────────────────────────────────────────────────
 
   Widget _buildDescriptionCard() {
+    final l10n = AppLocalizations.of(context)!;
+    
+    // Get translated description
+    final displayDescription = _getDisplayText(
+      _topPrediction!.description!,
+      _translatedReport?['description'] as String?,
+    );
+    
     return _buildSectionCard(
-      title: 'About This Condition',
+      title: l10n.aboutThisCondition,
       icon: Icons.info_outline,
       color: Colors.indigo,
       child: Text(
-        _topPrediction!.description!,
+        displayDescription, // Use translated text
         style: const TextStyle(fontSize: 13, height: 1.6),
       ),
     );
@@ -2254,6 +2474,8 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
   // ── Disclaimer ────────────────────────────────────────────────────────────
 
   Widget _buildDisclaimerCard() {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -2261,17 +2483,15 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
       ),
-      child: const Row(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 20),
-          SizedBox(width: 10),
+          const Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 20),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'This report is AI-generated and intended to assist — '
-              'not replace — clinical judgment. All diagnoses must be '
-              'confirmed by a qualified healthcare professional.',
-              style: TextStyle(fontSize: 12, color: Colors.black87),
+              l10n.disclaimer,
+              style: const TextStyle(fontSize: 12, color: Colors.black87),
             ),
           ),
         ],
@@ -2282,13 +2502,15 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
   // ── Bottom action row ─────────────────────────────────────────────────────
 
   Widget _buildActionRow() {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Row(
       children: [
         Expanded(
           child: OutlinedButton.icon(
             onPressed: () => context.go('/diagnosis'),
             icon: const Icon(Icons.refresh),
-            label: const Text('New Diagnosis'),
+            label: Text(l10n.newDiagnosis),
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
@@ -2302,7 +2524,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
           child: ElevatedButton.icon(
             onPressed: _isGeneratingPdf ? null : _showShareSheet,
             icon: const Icon(Icons.share),
-            label: const Text('Share Report'),
+            label: Text(l10n.shareReport),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryColor,
               foregroundColor: Colors.white,

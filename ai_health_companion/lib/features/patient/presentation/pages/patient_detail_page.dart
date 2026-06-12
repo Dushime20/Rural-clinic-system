@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../generated/app_localizations.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/services/patient_service.dart';
 import '../../../../shared/widgets/app_header.dart';
@@ -123,16 +124,18 @@ class _PatientDetailPageState extends State<PatientDetailPage>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     if (_isLoading) {
       return Scaffold(
-        appBar: AppHeader(title: 'Patient Details', subtitle: ''),
+        appBar: AppHeader(title: l10n.patientDetails, subtitle: ''),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     if (_error != null || _patient == null) {
       return Scaffold(
-        appBar: AppHeader(title: 'Patient Details', subtitle: ''),
+        appBar: AppHeader(title: l10n.patientDetails, subtitle: ''),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -143,11 +146,11 @@ class _PatientDetailPageState extends State<PatientDetailPage>
                 color: AppTheme.errorColor,
               ),
               const SizedBox(height: 16),
-              Text(_error ?? 'Patient not found'),
+              Text(_error ?? l10n.patientNotFound),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _loadPatient,
-                child: const Text('Retry'),
+                child: Text(l10n.retry),
               ),
             ],
           ),
@@ -161,7 +164,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
     return Scaffold(
       appBar: AppHeader(
         title: name,
-        subtitle: 'ID: ${_patient!['patientId'] ?? widget.patientId}',
+        subtitle: '${l10n.idPrefix} ${_patient!['patientId'] ?? widget.patientId}',
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
@@ -172,12 +175,12 @@ class _PatientDetailPageState extends State<PatientDetailPage>
               );
               _loadPatient();
             },
-            tooltip: 'Edit',
+            tooltip: l10n.edit,
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadPatient,
-            tooltip: 'Refresh',
+            tooltip: l10n.refresh,
           ),
         ],
         bottom: TabBar(
@@ -185,10 +188,10 @@ class _PatientDetailPageState extends State<PatientDetailPage>
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white70,
           indicatorColor: Colors.white,
-          tabs: const [
-            Tab(text: 'Overview'),
-            Tab(text: 'Medical'),
-            Tab(text: 'History'),
+          tabs: [
+            Tab(text: l10n.overview),
+            Tab(text: l10n.medical),
+            Tab(text: l10n.history),
           ],
         ),
       ),
@@ -204,6 +207,8 @@ class _PatientDetailPageState extends State<PatientDetailPage>
   }
 
   Widget _buildOverviewTab(String name) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -267,7 +272,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
                 child: OutlinedButton.icon(
                   onPressed: () => context.push('/diagnosis'),
                   icon: const Icon(Icons.psychology, size: 18),
-                  label: const Text('New Diagnosis'),
+                  label: Text(l10n.newDiagnosis),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppTheme.primaryColor,
                     padding: const EdgeInsets.symmetric(vertical: 12),
@@ -288,7 +293,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
                     _loadPatient();
                   },
                   icon: const Icon(Icons.edit, size: 18),
-                  label: const Text('Edit Patient'),
+                  label: Text(l10n.editPatient),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppTheme.secondaryColor,
                     padding: const EdgeInsets.symmetric(vertical: 12),
@@ -303,7 +308,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
           const SizedBox(height: 16),
 
           // Contact info
-          _sectionTitle('Contact Information'),
+          _sectionTitle(l10n.contactInformation),
           Card(
             elevation: 2,
             shape: RoundedRectangleBorder(
@@ -315,15 +320,15 @@ class _PatientDetailPageState extends State<PatientDetailPage>
                 children: [
                   _detailRow(
                     Icons.phone,
-                    'Phone',
+                    l10n.phone,
                     _patient!['phoneNumber'] ?? '—',
                   ),
                   const Divider(),
-                  _detailRow(Icons.email, 'Email', _patient!['email'] ?? '—'),
+                  _detailRow(Icons.email, l10n.email, _patient!['email'] ?? '—'),
                   const Divider(),
                   _detailRow(
                     Icons.location_on,
-                    'Address',
+                    l10n.address,
                     _formatAddress(_patient!['address']),
                   ),
                 ],
@@ -333,7 +338,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
           const SizedBox(height: 16),
 
           // Physical info
-          _sectionTitle('Physical Information'),
+          _sectionTitle(l10n.physicalInformation),
           Card(
             elevation: 2,
             shape: RoundedRectangleBorder(
@@ -345,7 +350,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
                 children: [
                   _detailRow(
                     Icons.monitor_weight,
-                    'Weight',
+                    l10n.weight,
                     _patient!['weight'] != null
                         ? '${_patient!['weight']} kg'
                         : '—',
@@ -353,7 +358,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
                   const Divider(),
                   _detailRow(
                     Icons.height,
-                    'Height',
+                    l10n.height,
                     _patient!['height'] != null
                         ? '${_patient!['height']} cm'
                         : '—',
@@ -361,7 +366,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
                   const Divider(),
                   _detailRow(
                     Icons.calendar_today,
-                    'Date of Birth',
+                    l10n.dateOfBirth,
                     _patient!['dateOfBirth']?.toString().split('T')[0] ?? '—',
                   ),
                 ],
@@ -374,6 +379,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
   }
 
   Widget _buildMedicalTab() {
+    final l10n = AppLocalizations.of(context)!;
     final allergies = (_patient!['allergies'] as List?) ?? [];
     final chronic = (_patient!['chronicConditions'] as List?) ?? [];
     final medications = (_patient!['currentMedications'] as List?) ?? [];
@@ -389,7 +395,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle('Allergies'),
+          _sectionTitle(l10n.allergiesSection),
           Card(
             elevation: 2,
             shape: RoundedRectangleBorder(
@@ -399,9 +405,9 @@ class _PatientDetailPageState extends State<PatientDetailPage>
               padding: const EdgeInsets.all(16),
               child:
                   allergies.isEmpty
-                      ? const Text(
-                        'No allergies recorded',
-                        style: TextStyle(color: AppTheme.textSecondary),
+                      ? Text(
+                        l10n.noAllergiesRecorded,
+                        style: const TextStyle(color: AppTheme.textSecondary),
                       )
                       : Wrap(
                         spacing: 8,
@@ -423,7 +429,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
           ),
           const SizedBox(height: 16),
 
-          _sectionTitle('Chronic Conditions'),
+          _sectionTitle(l10n.chronicConditions),
           Card(
             elevation: 2,
             shape: RoundedRectangleBorder(
@@ -433,9 +439,9 @@ class _PatientDetailPageState extends State<PatientDetailPage>
               padding: const EdgeInsets.all(16),
               child:
                   chronic.isEmpty
-                      ? const Text(
-                        'No chronic conditions recorded',
-                        style: TextStyle(color: AppTheme.textSecondary),
+                      ? Text(
+                        l10n.noChronicConditionsRecorded,
+                        style: const TextStyle(color: AppTheme.textSecondary),
                       )
                       : Wrap(
                         spacing: 8,
@@ -460,10 +466,10 @@ class _PatientDetailPageState extends State<PatientDetailPage>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _sectionTitle('Current Medications'),
+              _sectionTitle(l10n.currentMedications),
               if (lastDiagnosisMedications.isNotEmpty)
                 Text(
-                  'From last diagnosis',
+                  l10n.fromLastDiagnosis,
                   style: TextStyle(
                     fontSize: 11,
                     color: Colors.grey.shade600,
@@ -485,9 +491,9 @@ class _PatientDetailPageState extends State<PatientDetailPage>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             if (medications.isEmpty)
-                              const Text(
-                                'No current medications',
-                                style: TextStyle(color: AppTheme.textSecondary),
+                              Text(
+                                l10n.noCurrentMedications,
+                                style: const TextStyle(color: AppTheme.textSecondary),
                               )
                             else
                               Column(
@@ -525,7 +531,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
                                 children: [
                                   Row(
                                     children: [
-                                      Icon(
+                                      const Icon(
                                         Icons.medication,
                                         color: AppTheme.primaryColor,
                                         size: 20,
@@ -545,17 +551,17 @@ class _PatientDetailPageState extends State<PatientDetailPage>
                                   const SizedBox(height: 8),
                                   _medicationInfoRow(
                                     Icons.medical_services,
-                                    'Dosage',
+                                    l10n.dosage,
                                     prescription.dosage,
                                   ),
                                   _medicationInfoRow(
                                     Icons.schedule,
-                                    'Frequency',
+                                    l10n.frequency,
                                     prescription.frequency,
                                   ),
                                   _medicationInfoRow(
                                     Icons.calendar_today,
-                                    'Duration',
+                                    l10n.duration,
                                     prescription.duration,
                                   ),
                                 ],
@@ -599,6 +605,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
   }
 
   Widget _buildHistoryTab() {
+    final l10n = AppLocalizations.of(context)!;
     final lastVisit = _patient!['lastVisit'];
     
     return SingleChildScrollView(
@@ -606,7 +613,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle('Visit Information'),
+          _sectionTitle(l10n.visitInformation),
           Card(
             elevation: 2,
             shape: RoundedRectangleBorder(
@@ -618,13 +625,13 @@ class _PatientDetailPageState extends State<PatientDetailPage>
                 children: [
                   _detailRow(
                     Icons.access_time,
-                    'Last Visit',
-                    lastVisit?.toString().split('T')[0] ?? 'No visits recorded',
+                    l10n.lastVisit,
+                    lastVisit?.toString().split('T')[0] ?? l10n.noVisitsRecorded,
                   ),
                   const Divider(),
                   _detailRow(
                     Icons.calendar_today,
-                    'Registered',
+                    l10n.registered,
                     _patient!['createdAt']?.toString().split('T')[0] ?? '—',
                   ),
                 ],
@@ -637,12 +644,12 @@ class _PatientDetailPageState extends State<PatientDetailPage>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _sectionTitle('Diagnosis History'),
+              _sectionTitle(l10n.diagnosisHistorySection),
               if (_diagnoses.isNotEmpty)
                 TextButton.icon(
                   onPressed: _loadDiagnoses,
                   icon: const Icon(Icons.refresh, size: 18),
-                  label: const Text('Refresh'),
+                  label: Text(l10n.refresh),
                 ),
             ],
           ),
@@ -678,7 +685,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: _loadDiagnoses,
-                      child: const Text('Retry'),
+                      child: Text(l10n.retry),
                     ),
                   ],
                 ),
@@ -700,23 +707,23 @@ class _PatientDetailPageState extends State<PatientDetailPage>
                       color: AppTheme.textSecondary,
                     ),
                     const SizedBox(height: 12),
-                    const Text(
-                      'No diagnosis history found',
-                      style: TextStyle(
+                    Text(
+                      l10n.noDiagnosisHistoryFound,
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'Start a new diagnosis to see it here',
-                      style: TextStyle(color: AppTheme.textSecondary),
+                    Text(
+                      l10n.startNewDiagnosisToSeeHere,
+                      style: const TextStyle(color: AppTheme.textSecondary),
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton.icon(
                       onPressed: () => context.push('/diagnosis'),
                       icon: const Icon(Icons.psychology),
-                      label: const Text('Start New Diagnosis'),
+                      label: Text(l10n.startNewDiagnosis),
                     ),
                   ],
                 ),
@@ -730,6 +737,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
   }
   
   Widget _buildDiagnosisCard(DiagnosisResponse diagnosis) {
+    final l10n = AppLocalizations.of(context)!;
     final primaryPrediction = diagnosis.aiPredictions.isNotEmpty 
         ? diagnosis.aiPredictions[0] 
         : null;
@@ -788,7 +796,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
                         Row(
                           children: [
                             Text(
-                              'ID: ${diagnosis.diagnosisId}',
+                              '${l10n.idPrefix} ${diagnosis.diagnosisId}',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey.shade600,
@@ -903,7 +911,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          '+${diagnosis.symptoms.length - 3} more',
+                          l10n.moreSymptoms(diagnosis.symptoms.length - 3),
                           style: TextStyle(
                             fontSize: 11,
                             color: Colors.grey.shade700,
@@ -920,7 +928,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
                   TextButton.icon(
                     onPressed: () => _showDiagnosisDetails(diagnosis),
                     icon: const Icon(Icons.visibility, size: 16),
-                    label: const Text('View Details'),
+                    label: Text(l10n.viewDetails),
                     style: TextButton.styleFrom(
                       foregroundColor: AppTheme.primaryColor,
                     ),
@@ -961,6 +969,8 @@ class _PatientDetailPageState extends State<PatientDetailPage>
   }
   
   void _showDiagnosisDetails(DiagnosisResponse diagnosis) {
+    final l10n = AppLocalizations.of(context)!;
+    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -989,10 +999,10 @@ class _PatientDetailPageState extends State<PatientDetailPage>
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Diagnosis Details',
-                        style: TextStyle(
+                        l10n.diagnosisDetails,
+                        style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
@@ -1021,6 +1031,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
   }
   
   Widget _buildDiagnosisDetailsContent(DiagnosisResponse diagnosis) {
+    final l10n = AppLocalizations.of(context)!;
     final primaryPrediction = diagnosis.aiPredictions.isNotEmpty 
         ? diagnosis.aiPredictions[0] 
         : null;
@@ -1030,10 +1041,10 @@ class _PatientDetailPageState extends State<PatientDetailPage>
       children: [
         // Diagnosis Info
         _detailSection(
-          'Diagnosis Information',
+          l10n.diagnosisInformation,
           [
-            _detailItem('Diagnosis ID', diagnosis.diagnosisId),
-            _detailItem('Date', diagnosis.diagnosisDate.toString().split('.')[0]),
+            _detailItem('${l10n.diagnosis} ID', diagnosis.diagnosisId),
+            _detailItem(l10n.date, diagnosis.diagnosisDate.toString().split('.')[0]),
           ],
         ),
         
@@ -1041,7 +1052,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
         if (diagnosis.aiPredictions.isNotEmpty) ...[
           const SizedBox(height: 16),
           _detailSection(
-            'AI Predictions',
+            l10n.aiPredictions,
             diagnosis.aiPredictions.map((pred) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1076,7 +1087,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
                   ),
                   if (pred.icd10Code != null)
                     Text(
-                      'ICD-10: ${pred.icd10Code}',
+                      '${l10n.icd10}: ${pred.icd10Code}',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey.shade600,
@@ -1094,7 +1105,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
             primaryPrediction!.description!.isNotEmpty) ...[
           const SizedBox(height: 16),
           _detailSection(
-            'About ${primaryPrediction.disease}',
+            l10n.aboutCondition(primaryPrediction.disease),
             [
               Text(
                 primaryPrediction.description!,
@@ -1108,7 +1119,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
         if (diagnosis.symptoms.isNotEmpty) ...[
           const SizedBox(height: 16),
           _detailSection(
-            'Symptoms (${diagnosis.symptoms.length})',
+            l10n.symptomsCountLabel(diagnosis.symptoms.length),
             [
               Wrap(
                 spacing: 8,
@@ -1132,21 +1143,21 @@ class _PatientDetailPageState extends State<PatientDetailPage>
         if (diagnosis.vitalSigns.hasAnyData) ...[
           const SizedBox(height: 16),
           _detailSection(
-            'Vital Signs',
+            l10n.vitalSigns,
             [
               if (diagnosis.vitalSigns.temperature != null)
-                _detailItem('Temperature', '${diagnosis.vitalSigns.temperature}°C'),
+                _detailItem(l10n.temperature, '${diagnosis.vitalSigns.temperature}°C'),
               if (diagnosis.vitalSigns.bloodPressureSystolic != null)
                 _detailItem(
-                  'Blood Pressure',
+                  l10n.bloodPressure,
                   '${diagnosis.vitalSigns.bloodPressureSystolic}/${diagnosis.vitalSigns.bloodPressureDiastolic} mmHg',
                 ),
               if (diagnosis.vitalSigns.heartRate != null)
-                _detailItem('Heart Rate', '${diagnosis.vitalSigns.heartRate} bpm'),
+                _detailItem(l10n.heartRate, '${diagnosis.vitalSigns.heartRate} bpm'),
               if (diagnosis.vitalSigns.respiratoryRate != null)
-                _detailItem('Respiratory Rate', '${diagnosis.vitalSigns.respiratoryRate} /min'),
+                _detailItem(l10n.respiratoryRate, '${diagnosis.vitalSigns.respiratoryRate} /min'),
               if (diagnosis.vitalSigns.oxygenSaturation != null)
-                _detailItem('Oxygen Saturation', '${diagnosis.vitalSigns.oxygenSaturation}%'),
+                _detailItem(l10n.oxygenSaturation, '${diagnosis.vitalSigns.oxygenSaturation}%'),
             ],
           ),
         ],
@@ -1156,7 +1167,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
             primaryPrediction!.precautions!.isNotEmpty) ...[
           const SizedBox(height: 16),
           _detailSection(
-            'Precautions',
+            l10n.precautions,
             primaryPrediction.precautions!.asMap().entries.map((entry) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
@@ -1194,7 +1205,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
         if (diagnosis.prescriptions != null && diagnosis.prescriptions!.isNotEmpty) ...[
           const SizedBox(height: 16),
           _detailSection(
-            'Prescribed Medications (${diagnosis.prescriptions!.length})',
+            l10n.prescribedMedicationsCount(diagnosis.prescriptions!.length),
             diagnosis.prescriptions!.map((rx) {
               return Card(
                 margin: const EdgeInsets.only(bottom: 8),
@@ -1209,7 +1220,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
                     children: [
                       Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.medication,
                             size: 18,
                             color: AppTheme.primaryColor,
@@ -1227,9 +1238,9 @@ class _PatientDetailPageState extends State<PatientDetailPage>
                         ],
                       ),
                       const SizedBox(height: 8),
-                      _medicationDetail(Icons.medical_services, 'Dosage', rx.dosage),
-                      _medicationDetail(Icons.schedule, 'Frequency', rx.frequency),
-                      _medicationDetail(Icons.calendar_today, 'Duration', rx.duration),
+                      _medicationDetail(Icons.medical_services, l10n.dosage, rx.dosage),
+                      _medicationDetail(Icons.schedule, l10n.frequency, rx.frequency),
+                      _medicationDetail(Icons.calendar_today, l10n.duration, rx.duration),
                     ],
                   ),
                 ),
@@ -1241,14 +1252,14 @@ class _PatientDetailPageState extends State<PatientDetailPage>
           // Show medications from AI prediction if no prescriptions
           const SizedBox(height: 16),
           _detailSection(
-            'Recommended Medications',
+            l10n.recommendedMedications,
             primaryPrediction.medications!.map((med) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.medication,
                       size: 16,
                       color: AppTheme.primaryColor,
@@ -1272,7 +1283,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
             primaryPrediction!.diet!.isNotEmpty) ...[
           const SizedBox(height: 16),
           _detailSection(
-            'Recommended Diet',
+            l10n.recommendedDiet,
             primaryPrediction.diet!.map((dietItem) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
@@ -1311,7 +1322,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
             primaryPrediction!.workout!.isNotEmpty) ...[
           const SizedBox(height: 16),
           _detailSection(
-            'Lifestyle & Exercise',
+            l10n.lifestyleAndExercise,
             primaryPrediction.workout!.map((workoutItem) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
@@ -1350,7 +1361,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
             primaryPrediction!.recommendations!.isNotEmpty) ...[
           const SizedBox(height: 16),
           _detailSection(
-            'Additional Recommendations',
+            l10n.additionalRecommendations,
             primaryPrediction.recommendations!.map((rec) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
@@ -1371,7 +1382,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
         if (diagnosis.notes != null && diagnosis.notes!.isNotEmpty) ...[
           const SizedBox(height: 16),
           _detailSection(
-            'Clinical Notes',
+            l10n.clinicalNotes,
             [
               Container(
                 padding: const EdgeInsets.all(12),

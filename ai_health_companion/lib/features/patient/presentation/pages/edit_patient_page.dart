@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/services/patient_service.dart';
+import '../../../../generated/app_localizations.dart';
 import '../../../../shared/widgets/app_header.dart';
 
 class EditPatientPage extends ConsumerStatefulWidget {
@@ -178,12 +179,13 @@ class _EditPatientPageState extends ConsumerState<EditPatientPage> {
     if (!mounted) return;
     setState(() => _isLoading = false);
 
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           result['success'] == true
-              ? 'Patient updated successfully'
-              : result['message'] ?? 'Update failed',
+              ? l10n.patientUpdatedSuccessfully
+              : result['message'] ?? l10n.failedToUpdatePatient,
         ),
         backgroundColor:
             result['success'] == true
@@ -197,16 +199,32 @@ class _EditPatientPageState extends ConsumerState<EditPatientPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
+    // Get localized gender labels
+    String getLocalizedGender(String gender) {
+      switch (gender) {
+        case 'male':
+          return l10n.male;
+        case 'female':
+          return l10n.female;
+        case 'other':
+          return l10n.other;
+        default:
+          return gender;
+      }
+    }
+    
     if (_isFetching) {
       return Scaffold(
-        appBar: AppHeader(title: 'Edit Patient', subtitle: 'Loading...'),
+        appBar: AppHeader(title: l10n.editPatient, subtitle: l10n.loading),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
       appBar: AppHeader(
-        title: 'Edit Patient',
+        title: l10n.editPatient,
         subtitle:
             '${_firstNameController.text} ${_lastNameController.text}'.trim(),
         actions: [

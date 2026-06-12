@@ -7,6 +7,7 @@ import '../../../../shared/widgets/app_header.dart';
 import '../../../../shared/widgets/custom_drawer.dart';
 import '../../../diagnosis/data/models/clinic_models.dart';
 import '../../../diagnosis/data/services/diagnosis_service.dart';
+import '../../../../generated/app_localizations.dart';
 
 class ClinicsPage extends StatefulWidget {
   const ClinicsPage({super.key});
@@ -86,6 +87,8 @@ class _ClinicsPageState extends State<ClinicsPage> {
   }
 
   Future<void> _callClinic(String phoneNumber) async {
+    final l10n = AppLocalizations.of(context)!;
+    
     try {
       final uri = Uri.parse('tel:$phoneNumber');
       if (await canLaunchUrl(uri)) {
@@ -93,8 +96,8 @@ class _ClinicsPageState extends State<ClinicsPage> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Cannot open phone dialer'),
+            SnackBar(
+              content: Text(l10n.cannotOpenDialer),
               backgroundColor: Colors.red,
             ),
           );
@@ -105,7 +108,7 @@ class _ClinicsPageState extends State<ClinicsPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text('${l10n.error}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -114,6 +117,8 @@ class _ClinicsPageState extends State<ClinicsPage> {
   }
 
   Future<void> _navigateToClinic(double latitude, double longitude) async {
+    final l10n = AppLocalizations.of(context)!;
+    
     try {
       final uri = Uri.parse(
         'https://maps.google.com/?q=$latitude,$longitude',
@@ -126,8 +131,8 @@ class _ClinicsPageState extends State<ClinicsPage> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Cannot open maps'),
+            SnackBar(
+              content: Text(l10n.cannotOpenMaps),
               backgroundColor: Colors.red,
             ),
           );
@@ -138,7 +143,7 @@ class _ClinicsPageState extends State<ClinicsPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text('${l10n.error}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -147,6 +152,7 @@ class _ClinicsPageState extends State<ClinicsPage> {
   }
 
   Future<void> _showClinicDetails(ClinicRecommendation clinic) async {
+    final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -219,7 +225,7 @@ class _ClinicsPageState extends State<ClinicsPage> {
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
-                              clinic.openingStatusText,
+                              clinic.isOpenNow! ? l10n.openNow : l10n.closed,
                               style: TextStyle(
                                 fontSize: 11,
                                 color: clinic.isOpenNow!
@@ -241,28 +247,28 @@ class _ClinicsPageState extends State<ClinicsPage> {
               // Details
               _buildDetailRow(
                 Icons.location_on,
-                'Address',
+                l10n.address,
                 clinic.fullAddress,
               ),
               const SizedBox(height: 12),
               if (clinic.phoneNumber != null)
                 _buildDetailRow(
                   Icons.phone,
-                  'Phone',
+                  l10n.phoneNumber,
                   clinic.phoneNumber!,
                 ),
               if (clinic.phoneNumber != null) const SizedBox(height: 12),
               if (clinic.openingHours != null)
                 _buildDetailRow(
                   Icons.access_time,
-                  'Opening Hours',
+                  l10n.openingHours,
                   _formatOpeningHours(clinic.openingHours!),
                 ),
               if (clinic.openingHours != null) const SizedBox(height: 12),
               if (clinic.distance != null)
                 _buildDetailRow(
                   Icons.navigation,
-                  'Distance',
+                  l10n.distance,
                   clinic.distanceText,
                 ),
 
@@ -270,8 +276,8 @@ class _ClinicsPageState extends State<ClinicsPage> {
               const SizedBox(height: 8),
               const Divider(),
               const SizedBox(height: 16),
-              const Text(
-                'Specialties',
+              Text(
+                l10n.specialties,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -296,7 +302,7 @@ class _ClinicsPageState extends State<ClinicsPage> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'General Medicine',
+                        l10n.generalMedicine,
                         style: TextStyle(
                           color: Colors.grey[600],
                           fontSize: 14,
@@ -347,7 +353,7 @@ class _ClinicsPageState extends State<ClinicsPage> {
                           _callClinic(clinic.phoneNumber!);
                         },
                         icon: const Icon(Icons.phone, size: 18),
-                        label: const Text('Call'),
+                        label: Text(l10n.call),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.blue,
                           side: const BorderSide(color: Colors.blue),
@@ -369,7 +375,7 @@ class _ClinicsPageState extends State<ClinicsPage> {
                         );
                       },
                       icon: const Icon(Icons.navigation, size: 18),
-                      label: const Text('Navigate'),
+                      label: Text(l10n.navigate),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
                         foregroundColor: Colors.white,
@@ -438,16 +444,18 @@ class _ClinicsPageState extends State<ClinicsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppHeader(
-        title: 'Clinics',
-        subtitle: '${_filteredClinics.length} clinics available',
+        title: l10n.clinics,
+        subtitle: '${_filteredClinics.length} ${l10n.clinicsAvailable}',
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadClinics,
-            tooltip: 'Refresh',
+            tooltip: l10n.refresh,
           ),
         ],
       ),
@@ -461,7 +469,7 @@ class _ClinicsPageState extends State<ClinicsPage> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search by name, specialty, or location...',
+                hintText: l10n.searchClinics,
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
@@ -495,14 +503,16 @@ class _ClinicsPageState extends State<ClinicsPage> {
   }
 
   Widget _buildBody() {
+    final l10n = AppLocalizations.of(context)!;
+    
     if (_isLoading) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Loading clinics...'),
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(l10n.loadingClinics),
           ],
         ),
       );
@@ -516,7 +526,7 @@ class _ClinicsPageState extends State<ClinicsPage> {
             Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
-              'Error loading clinics',
+              l10n.errorLoadingClinics,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -533,7 +543,7 @@ class _ClinicsPageState extends State<ClinicsPage> {
             ElevatedButton.icon(
               onPressed: _loadClinics,
               icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+              label: Text(l10n.retry),
             ),
           ],
         ),
@@ -549,8 +559,8 @@ class _ClinicsPageState extends State<ClinicsPage> {
             const SizedBox(height: 16),
             Text(
               _searchController.text.isEmpty
-                  ? 'No clinics found'
-                  : 'No matching clinics',
+                  ? l10n.noClinicsFound
+                  : l10n.noMatchingClinics,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -560,7 +570,7 @@ class _ClinicsPageState extends State<ClinicsPage> {
             if (_searchController.text.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
-                'Try a different search term',
+                l10n.tryDifferentSearch,
                 style: TextStyle(color: Colors.grey[600]),
               ),
             ],

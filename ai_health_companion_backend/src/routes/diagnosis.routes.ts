@@ -6,6 +6,11 @@ import {
     updateDiagnosis,
     getDiagnosesWithPrescriptions
 } from '../controllers/diagnosis.controller';
+import {
+    translateDiagnosisReport,
+    translateText,
+    getTranslationServiceStatus
+} from '../controllers/translation.controller';
 import { authenticate, authorize } from '../middleware/auth';
 import { UserRole } from '../models/User';
 import { diagnosisLimiter } from '../middleware/rate-limiter';
@@ -21,6 +26,20 @@ router.use(authenticate);
  * @access  Private (Pharmacist, Health Worker, Admin)
  */
 router.get('/prescriptions', getDiagnosesWithPrescriptions);
+
+/**
+ * @route   GET /api/v1/diagnosis/translation/status
+ * @desc    Check translation service status
+ * @access  Private
+ */
+router.get('/translation/status', getTranslationServiceStatus);
+
+/**
+ * @route   POST /api/v1/diagnosis/translation/text
+ * @desc    Translate arbitrary text to Kinyarwanda
+ * @access  Private
+ */
+router.post('/translation/text', translateText);
 
 /**
  * @route   POST /api/v1/diagnosis
@@ -40,6 +59,13 @@ router.post(
  * @access  Private
  */
 router.get('/:id', getDiagnosisById);
+
+/**
+ * @route   GET /api/v1/diagnosis/:id/translate
+ * @desc    Translate diagnosis report to Kinyarwanda
+ * @access  Private
+ */
+router.get('/:id/translate', translateDiagnosisReport);
 
 /**
  * @route   PUT /api/v1/diagnosis/:id

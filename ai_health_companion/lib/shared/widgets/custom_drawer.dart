@@ -3,12 +3,15 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/constants/app_constants.dart';
+import '../../generated/app_localizations.dart';
 
 class CustomDrawer extends StatelessWidget {
   const CustomDrawer({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Drawer(
       child: Column(
         children: [
@@ -32,7 +35,7 @@ class CustomDrawer extends StatelessWidget {
                     const SizedBox(width: 12),
                     Flexible(
                       child: Text(
-                        'Health Companion',
+                        l10n.appName,
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -55,7 +58,7 @@ class CustomDrawer extends StatelessWidget {
                 _buildDrawerItem(
                   context,
                   icon: Icons.psychology,
-                  title: 'AI Diagnosis',
+                  title: l10n.aiDiagnosis,
                   onTap: () {
                     Navigator.pop(context);
                     context.go('/diagnosis');
@@ -64,7 +67,7 @@ class CustomDrawer extends StatelessWidget {
                 _buildDrawerItem(
                   context,
                   icon: Icons.people,
-                  title: 'Patient Management',
+                  title: l10n.patientList,
                   onTap: () {
                     Navigator.pop(context);
                     context.go('/patients');
@@ -73,7 +76,7 @@ class CustomDrawer extends StatelessWidget {
                 _buildDrawerItem(
                   context,
                   icon: Icons.local_pharmacy,
-                  title: 'Pharmacies',
+                  title: l10n.nearbyPharmacies,
                   onTap: () {
                     Navigator.pop(context);
                     context.go('/pharmacies');
@@ -82,7 +85,7 @@ class CustomDrawer extends StatelessWidget {
                 _buildDrawerItem(
                   context,
                   icon: Icons.local_hospital,
-                  title: 'Clinics',
+                  title: l10n.clinics,
                   onTap: () {
                     Navigator.pop(context);
                     context.go('/clinics');
@@ -91,7 +94,7 @@ class CustomDrawer extends StatelessWidget {
                 _buildDrawerItem(
                   context,
                   icon: Icons.analytics,
-                  title: 'Analytics',
+                  title: l10n.analytics,
                   onTap: () {
                     Navigator.pop(context);
                     context.go('/analytics');
@@ -101,7 +104,7 @@ class CustomDrawer extends StatelessWidget {
                 _buildDrawerItem(
                   context,
                   icon: Icons.help_outline,
-                  title: 'Help & Support',
+                  title: l10n.help,
                   onTap: () {
                     Navigator.pop(context);
                     context.go('/help');
@@ -110,7 +113,7 @@ class CustomDrawer extends StatelessWidget {
                 _buildDrawerItem(
                   context,
                   icon: Icons.info_outline,
-                  title: 'About',
+                  title: l10n.about,
                   onTap: () {
                     Navigator.pop(context);
                     _showAboutDialog(context);
@@ -119,7 +122,7 @@ class CustomDrawer extends StatelessWidget {
                 _buildDrawerItem(
                   context,
                   icon: Icons.logout,
-                  title: 'Logout',
+                  title: l10n.logout,
                   onTap: () {
                     Navigator.pop(context);
                     _showLogoutDialog(context);
@@ -172,9 +175,11 @@ class CustomDrawer extends StatelessWidget {
   }
 
   void _showAboutDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     showAboutDialog(
       context: context,
-      applicationName: AppConstants.appName,
+      applicationName: l10n.appName,
       applicationVersion: AppConstants.appVersion,
       applicationIcon: const Icon(
         Icons.medical_services,
@@ -182,7 +187,7 @@ class CustomDrawer extends StatelessWidget {
         color: AppTheme.primaryColor,
       ),
       children: [
-        const Text(AppConstants.appDescription),
+        Text(l10n.appDescription),
         const SizedBox(height: 16),
         const Text(
           'This application is designed to assist health workers in rural clinics with AI-powered disease diagnosis.',
@@ -192,22 +197,24 @@ class CustomDrawer extends StatelessWidget {
   }
 
   void _showLogoutDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
+        title: Text(l10n.logout),
+        content: Text(l10n.logoutConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
               context.go('/login');
             },
-            child: const Text('Logout'),
+            child: Text(l10n.logout),
           ),
         ],
       ),

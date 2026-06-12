@@ -28,6 +28,11 @@ if (-not (Test-Path "ai_health_companion_backend\model-training")) {
     exit 1
 }
 
+if (-not (Test-Path "mbaza")) {
+    Write-Host "❌ Error: mbaza directory not found" -ForegroundColor Red
+    exit 1
+}
+
 # Create logs directory if it doesn't exist
 if (-not (Test-Path "logs")) {
     New-Item -ItemType Directory -Path "logs" | Out-Null
@@ -66,7 +71,21 @@ Write-Host "Starting services..." -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host ""
 
+# Start Mbaza Translation Service
+Write-Host "🚀 Starting Mbaza Translation Service (http://localhost:9000)..." -ForegroundColor Green
+$mbazaJob = Start-Job -ScriptBlock {
+    Set-Location $using:PWD\mbaza
+    python app_optimized.py 2>&1 | Out-File -FilePath ..\logs\mbaza.log -Append
+}
+Write-Host "   Mbaza Job ID: $($mbazaJob.Id)" -ForegroundColor Gray
+Write-Host "   Logs: logs\mbaza.log" -ForegroundColor Gray
+
+# Wait for Mbaza to load model
+Write-Host "   ⏳ Waiting for Mbaza NLP model to load (this may take 10-20 seconds)..." -ForegroundColor Yellow
+Start-Sleep -Seconds 15
+
 # Start Python ML API
+Write-Host ""
 Write-Host "🚀 Starting Python ML API (http://localhost:5001)..." -ForegroundColor Green
 $mlJob = Start-Job -ScriptBlock {
     Set-Location $using:PWD\ai_health_companion_backend\model-training
@@ -117,12 +136,14 @@ Write-Host "✅ All services started successfully!" -ForegroundColor Green
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Services running:" -ForegroundColor White
-Write-Host "  • Python ML API:    http://localhost:5001" -ForegroundColor White
-Write-Host "  • Backend:          http://localhost:5000" -ForegroundColor White
-Write-Host "  • Admin Dashboard:  http://localhost:3000" -ForegroundColor White
-Write-Host "  • Clinic Dashboard: http://localhost:5175" -ForegroundColor White
+Write-Host "  • Mbaza Translation: http://localhost:9000" -ForegroundColor White
+Write-Host "  • Python ML API:     http://localhost:5001" -ForegroundColor White
+Write-Host "  • Backend:           http://localhost:5000" -ForegroundColor White
+Write-Host "  • Admin Dashboard:   http://localhost:3000" -ForegroundColor White
+Write-Host "  • Clinic Dashboard:  http://localhost:5175" -ForegroundColor White
 Write-Host ""
 Write-Host "To view logs:" -ForegroundColor Yellow
+Write-Host "  • Mbaza:            Get-Content logs\mbaza.log -Wait" -ForegroundColor Gray
 Write-Host "  • ML API:           Get-Content logs\ml-api.log -Wait" -ForegroundColor Gray
 Write-Host "  • Backend:          Get-Content logs\backend.log -Wait" -ForegroundColor Gray
 Write-Host "  • Admin Dashboard:  Get-Content logs\admin-dashboard.log -Wait" -ForegroundColor Gray
@@ -147,12 +168,17 @@ try {
         Start-Sleep -Seconds 5
         
         # Check job statuses
+        $mbazaStatus = (Get-Job -Id $mbazaJob.Id).State
         $mlStatus = (Get-Job -Id $mlJob.Id).State
         $backendStatus = (Get-Job -Id $backendJob.Id).State
         $adminStatus = (Get-Job -Id $adminJob.Id).State
         $clinicStatus = (Get-Job -Id $clinicJob.Id).State
         
         # If any job fails, show error
+        if ($mbazaStatus -eq "Failed") {
+            Write-Host "❌ Mbaza Translation service failed! Check logs\mbaza.log" -ForegroundColor Red
+            Receive-Job -Id $mbazaJob.Id
+        }
         if ($mlStatus -eq "Failed") {
             Write-Host "❌ ML API service failed! Check logs\ml-api.log" -ForegroundColor Red
             Receive-Job -Id $mlJob.Id

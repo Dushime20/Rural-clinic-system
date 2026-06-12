@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../shared/widgets/app_header.dart';
+import '../../../../generated/app_localizations.dart';
 
 class PharmacySearchPage extends StatefulWidget {
   const PharmacySearchPage({super.key});
@@ -10,18 +11,26 @@ class PharmacySearchPage extends StatefulWidget {
 
 class _PharmacySearchPageState extends State<PharmacySearchPage> {
   final TextEditingController _searchController = TextEditingController();
-  String _selectedHealthCenter = 'All Health Centers';
+  String _selectedHealthCenter = '';
   bool _isSearching = false;
   List<Map<String, dynamic>> _searchResults = [];
 
-  final List<String> _healthCenters = [
-    'All Health Centers',
-    'Kigali Health Center',
-    'Nyarugenge Clinic',
-    'Gasabo Medical Center',
-    'Kicukiro Health Post',
-    'Remera Clinic',
-  ];
+  List<String> _getHealthCenters(AppLocalizations l10n) {
+    return [
+      l10n.allHealthCenters,
+      'Kigali Health Center',
+      'Nyarugenge Clinic',
+      'Gasabo Medical Center',
+      'Kicukiro Health Post',
+      'Remera Clinic',
+    ];
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize with localized value in build
+  }
 
   @override
   void dispose() {
@@ -30,6 +39,8 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
   }
 
   void _performSearch() {
+    final l10n = AppLocalizations.of(context)!;
+    
     if (_searchController.text.isEmpty) return;
 
     setState(() {
@@ -40,12 +51,12 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
     Future.delayed(const Duration(seconds: 1), () {
       setState(() {
         _isSearching = false;
-        _searchResults = _getMockResults(_searchController.text);
+        _searchResults = _getMockResults(_searchController.text, l10n.allHealthCenters);
       });
     });
   }
 
-  List<Map<String, dynamic>> _getMockResults(String query) {
+  List<Map<String, dynamic>> _getMockResults(String query, String allHealthCentersLabel) {
     // Mock e-LMIS data
     final allMedications = [
       {
@@ -96,7 +107,7 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
               med['name'].toString().toLowerCase().contains(
                 query.toLowerCase(),
               ) &&
-              (_selectedHealthCenter == 'All Health Centers' ||
+              (_selectedHealthCenter == allHealthCentersLabel ||
                   med['location'] == _selectedHealthCenter),
         )
         .toList();
@@ -117,15 +128,23 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final healthCenters = _getHealthCenters(l10n);
+    
+    // Initialize selected health center if not set
+    if (_selectedHealthCenter.isEmpty) {
+      _selectedHealthCenter = healthCenters[0];
+    }
+    
     return Scaffold(
       appBar: AppHeader(
-        title: 'Pharmacy Search',
-        subtitle: 'Search medication availability',
+        title: l10n.pharmacySearchTitle,
+        subtitle: l10n.searchMedicationAvailability,
         actions: [
           IconButton(
             icon: const Icon(Icons.qr_code_scanner),
             onPressed: () {},
-            tooltip: 'Scan Barcode',
+            tooltip: l10n.scanBarcodeTooltip,
           ),
         ],
       ),
@@ -148,7 +167,7 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
                   controller: _searchController,
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
-                    hintText: 'Search medication (e.g., Amoxicillin)',
+                    hintText: l10n.searchMedicationPlaceholder,
                     hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
                     prefixIcon: const Icon(Icons.search, color: Colors.white),
                     suffixIcon:
@@ -194,7 +213,7 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
                         color: Colors.white,
                       ),
                       items:
-                          _healthCenters.map((center) {
+                          healthCenters.map((center) {
                             return DropdownMenuItem(
                               value: center,
                               child: Text(center),
@@ -232,9 +251,9 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
                               width: 20,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                            : const Text(
-                              'Search e-LMIS',
-                              style: TextStyle(
+                            : Text(
+                              l10n.searchELMIS,
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -261,8 +280,8 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
                           const SizedBox(height: 16),
                           Text(
                             _searchController.text.isEmpty
-                                ? 'Search for medications'
-                                : 'No results found',
+                                ? l10n.searchForMedications
+                                : l10n.noResultsFound,
                             style: TextStyle(
                               fontSize: 18,
                               color: Colors.grey[600],
@@ -270,7 +289,7 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Enter medication name to check availability',
+                            l10n.enterMedicationNameToCheck,
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey[500],
@@ -381,7 +400,7 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
-                                        'Stock: ${medication['stock']} units',
+                                        l10n.stockUnits.replaceAll('{stock}', '${medication['stock']}'),
                                         style: TextStyle(
                                           fontSize: 14,
                                           color: Colors.grey[700],
@@ -400,7 +419,7 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
-                                          'Expires: ${medication['expiryDate']}',
+                                          l10n.expiresDate.replaceAll('{date}', medication['expiryDate']),
                                           style: TextStyle(
                                             fontSize: 14,
                                             color: Colors.grey[700],
@@ -423,6 +442,8 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
   }
 
   void _showMedicationDetails(Map<String, dynamic> medication) {
+    final l10n = AppLocalizations.of(context)!;
+    
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -453,12 +474,12 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                _buildDetailRow('Category', medication['category']),
-                _buildDetailRow('Location', medication['location']),
-                _buildDetailRow('Stock Level', '${medication['stock']} units'),
-                _buildDetailRow('Status', medication['status']),
+                _buildDetailRow(l10n.categoryLabel, medication['category']),
+                _buildDetailRow(l10n.locationLabel, medication['location']),
+                _buildDetailRow(l10n.stockLevelLabel, '${medication['stock']} units'),
+                _buildDetailRow(l10n.statusLabel, medication['status']),
                 if (medication['expiryDate'] != 'N/A')
-                  _buildDetailRow('Expiry Date', medication['expiryDate']),
+                  _buildDetailRow(l10n.expiryDateLabel, medication['expiryDate']),
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
@@ -466,13 +487,13 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
                     onPressed: () {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Directions feature coming soon'),
+                        SnackBar(
+                          content: Text(l10n.directionsFeatureComingSoon),
                         ),
                       );
                     },
                     icon: const Icon(Icons.directions),
-                    label: const Text('Get Directions'),
+                    label: Text(l10n.getDirections),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
