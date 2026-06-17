@@ -7,7 +7,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/services/location_service.dart';
 import '../../../../core/services/patient_service.dart';
 import '../../../../core/constants/symptoms_constants.dart';
-import '../../../../core/l10n/symptom_translations_data.dart';
+import '../../../../core/l10n/symptom_translations_service.dart';
 import '../../../../shared/widgets/app_header.dart';
 import '../../../../shared/widgets/custom_drawer.dart';
 import '../../data/models/diagnosis_models.dart';
@@ -141,16 +141,7 @@ class _DiagnosisPageState extends ConsumerState<DiagnosisPage>
   /// Helper method to get translated symptom name for display
   /// Returns translated name for UI, but keeps English names for backend
   String _getSymptomTranslation(BuildContext context, String englishSymptom) {
-    final locale = Localizations.localeOf(context);
-    
-    if (locale.languageCode == 'fr') {
-      return SymptomTranslationsData.frenchTranslations[englishSymptom] ?? englishSymptom;
-    } else if (locale.languageCode == 'rw') {
-      return SymptomTranslationsData.kinyarwandaTranslations[englishSymptom] ?? englishSymptom;
-    }
-    
-    // Default to English
-    return englishSymptom;
+    return translateSymptom(englishSymptom, Localizations.localeOf(context));
   }
 
   void _selectPatient(dynamic patient) {

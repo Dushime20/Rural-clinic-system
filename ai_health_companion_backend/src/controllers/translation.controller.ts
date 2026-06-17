@@ -5,6 +5,7 @@ import { AppError } from '../middleware/error-handler';
 import { AuthRequest } from '../middleware/auth';
 import { logger } from '../utils/logger';
 import { translationService } from '../services/translation.service';
+import diseaseTranslationCacheService from '../services/disease-translation-cache.service';
 
 const diagnosisRepository = AppDataSource.getRepository(Diagnosis);
 
@@ -72,6 +73,17 @@ export const translateDiagnosisReport = async (
             throw new AppError('No AI predictions found for this diagnosis', 404);
         }
 
+        // Translate ALL disease names (for top 3 predictions) if cache available
+        const translatedDiseaseNames: Record<string, string> = {};
+        if (diseaseTranslationCacheService.isCacheAvailable()) {
+            for (const prediction of aiPredictions) {
+                const cached = diseaseTranslationCacheService.getDiseaseTranslation(prediction.disease);
+                if (cached) {
+                    translatedDiseaseNames[prediction.disease] = cached.translatedName;
+                }
+            }
+        }
+
         // Prepare original report sections
         // Note: Disease name is NOT translated (kept in English for medical accuracy)
         const originalReport = {
@@ -94,17 +106,43 @@ export const translateDiagnosisReport = async (
         logger.info(`Disease: ${originalReport.disease}`);
         logger.info(`Sections to translate: ${Object.keys(originalReport).length}`);
 
-        // Skip availability check and go straight to translation
-        // The translateMedicalReport method has its own error handling
-        logger.info('Starting translation...');
+        let translatedReport: any;
 
-        // Translate the report
-        const translatedReport = await translationService.translateMedicalReport(originalReport);
+        // Try to use cached translation first (FAST - no Mbaza call needed!)
+        if (diseaseTranslationCacheService.isCacheAvailable()) {
+            logger.info('✨ Using cached translation (instant)');
+            
+            const cachedTranslation = diseaseTranslationCacheService.getDiseaseTranslation(
+                originalReport.disease
+            );
 
-        // Check if translation actually worked (not just returned original)
-        if (translatedReport.disease === originalReport.disease && 
-            translatedReport.description === originalReport.description) {
-            logger.warn('Translation service may have failed - returned original text');
+            if (cachedTranslation) {
+                // Build translated report from cache
+                translatedReport = {
+                    disease: cachedTranslation.translatedName, // Translated disease name!
+                    diseaseEnglish: originalReport.disease, // Keep English for reference
+                    confidence: originalReport.confidence, // Keep as is
+                    description: cachedTranslation.description,
+                    precautions: cachedTranslation.precautions,
+                    medications: cachedTranslation.medications,
+                    diet: cachedTranslation.diet,
+                    lifestyle: cachedTranslation.workout, // workout serves as lifestyle
+                    workout: cachedTranslation.workout,
+                    notes: originalReport.notes ? await translationService.translateToKinyarwanda(originalReport.notes) : '',
+                    prescriptions: await translationService.translatePrescriptions(originalReport.prescriptions) // Translate prescription fields
+                };
+                
+                logger.info('✅ Cached translation used - instant response!');
+            } else {
+                logger.warn(`No cached translation for disease: ${originalReport.disease}`);
+                logger.info('Falling back to Mbaza API...');
+                translatedReport = await translationService.translateMedicalReport(originalReport);
+            }
+        } else {
+            // Fallback to real-time Mbaza translation (SLOW - 2-3 minutes)
+            logger.warn('⚠️  Translation cache not available - using Mbaza API (this will be slow)');
+            logger.info('💡 Run "npm run translate-diseases" to generate cache for instant translations');
+            translatedReport = await translationService.translateMedicalReport(originalReport);
         }
 
         logger.info('Translation completed successfully');
@@ -114,7 +152,9 @@ export const translateDiagnosisReport = async (
             diagnosisId: id,
             language: 'kinyarwanda',
             original: originalReport,
-            translated: translatedReport
+            translated: translatedReport,
+            // Include all translated disease names for top 3 predictions
+            translatedDiseaseNames: translatedDiseaseNames
         });
 
     } catch (error: any) {
@@ -207,12 +247,23 @@ export const getTranslationServiceStatus = async (
 ): Promise<void> => {
     try {
         const isAvailable = await translationService.isAvailable();
+        const cacheAvailable = diseaseTranslationCacheService.isCacheAvailable();
+        const cacheMetadata = diseaseTranslationCacheService.getCacheMetadata();
 
         res.status(200).json({
             success: true,
-            service: 'Mbaza NLP Translation',
-            status: isAvailable ? 'available' : 'unavailable',
-            endpoint: process.env.MBAZA_TRANSLATION_URL || 'http://localhost:9000/translate'
+            mbazaService: {
+                name: 'Mbaza NLP Translation',
+                status: isAvailable ? 'available' : 'unavailable',
+                endpoint: process.env.MBAZA_TRANSLATION_URL || 'http://localhost:9000/translate'
+            },
+            translationCache: {
+                status: cacheAvailable ? 'loaded' : 'not_loaded',
+                ...cacheMetadata,
+                message: cacheAvailable 
+                    ? 'Instant translations available (no Mbaza calls needed)'
+                    : 'Cache not available - run: npm run translate-diseases'
+            }
         });
 
     } catch (error: any) {

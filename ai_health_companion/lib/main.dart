@@ -31,9 +31,17 @@ import 'features/settings/presentation/pages/help_support_page.dart';
 import 'features/analytics/presentation/pages/analytics_dashboard_page.dart';
 import 'shared/widgets/splash_screen.dart';
 import 'shared/widgets/main_navigation_wrapper.dart';
+import 'core/l10n/disease_name_translations.dart';
+import 'core/l10n/symptom_translations_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize disease name translations with fallback
+  DiseaseNameTranslations().loadFallbackTranslations();
+  
+  // Initialize symptom translations from assets (if available)
+  await SymptomTranslationsService().loadFromAssets();
 
   // Initialize location service early to request permission
   // This ensures location is available when diagnosis runs

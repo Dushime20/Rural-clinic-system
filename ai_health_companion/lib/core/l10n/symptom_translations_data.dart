@@ -1,7 +1,8 @@
 /// Symptom translations data
 /// Maps English symptom names (used by ML backend) to translated display names
+/// These are generated using Mbaza NLP translations and cached for instant lookups
 class SymptomTranslationsData {
-  /// French translations
+  /// French translations (fallback - to be replaced with Mbaza translations)
   static const Map<String, String> frenchTranslations = {
     'Abdominal Pain': 'Douleur abdominale',
     'Abnormal Menstruation': 'Menstruation anormale',

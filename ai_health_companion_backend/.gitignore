@@ -37,6 +37,9 @@ coverage/
 uploads/*
 !uploads/.gitkeep
 
+# Translation cache (generated artifact)
+data/disease-translations-kinyarwanda.json
+
 # Models (large files)
 models/*.tflite
 models/*.h5

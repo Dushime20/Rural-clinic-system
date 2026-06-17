@@ -17,7 +17,9 @@
     "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/database/data-source.ts",
     "migration:create": "typeorm-ts-node-commonjs migration:create",
     "seed:admin": "ts-node -r reflect-metadata src/database/seed-admin.ts",
-    "test:email": "node test-email.js"
+    "test:email": "node test-email.js",
+    "translate-diseases": "node scripts/translate-disease-data.js",
+    "translate-symptoms": "node scripts/translate-symptoms.js"
   },
   "keywords": [
     "healthcare",
@@ -36,6 +38,7 @@
     "bull": "^4.12.0",
     "compression": "^1.7.4",
     "cors": "^2.8.5",
+    "csv-parser": "^3.2.1",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "express-rate-limit": "^7.1.5",

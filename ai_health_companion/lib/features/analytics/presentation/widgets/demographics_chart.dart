@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../data/models/analytics_models.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../generated/app_localizations.dart';
 
 class DemographicsChart extends StatelessWidget {
   final PatientDemographics demographics;
@@ -13,18 +14,20 @@ class DemographicsChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Column(
       children: [
         // Gender Distribution
         _buildSection(
-          title: 'Gender Distribution',
-          child: _buildGenderChart(),
+          title: '${l10n.gender} ${l10n.info}',
+          child: _buildGenderChart(l10n),
         ),
         const SizedBox(height: 32),
         // Age Distribution
         _buildSection(
-          title: 'Age Distribution',
-          child: _buildAgeChart(),
+          title: '${l10n.age} ${l10n.info}',
+          child: _buildAgeChart(l10n),
         ),
       ],
     );
@@ -48,11 +51,11 @@ class DemographicsChart extends StatelessWidget {
     );
   }
 
-  Widget _buildGenderChart() {
+  Widget _buildGenderChart(AppLocalizations l10n) {
     final total = demographics.genderDistribution.total;
     if (total == 0) {
-      return const Center(
-        child: Text('No gender data available'),
+      return Center(
+        child: Text(l10n.noData),
       );
     }
 
@@ -118,20 +121,20 @@ class DemographicsChart extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _buildLegendItem(
-                  'Male',
+                  l10n.male,
                   demographics.genderDistribution.male,
                   AppTheme.primaryColor,
                 ),
                 const SizedBox(height: 6),
                 _buildLegendItem(
-                  'Female',
+                  l10n.female,
                   demographics.genderDistribution.female,
                   AppTheme.secondaryColor,
                 ),
                 if (demographics.genderDistribution.other > 0) ...[
                   const SizedBox(height: 6),
                   _buildLegendItem(
-                    'Other',
+                    l10n.other,
                     demographics.genderDistribution.other,
                     AppTheme.accentColor,
                   ),
@@ -144,13 +147,13 @@ class DemographicsChart extends StatelessWidget {
     );
   }
 
-  Widget _buildAgeChart() {
+  Widget _buildAgeChart(AppLocalizations l10n) {
     final ageData = demographics.ageDistribution;
     if (ageData.isEmpty) {
-      return const SizedBox(
+      return SizedBox(
         height: 100,
         child: Center(
-          child: Text('No age data available'),
+          child: Text(l10n.noData),
         ),
       );
     }

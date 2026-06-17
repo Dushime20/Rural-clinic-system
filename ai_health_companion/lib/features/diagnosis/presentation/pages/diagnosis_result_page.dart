@@ -13,6 +13,7 @@ import 'package:dio/dio.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/services/api_service.dart';
+import '../../../../core/l10n/disease_name_translations.dart';
 import '../../../../generated/app_localizations.dart';
 import '../../../../shared/widgets/app_header.dart';
 import '../../data/models/diagnosis_models.dart';
@@ -39,6 +40,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
   
   // Translation state
   Map<String, dynamic>? _translatedReport;
+  Map<String, String>? _translatedDiseaseNames; // Map of English -> Kinyarwanda disease names
   bool _isTranslating = false;
   bool _translationFailed = false;
   
@@ -101,8 +103,15 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
         if (result['success'] == true && result['translated'] != null) {
           setState(() {
             _translatedReport = result['translated'] as Map<String, dynamic>;
+            _translatedDiseaseNames = (result['translatedDiseaseNames'] as Map<String, dynamic>?)
+                ?.map((key, value) => MapEntry(key, value.toString())) ?? {};
             _isTranslating = false;
           });
+          
+          // Initialize global disease name translations
+          if (_translatedDiseaseNames != null && _translatedDiseaseNames!.isNotEmpty) {
+            DiseaseNameTranslations().initialize(_translatedDiseaseNames);
+          }
         } else {
           throw Exception('Translation response invalid');
         }
@@ -144,6 +153,15 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
       return translatedText;
     }
     return originalText;
+  }
+
+  /// Get translated disease name (for all predictions, not just primary)
+  String _getTranslatedDiseaseName(String englishName) {
+    final locale = Localizations.localeOf(context);
+    if (locale.languageCode == 'rw' && _translatedDiseaseNames != null) {
+      return _translatedDiseaseNames![englishName] ?? englishName;
+    }
+    return englishName;
   }
 
   /// Get display list based on locale - returns translated or original
@@ -1028,8 +1046,8 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
     final color = _confidenceColor(top.confidence);
     final pct = (top.confidence * 100).toStringAsFixed(1);
 
-    // Disease name is always kept in English (not translated) for medical accuracy
-    final displayDisease = top.disease;
+    // Disease name - use translated version if available
+    final displayDisease = _getTranslatedDiseaseName(top.disease);
 
     return _buildSectionCard(
       title: l10n.primaryDiagnosis,
@@ -1153,7 +1171,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            p.disease,
+                            _getTranslatedDiseaseName(p.disease),
                             style: const TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 14,

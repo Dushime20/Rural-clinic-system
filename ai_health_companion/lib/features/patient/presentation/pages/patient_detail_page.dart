@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../generated/app_localizations.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/services/patient_service.dart';
+import '../../../../core/l10n/disease_name_translations.dart';
+import '../../../../core/l10n/symptom_translations_service.dart';
 import '../../../../shared/widgets/app_header.dart';
 import '../../../diagnosis/data/models/diagnosis_models.dart';
 import '../../../diagnosis/data/services/diagnosis_service.dart';
@@ -786,7 +788,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          displayDisease,
+                          translateDiseaseName(displayDisease, Localizations.localeOf(context)),
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -892,7 +894,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          symptom.name,
+                          _translateSymptom(symptom.name),
                           style: TextStyle(
                             fontSize: 11,
                             color: Colors.orange.shade700,
@@ -968,65 +970,22 @@ class _PatientDetailPageState extends State<PatientDetailPage>
     return Colors.red;
   }
   
+  /// Translate symptom name based on current locale
+  String _translateSymptom(String englishSymptom) {
+    return translateSymptom(englishSymptom, Localizations.localeOf(context));
+  }
+  
   void _showDiagnosisDetails(DiagnosisResponse diagnosis) {
-    final l10n = AppLocalizations.of(context)!;
-    
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.9,
-        minChildSize: 0.5,
-        maxChildSize: 0.95,
-        builder: (context, scrollController) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Column(
-            children: [
-              Container(
-                margin: const EdgeInsets.only(top: 12),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        l10n.diagnosisDetails,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-              Expanded(
-                child: SingleChildScrollView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.all(16),
-                  child: _buildDiagnosisDetailsContent(diagnosis),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    // Navigate to the full diagnosis result page with translation support
+    // The DiagnosisResultPage will handle translation based on language setting
+    context.push(
+      '/diagnosis/result',
+      extra: {
+        'diagnosis': diagnosis,
+        'patient': _patient,
+        'nearbyPharmacies': [], // Historical - pharmacies not stored
+        'isHistorical': true, // Mark as historical diagnosis
+      },
     );
   }
   
@@ -1061,7 +1020,7 @@ class _PatientDetailPageState extends State<PatientDetailPage>
                     children: [
                       Expanded(
                         child: Text(
-                          pred.disease,
+                          translateDiseaseName(pred.disease, Localizations.localeOf(context)),
                           style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
                       ),

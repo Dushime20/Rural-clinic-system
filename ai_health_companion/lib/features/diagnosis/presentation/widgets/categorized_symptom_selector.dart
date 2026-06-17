@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/symptoms_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../generated/app_localizations.dart';
-import '../../../../core/l10n/symptom_translations_data.dart';
+import '../../../../core/l10n/symptom_translations_service.dart';
 
 class CategorizedSymptomSelector extends StatefulWidget {
   final List<String> selectedSymptoms;
@@ -34,9 +34,22 @@ class _CategorizedSymptomSelectorState
   List<String> get _filteredSymptoms {
     if (_searchQuery.isEmpty) return [];
     final query = _searchQuery.toLowerCase();
-    return SymptomsConstants.allSymptoms
-        .where((symptom) => symptom.toLowerCase().contains(query))
-        .toList();
+    final locale = Localizations.localeOf(context);
+    
+    return SymptomsConstants.allSymptoms.where((symptom) {
+      // Search in English
+      if (symptom.toLowerCase().contains(query)) {
+        return true;
+      }
+      
+      // Search in translated name (Kinyarwanda or French)
+      final translatedName = translateSymptom(symptom, locale).toLowerCase();
+      if (translatedName.contains(query)) {
+        return true;
+      }
+      
+      return false;
+    }).toList();
   }
 
   IconData _getCategoryIcon(String category) {
@@ -470,16 +483,7 @@ class _CategorizedSymptomSelectorState
   /// Helper method to get translated symptom name for display
   /// Returns translated name for UI, but selectedSymptoms list keeps English names
   String _getSymptomTranslation(BuildContext context, String englishSymptom) {
-    final locale = Localizations.localeOf(context);
-    
-    if (locale.languageCode == 'fr') {
-      return SymptomTranslationsData.frenchTranslations[englishSymptom] ?? englishSymptom;
-    } else if (locale.languageCode == 'rw') {
-      return SymptomTranslationsData.kinyarwandaTranslations[englishSymptom] ?? englishSymptom;
-    }
-    
-    // Default to English
-    return englishSymptom;
+    return translateSymptom(englishSymptom, Localizations.localeOf(context));
   }
 
   Widget _buildSymptomChip(String symptom, bool isSelected) {

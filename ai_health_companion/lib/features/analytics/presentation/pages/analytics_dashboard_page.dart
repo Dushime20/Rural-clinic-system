@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/l10n/disease_name_translations.dart';
+import '../../../../generated/app_localizations.dart';
 import '../../../../shared/widgets/app_header.dart';
 import '../../data/providers/analytics_provider.dart';
 import '../widgets/disease_trends_chart.dart';
@@ -12,13 +14,15 @@ class AnalyticsDashboardPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context);
     final dashboardAsync = ref.watch(dashboardAnalyticsProvider);
     final demographicsAsync = ref.watch(patientDemographicsProvider);
 
     return Scaffold(
       appBar: AppHeader(
-        title: 'Analytics Dashboard',
-        subtitle: 'View health statistics and trends',
+        title: l10n.analytics,
+        subtitle: l10n.viewHealthStatistics,
         showBackButton: false,
         actions: [
           IconButton(
@@ -27,7 +31,7 @@ class AnalyticsDashboardPage extends ConsumerWidget {
               ref.invalidate(dashboardAnalyticsProvider);
               ref.invalidate(patientDemographicsProvider);
             },
-            tooltip: 'Refresh',
+            tooltip: l10n.refresh,
           ),
         ],
       ),
@@ -38,12 +42,12 @@ class AnalyticsDashboardPage extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Summary Cards
-              _buildSummarySection(dashboard),
+              _buildSummarySection(dashboard, l10n, locale),
               const SizedBox(height: 24),
 
               // Disease Trends
               _buildChartCard(
-                title: 'Disease Trends (Last 6 Months)',
+                title: '${l10n.disease} ${l10n.filterRecent} (6 ${l10n.thisMonth})', // Combining existing strings
                 chart: DiseaseTrendsChart(
                   trends: dashboard.diseaseTrends,
                   topDiseases: dashboard.topDiseases,
@@ -54,18 +58,18 @@ class AnalyticsDashboardPage extends ConsumerWidget {
               // Patient Demographics
               demographicsAsync.when(
                 data: (demographics) => _buildChartCard(
-                  title: 'Patient Demographics',
+                  title: '${l10n.patients} ${l10n.info}',
                   chart: DemographicsChart(demographics: demographics),
                 ),
                 loading: () => _buildChartCard(
-                  title: 'Patient Demographics',
+                  title: '${l10n.patients} ${l10n.info}',
                   chart: const Center(child: CircularProgressIndicator()),
                 ),
                 error: (error, stack) => _buildChartCard(
-                  title: 'Patient Demographics',
+                  title: '${l10n.patients} ${l10n.info}',
                   chart: Center(
                     child: Text(
-                      'Error loading demographics: ${error.toString()}',
+                      '${l10n.error}: ${error.toString()}',
                       style: const TextStyle(color: AppTheme.errorColor),
                     ),
                   ),
@@ -88,7 +92,7 @@ class AnalyticsDashboardPage extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Failed to load analytics',
+                  '${l10n.error} ${l10n.analytics}',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -107,7 +111,7 @@ class AnalyticsDashboardPage extends ConsumerWidget {
                     ref.invalidate(patientDemographicsProvider);
                   },
                   icon: const Icon(Icons.refresh),
-                  label: const Text('Retry'),
+                  label: Text(l10n.retry),
                 ),
               ],
             ),
@@ -117,10 +121,10 @@ class AnalyticsDashboardPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildSummarySection(dashboard) {
-    // Get the most common disease
+  Widget _buildSummarySection(dashboard, AppLocalizations l10n, Locale locale) {
+    // Get the most common disease and translate it
     final topDisease = dashboard.topDiseases.isNotEmpty 
-        ? dashboard.topDiseases.first.name 
+        ? translateDiseaseName(dashboard.topDiseases.first.name, locale)
         : 'N/A';
 
     return Column(
@@ -132,7 +136,7 @@ class AnalyticsDashboardPage extends ConsumerWidget {
             children: [
               Expanded(
                 child: _buildSummaryCard(
-                  'Total Diagnoses',
+                  '${l10n.total} ${l10n.diagnosis}',
                   dashboard.totalDiagnoses.toString(),
                   Icons.psychology,
                   AppTheme.primaryColor,
@@ -141,7 +145,7 @@ class AnalyticsDashboardPage extends ConsumerWidget {
               const SizedBox(width: 16),
               Expanded(
                 child: _buildSummaryCard(
-                  'Total Patients',
+                  '${l10n.total} ${l10n.patients}',
                   dashboard.totalPatients.toString(),
                   Icons.people,
                   AppTheme.secondaryColor,
@@ -155,7 +159,7 @@ class AnalyticsDashboardPage extends ConsumerWidget {
         SizedBox(
           height: 100,
           child: _buildTextSummaryCard(
-            'Top Disease',
+            '${l10n.disease} #1',
             topDisease,
             Icons.coronavirus,
             AppTheme.accentColor,

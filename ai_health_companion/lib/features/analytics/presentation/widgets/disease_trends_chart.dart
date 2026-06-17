@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../data/models/analytics_models.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../generated/app_localizations.dart';
+import '../../../../core/l10n/disease_name_translations.dart';
 
 class DiseaseTrendsChart extends StatelessWidget {
   final List<DiseaseTrend> trends;
@@ -15,11 +17,14 @@ class DiseaseTrendsChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context);
+    
     if (trends.isEmpty || topDiseases.isEmpty) {
-      return const SizedBox(
+      return SizedBox(
         height: 200,
         child: Center(
-          child: Text('No disease trend data available'),
+          child: Text(l10n.noData),
         ),
       );
     }
@@ -114,7 +119,7 @@ class DiseaseTrendsChart extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          _buildLegend(colors),
+          _buildLegend(colors, locale),
         ],
       ),
     );
@@ -171,7 +176,7 @@ class DiseaseTrendsChart extends StatelessWidget {
     return bars;
   }
 
-  Widget _buildLegend(List<Color> colors) {
+  Widget _buildLegend(List<Color> colors, Locale locale) {
     return Wrap(
       spacing: 12,
       runSpacing: 8,
@@ -179,6 +184,7 @@ class DiseaseTrendsChart extends StatelessWidget {
       children: List.generate(
         topDiseases.length > 3 ? 3 : topDiseases.length,
         (index) {
+          final translatedName = translateDiseaseName(topDiseases[index].name, locale);
           return Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -193,7 +199,7 @@ class DiseaseTrendsChart extends StatelessWidget {
               const SizedBox(width: 4),
               Flexible(
                 child: Text(
-                  topDiseases[index].name,
+                  translatedName,
                   style: const TextStyle(
                     fontSize: 11,
                     color: AppTheme.textSecondary,
