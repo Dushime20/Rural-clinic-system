@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { Building2, Stethoscope, Calendar, AlertCircle } from 'lucide-react';
-import { Card } from '../components/ui/Card';
+import { Building2, Stethoscope, Calendar, AlertCircle, MapPin, Phone } from 'lucide-react';
+import { Card, CardHeader, CardTitle } from '../components/ui/Card';
+import { StatCard } from '../components/ui/StatCard';
 import api from '../lib/api';
 import { Clinic } from '../types';
 
@@ -16,7 +17,7 @@ export function Dashboard() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -26,6 +27,7 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Page header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-sm text-gray-500 mt-1">Welcome to your clinic portal</p>
@@ -35,7 +37,7 @@ export function Dashboard() {
       {!isProfileComplete && (
         <Card className="border-orange-200 bg-orange-50">
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
+            <AlertCircle className="w-5 h-5 text-orange-600 mt-0.5 shrink-0" />
             <div>
               <h3 className="text-sm font-semibold text-orange-900">Complete Your Profile</h3>
               <p className="text-sm text-orange-700 mt-1">
@@ -48,84 +50,86 @@ export function Dashboard() {
 
       {/* Clinic info card */}
       <Card>
-        <div className="flex items-start justify-between">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
-              <Building2 className="w-6 h-6 text-indigo-600" />
+        <CardHeader>
+          <CardTitle>Clinic Information</CardTitle>
+          <Building2 className="w-4 h-4 text-gray-400" />
+        </CardHeader>
+        <div className="flex items-start gap-6 flex-wrap">
+          {/* Clinic name and status */}
+          <div className="flex items-start gap-4 flex-1 min-w-[250px]">
+            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
+              <Building2 className="w-6 h-6 text-blue-600" />
             </div>
-            <div>
+            <div className="flex-1">
               <h2 className="text-lg font-bold text-gray-900">{clinic?.name || 'Clinic Name'}</h2>
-              {clinic?.address && (
-                <p className="text-sm text-gray-600 mt-1">{clinic.address}</p>
+              {clinic?.isActive ? (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mt-1">
+                  Active
+                </span>
+              ) : (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 mt-1">
+                  Inactive
+                </span>
               )}
-              {clinic?.city && (
-                <p className="text-sm text-gray-500">
-                  {clinic.city}
-                  {clinic.district && `, ${clinic.district}`}
-                </p>
-              )}
-              <div className="mt-2">
-                {clinic?.isActive ? (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    Active
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                    Inactive
-                  </span>
+            </div>
+          </div>
+
+          {/* Address */}
+          {clinic?.address && (
+            <div className="flex items-start gap-3 text-sm flex-1 min-w-[250px]">
+              <MapPin className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-gray-700">{clinic.address}</p>
+                {clinic.city && (
+                  <p className="text-gray-500">
+                    {clinic.city}
+                    {clinic.district && `, ${clinic.district}`}
+                  </p>
                 )}
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Phone */}
+          {clinic?.contactPhone && (
+            <div className="flex items-center gap-3 text-sm">
+              <Phone className="w-4 h-4 text-gray-400 shrink-0" />
+              <p className="text-gray-700">{clinic.contactPhone}</p>
+            </div>
+          )}
         </div>
       </Card>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Stethoscope className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Specialties</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {clinic?.specialties?.length || 0}
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        <Card>
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Days Since Registration</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {clinic?.createdAt
-                  ? Math.floor(
-                      (Date.now() - new Date(clinic.createdAt).getTime()) /
-                        (1000 * 60 * 60 * 24)
-                    )
-                  : 0}
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        <Card>
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-purple-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Total Recommendations</p>
-              <p className="text-2xl font-bold text-gray-900">0</p>
-            </div>
-          </div>
-        </Card>
+      {/* Stats grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <StatCard
+          title="Specialties"
+          value={clinic?.specialties?.length || 0}
+          icon={Stethoscope}
+          color="blue"
+          isLoading={isLoading}
+        />
+        <StatCard
+          title="Days Active"
+          value={
+            clinic?.createdAt
+              ? Math.floor(
+                  (Date.now() - new Date(clinic.createdAt).getTime()) /
+                    (1000 * 60 * 60 * 24)
+                )
+              : 0
+          }
+          icon={Calendar}
+          color="green"
+          isLoading={isLoading}
+        />
+        <StatCard
+          title="Recommendations"
+          value={0}
+          icon={Building2}
+          color="purple"
+          isLoading={isLoading}
+        />
       </div>
 
       {/* Quick actions */}
@@ -134,18 +138,32 @@ export function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <a href="/profile" className="block">
-              <h4 className="font-semibold text-gray-900">Update Profile</h4>
-              <p className="text-sm text-gray-600 mt-1">
-                Edit your clinic information and contact details
-              </p>
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
+                  <Building2 className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900">Update Profile</h4>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Edit your clinic information and contact details
+                  </p>
+                </div>
+              </div>
             </a>
           </Card>
           <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <a href="/specialties" className="block">
-              <h4 className="font-semibold text-gray-900">Manage Specialties</h4>
-              <p className="text-sm text-gray-600 mt-1">
-                Update the medical specialties your clinic offers
-              </p>
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center shrink-0">
+                  <Stethoscope className="w-5 h-5 text-purple-600" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900">Manage Specialties</h4>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Update the medical specialties your clinic offers
+                  </p>
+                </div>
+              </div>
             </a>
           </Card>
         </div>
@@ -154,12 +172,15 @@ export function Dashboard() {
       {/* Specialties list */}
       {clinic?.specialties && clinic.specialties.length > 0 && (
         <Card>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Specialties</h3>
+          <CardHeader>
+            <CardTitle>Your Specialties</CardTitle>
+            <Stethoscope className="w-4 h-4 text-gray-400" />
+          </CardHeader>
           <div className="flex flex-wrap gap-2">
             {clinic.specialties.map((specialty) => (
               <span
                 key={specialty}
-                className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium bg-indigo-50 text-indigo-700"
+                className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-50 text-blue-700 border border-blue-100"
               >
                 {specialty.replace(/_/g, ' ')}
               </span>

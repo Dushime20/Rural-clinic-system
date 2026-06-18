@@ -39,6 +39,16 @@ export function PharmacyDashboard() {
     enabled: !!pharmacy,
   });
 
+  // Get all medicines for accurate statistics
+  const { data: allMedicinesData } = useQuery({
+    queryKey: ['my-medicines-stats'],
+    queryFn: async () => {
+      const { data } = await api.get('/pharmacy-manager/my/medicines?limit=1000'); // Get all medicines
+      return data.data as { medicines: Medicine[] };
+    },
+    enabled: !!pharmacy,
+  });
+
   if (pharmacyLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -71,9 +81,12 @@ export function PharmacyDashboard() {
 
   const medicines = medicinesData?.medicines ?? [];
   const total = medicinesData?.pagination.total ?? 0;
-  const available = medicines.filter((m) => m.isAvailable && m.stockQuantity > 0).length;
-  const lowStock = medicines.filter((m) => m.stockQuantity > 0 && m.stockQuantity < 10).length;
-  const outOfStock = medicines.filter((m) => m.stockQuantity === 0 || !m.isAvailable).length;
+  
+  // Calculate statistics from ALL medicines, not just the first 6
+  const allMedicines = allMedicinesData?.medicines ?? [];
+  const available = allMedicines.filter((m) => m.isAvailable && m.stockQuantity > 0).length;
+  const lowStock = allMedicines.filter((m) => m.isAvailable && m.stockQuantity > 0 && m.stockQuantity < 10).length;
+  const outOfStock = allMedicines.filter((m) => m.stockQuantity === 0 || !m.isAvailable).length;
 
   return (
     <div className="space-y-6">
@@ -82,7 +95,7 @@ export function PharmacyDashboard() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{pharmacy.name}</h1>
           <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
-            <MapPin className="w-4 h-4 flex-shrink-0" />
+            <MapPin className="w-4 h-4 shrink-0" />
             <span>{[pharmacy.address, pharmacy.city, pharmacy.district].filter(Boolean).join(', ') || 'No address set'}</span>
           </div>
         </div>

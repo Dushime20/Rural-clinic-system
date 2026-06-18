@@ -22,3 +22,7 @@ export function formatDateTime(date: string | Date): string {
     minute: '2-digit',
   });
 }
+
+export function getInitials(firstName: string, lastName: string): string {
+  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+}
