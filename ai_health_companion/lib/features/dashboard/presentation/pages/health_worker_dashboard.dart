@@ -4,6 +4,7 @@ import '../../../../core/constants/user_roles.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../../core/services/dashboard_service.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/theme_extensions.dart';
 import '../../../../shared/widgets/quick_action_button.dart';
 import '../../../../shared/widgets/app_header.dart';
 
@@ -86,11 +87,13 @@ class _HealthWorkerDashboardState extends State<HealthWorkerDashboard> {
           ),
           Padding(
             padding: const EdgeInsets.only(right: 8),
-            child: CircleAvatar(
-              backgroundColor: Colors.white,
-              child: Text(
-                widget.user.initials,
-                style: const TextStyle(color: AppTheme.primaryColor),
+            child: Builder(
+              builder: (context) => CircleAvatar(
+                backgroundColor: context.avatarBackgroundColor,
+                child: Text(
+                  widget.user.initials,
+                  style: const TextStyle(color: AppTheme.primaryColor),
+                ),
               ),
             ),
           ),

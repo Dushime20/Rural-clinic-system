@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/theme_extensions.dart';
 
 class AppHeader extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -65,7 +66,10 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
       actions: actions,
       bottom: bottom,
       elevation: 2,
-      backgroundColor: AppTheme.primaryColor,
+      backgroundColor: context.adaptiveColor(
+        lightColor: AppTheme.primaryColor,
+        darkColor: const Color(0xFF1E1E1E),
+      ),
       foregroundColor: Colors.white,
     );
   }

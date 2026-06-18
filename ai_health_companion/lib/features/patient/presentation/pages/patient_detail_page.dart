@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../generated/app_localizations.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/theme_extensions.dart';
 import '../../../../core/services/patient_service.dart';
 import '../../../../core/l10n/disease_name_translations.dart';
 import '../../../../core/l10n/symptom_translations_service.dart';
@@ -417,11 +418,13 @@ class _PatientDetailPageState extends State<PatientDetailPage>
                         children:
                             allergies
                                 .map(
-                                  (a) => Chip(
-                                    label: Text(a.toString()),
-                                    backgroundColor: Colors.red.shade50,
-                                    labelStyle: const TextStyle(
-                                      color: Colors.red,
+                                  (a) => Builder(
+                                    builder: (context) => Chip(
+                                      label: Text(a.toString()),
+                                      backgroundColor: context.chipBackground(context.errorColor),
+                                      labelStyle: TextStyle(
+                                        color: context.errorColor,
+                                      ),
                                     ),
                                   ),
                                 )
@@ -451,11 +454,13 @@ class _PatientDetailPageState extends State<PatientDetailPage>
                         children:
                             chronic
                                 .map(
-                                  (c) => Chip(
-                                    label: Text(c.toString()),
-                                    backgroundColor: Colors.orange.shade50,
-                                    labelStyle: const TextStyle(
-                                      color: Colors.orange,
+                                  (c) => Builder(
+                                    builder: (context) => Chip(
+                                      label: Text(c.toString()),
+                                      backgroundColor: context.chipBackground(context.warningColor),
+                                      labelStyle: TextStyle(
+                                        color: context.warningColor,
+                                      ),
                                     ),
                                   ),
                                 )
@@ -517,56 +522,58 @@ class _PatientDetailPageState extends State<PatientDetailPage>
                         )
                       : Column(
                           children: lastDiagnosisMedications.map((prescription) {
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.blue.shade50,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: Colors.blue.shade100,
-                                  width: 1,
+                            return Builder(
+                              builder: (context) => Container(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: context.chipBackground(context.infoColor),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: context.infoColor.withValues(alpha: 0.3),
+                                    width: 1,
+                                  ),
                                 ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.medication,
-                                        color: AppTheme.primaryColor,
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          prescription.medication,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 14,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.medication,
+                                          color: AppTheme.primaryColor,
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            prescription.medication,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  _medicationInfoRow(
-                                    Icons.medical_services,
-                                    l10n.dosage,
-                                    prescription.dosage,
-                                  ),
-                                  _medicationInfoRow(
-                                    Icons.schedule,
-                                    l10n.frequency,
-                                    prescription.frequency,
-                                  ),
-                                  _medicationInfoRow(
-                                    Icons.calendar_today,
-                                    l10n.duration,
-                                    prescription.duration,
-                                  ),
-                                ],
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    _medicationInfoRow(
+                                      Icons.medical_services,
+                                      l10n.dosage,
+                                      prescription.dosage,
+                                    ),
+                                    _medicationInfoRow(
+                                      Icons.schedule,
+                                      l10n.frequency,
+                                      prescription.frequency,
+                                    ),
+                                    _medicationInfoRow(
+                                      Icons.calendar_today,
+                                      l10n.duration,
+                                      prescription.duration,
+                                    ),
+                                  ],
+                                ),
                               ),
                             );
                           }).toList(),
@@ -579,29 +586,31 @@ class _PatientDetailPageState extends State<PatientDetailPage>
   }
   
   Widget _medicationInfoRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
-        children: [
-          Icon(icon, size: 14, color: Colors.grey.shade600),
-          const SizedBox(width: 6),
-          Text(
-            '$label: ',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade600,
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
+    return Builder(
+      builder: (context) => Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Row(
+          children: [
+            Icon(icon, size: 14, color: context.secondaryTextColor),
+            const SizedBox(width: 6),
+            Text(
+              '$label: ',
+              style: TextStyle(
                 fontSize: 12,
-                fontWeight: FontWeight.w500,
+                color: context.secondaryTextColor,
               ),
             ),
-          ),
-        ],
+            Expanded(
+              child: Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

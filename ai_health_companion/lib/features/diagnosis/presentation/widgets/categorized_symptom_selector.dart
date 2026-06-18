@@ -3,6 +3,7 @@ import '../../../../core/constants/symptoms_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../generated/app_localizations.dart';
 import '../../../../core/l10n/symptom_translations_service.dart';
+import '../../../../core/theme/theme_extensions.dart';
 
 class CategorizedSymptomSelector extends StatefulWidget {
   final List<String> selectedSymptoms;
@@ -122,9 +123,9 @@ class _CategorizedSymptomSelectorState
     
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
+        boxShadow: context.isDarkMode ? [] : [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
@@ -136,7 +137,13 @@ class _CategorizedSymptomSelectorState
         controller: _searchController,
         decoration: InputDecoration(
           hintText: l10n.searchSymptomsPlaceholder,
-          prefixIcon: const Icon(Icons.search, color: AppTheme.primaryColor),
+          prefixIcon: Icon(
+            Icons.search,
+            color: context.adaptiveColor(
+              lightColor: AppTheme.primaryColor,
+              darkColor: const Color(0xFF66BB6A),
+            ),
+          ),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
                   icon: const Icon(Icons.clear),
@@ -151,7 +158,7 @@ class _CategorizedSymptomSelectorState
             borderSide: BorderSide.none,
           ),
           filled: true,
-          fillColor: Colors.grey[50],
+          fillColor: context.searchFieldColor,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 14,
@@ -170,25 +177,74 @@ class _CategorizedSymptomSelectorState
     final isGoodCount = count >= 8 && count <= 12;
     final isFewSymptoms = count < 8;
 
+    // Determine colors based on count and theme
+    final backgroundColor = isGoodCount
+        ? context.adaptiveColor(
+            lightColor: Colors.green.shade50,
+            darkColor: const Color(0xFF1B3A1E),
+          )
+        : isFewSymptoms
+            ? context.adaptiveColor(
+                lightColor: Colors.orange.shade50,
+                darkColor: const Color(0xFF3A2A1E),
+              )
+            : context.adaptiveColor(
+                lightColor: Colors.blue.shade50,
+                darkColor: const Color(0xFF1E2A3A),
+              );
+
+    final borderColor = isGoodCount
+        ? context.adaptiveColor(
+            lightColor: Colors.green.shade300,
+            darkColor: const Color(0xFF4CAF50),
+          )
+        : isFewSymptoms
+            ? context.adaptiveColor(
+                lightColor: Colors.orange.shade300,
+                darkColor: const Color(0xFFFF9800),
+              )
+            : context.adaptiveColor(
+                lightColor: Colors.blue.shade300,
+                darkColor: const Color(0xFF2196F3),
+              );
+
+    final iconColor = isGoodCount
+        ? context.adaptiveColor(
+            lightColor: Colors.green,
+            darkColor: const Color(0xFF66BB6A),
+          )
+        : isFewSymptoms
+            ? context.adaptiveColor(
+                lightColor: Colors.orange,
+                darkColor: const Color(0xFFFFB74D),
+              )
+            : context.adaptiveColor(
+                lightColor: Colors.blue,
+                darkColor: const Color(0xFF64B5F6),
+              );
+
+    final textColor = isGoodCount
+        ? context.adaptiveColor(
+            lightColor: Colors.green.shade900,
+            darkColor: const Color(0xFF66BB6A),
+          )
+        : isFewSymptoms
+            ? context.adaptiveColor(
+                lightColor: Colors.orange.shade900,
+                darkColor: const Color(0xFFFFB74D),
+              )
+            : context.adaptiveColor(
+                lightColor: Colors.blue.shade900,
+                darkColor: const Color(0xFF64B5F6),
+              );
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isGoodCount
-              ? [Colors.green.shade50, Colors.green.shade100]
-              : isFewSymptoms
-                  ? [Colors.orange.shade50, Colors.orange.shade100]
-                  : [Colors.blue.shade50, Colors.blue.shade100],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isGoodCount
-              ? Colors.green.shade300
-              : isFewSymptoms
-                  ? Colors.orange.shade300
-                  : Colors.blue.shade300,
+          color: borderColor,
           width: 2,
         ),
       ),
@@ -197,11 +253,7 @@ class _CategorizedSymptomSelectorState
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: isGoodCount
-                  ? Colors.green
-                  : isFewSymptoms
-                      ? Colors.orange
-                      : Colors.blue,
+              color: iconColor,
               shape: BoxShape.circle,
             ),
             child: Text(
@@ -227,11 +279,7 @@ class _CategorizedSymptomSelectorState
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: isGoodCount
-                        ? Colors.green.shade900
-                        : isFewSymptoms
-                            ? Colors.orange.shade900
-                            : Colors.blue.shade900,
+                    color: textColor,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -243,7 +291,7 @@ class _CategorizedSymptomSelectorState
                           : l10n.canAddMoreSymptoms,
                   style: TextStyle(
                     fontSize: 13,
-                    color: Colors.grey[700],
+                    color: context.secondaryTextColor,
                   ),
                 ),
               ],
@@ -255,11 +303,7 @@ class _CategorizedSymptomSelectorState
                 : isFewSymptoms
                     ? Icons.info_outline
                     : Icons.check_circle_outline,
-            color: isGoodCount
-                ? Colors.green
-                : isFewSymptoms
-                    ? Colors.orange
-                    : Colors.blue,
+            color: iconColor,
             size: 28,
           ),
         ],
@@ -496,10 +540,20 @@ class _CategorizedSymptomSelectorState
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primaryColor : Colors.grey[100],
+          color: isSelected
+              ? context.adaptiveColor(
+                  lightColor: AppTheme.primaryColor,
+                  darkColor: const Color(0xFF66BB6A),
+                )
+              : context.containerColor,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? AppTheme.primaryColor : Colors.grey[300]!,
+            color: isSelected
+                ? context.adaptiveColor(
+                    lightColor: AppTheme.primaryColor,
+                    darkColor: const Color(0xFF66BB6A),
+                  )
+                : context.borderColor,
             width: 1.5,
           ),
         ),
@@ -508,14 +562,18 @@ class _CategorizedSymptomSelectorState
           children: [
             Icon(
               isSelected ? Icons.check_circle : Icons.circle_outlined,
-              color: isSelected ? Colors.white : Colors.grey[600],
+              color: isSelected
+                  ? Colors.white
+                  : context.iconColor,
               size: 18,
             ),
             const SizedBox(width: 6),
             Text(
               translatedSymptom, // Show translated name
               style: TextStyle(
-                color: isSelected ? Colors.white : Colors.black87,
+                color: isSelected
+                    ? Colors.white
+                    : context.textColor,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 fontSize: 14,
               ),

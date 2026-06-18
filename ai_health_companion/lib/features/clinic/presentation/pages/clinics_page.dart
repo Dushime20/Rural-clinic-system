@@ -8,6 +8,7 @@ import '../../../../shared/widgets/custom_drawer.dart';
 import '../../../diagnosis/data/models/clinic_models.dart';
 import '../../../diagnosis/data/services/diagnosis_service.dart';
 import '../../../../generated/app_localizations.dart';
+import '../../../../core/theme/theme_extensions.dart';
 
 class ClinicsPage extends StatefulWidget {
   const ClinicsPage({super.key});
@@ -98,7 +99,7 @@ class _ClinicsPageState extends State<ClinicsPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(l10n.cannotOpenDialer),
-              backgroundColor: Colors.red,
+              backgroundColor: context.errorColor,
             ),
           );
         }
@@ -109,7 +110,7 @@ class _ClinicsPageState extends State<ClinicsPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${l10n.error}: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: context.errorColor,
           ),
         );
       }
@@ -133,7 +134,7 @@ class _ClinicsPageState extends State<ClinicsPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(l10n.cannotOpenMaps),
-              backgroundColor: Colors.red,
+              backgroundColor: context.errorColor,
             ),
           );
         }
@@ -144,7 +145,7 @@ class _ClinicsPageState extends State<ClinicsPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${l10n.error}: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: context.errorColor,
           ),
         );
       }
@@ -156,6 +157,7 @@ class _ClinicsPageState extends State<ClinicsPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: context.modalBackgroundColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -176,7 +178,7 @@ class _ClinicsPageState extends State<ClinicsPage> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
+                    color: context.borderColor,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -189,7 +191,7 @@ class _ClinicsPageState extends State<ClinicsPage> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                      color: context.chipBackground(AppTheme.primaryColor),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
@@ -219,8 +221,8 @@ class _ClinicsPageState extends State<ClinicsPage> {
                             ),
                             decoration: BoxDecoration(
                               color: (clinic.isOpenNow!
-                                      ? Colors.green
-                                      : Colors.red)
+                                      ? context.successColor
+                                      : context.errorColor)
                                   .withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(4),
                             ),
@@ -229,8 +231,8 @@ class _ClinicsPageState extends State<ClinicsPage> {
                               style: TextStyle(
                                 fontSize: 11,
                                 color: clinic.isOpenNow!
-                                    ? Colors.green
-                                    : Colors.red,
+                                    ? context.successColor
+                                    : context.errorColor,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -290,21 +292,21 @@ class _ClinicsPageState extends State<ClinicsPage> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
+                    color: context.containerColor,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     children: [
                       Icon(
                         Icons.info_outline,
-                        color: Colors.grey[600],
+                        color: context.iconColor,
                         size: 20,
                       ),
                       const SizedBox(width: 8),
                       Text(
                         l10n.generalMedicine,
                         style: TextStyle(
-                          color: Colors.grey[600],
+                          color: context.textColor,
                           fontSize: 14,
                         ),
                       ),
@@ -322,18 +324,24 @@ class _ClinicsPageState extends State<ClinicsPage> {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                        color: context.chipBackground(AppTheme.primaryColor),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                          color: context.adaptiveColor(
+                            lightColor: AppTheme.primaryColor.withValues(alpha: 0.3),
+                            darkColor: AppTheme.primaryColor.withValues(alpha: 0.5),
+                          ),
                         ),
                       ),
                       child: Text(
                         specialty.replaceAll('_', ' '),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.primaryColor,
+                          color: context.adaptiveColor(
+                            lightColor: AppTheme.primaryColor,
+                            darkColor: const Color(0xFF66BB6A),
+                          ),
                         ),
                       ),
                     );
@@ -355,8 +363,8 @@ class _ClinicsPageState extends State<ClinicsPage> {
                         icon: const Icon(Icons.phone, size: 18),
                         label: Text(l10n.call),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.blue,
-                          side: const BorderSide(color: Colors.blue),
+                          foregroundColor: context.infoColor,
+                          side: BorderSide(color: context.infoColor),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -377,8 +385,11 @@ class _ClinicsPageState extends State<ClinicsPage> {
                       icon: const Icon(Icons.navigation, size: 18),
                       label: Text(l10n.navigate),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
+                        backgroundColor: context.infoColor,
+                        foregroundColor: context.adaptiveColor(
+                          lightColor: Colors.white,
+                          darkColor: Colors.white,
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -399,7 +410,7 @@ class _ClinicsPageState extends State<ClinicsPage> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 20, color: AppTheme.textSecondary),
+        Icon(icon, size: 20, color: context.secondaryTextColor),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -407,9 +418,9 @@ class _ClinicsPageState extends State<ClinicsPage> {
             children: [
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppTheme.textSecondary,
+                  color: context.secondaryTextColor,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -447,7 +458,7 @@ class _ClinicsPageState extends State<ClinicsPage> {
     final l10n = AppLocalizations.of(context)!;
     
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: context.backgroundColor,
       appBar: AppHeader(
         title: l10n.clinics,
         subtitle: '${_filteredClinics.length} ${l10n.clinicsAvailable}',
@@ -465,7 +476,7 @@ class _ClinicsPageState extends State<ClinicsPage> {
           // Search bar
           Container(
             padding: const EdgeInsets.all(16),
-            color: Colors.white,
+            color: context.surfaceColor,
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
@@ -481,10 +492,10 @@ class _ClinicsPageState extends State<ClinicsPage> {
                     : null,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
+                  borderSide: BorderSide(color: context.borderColor),
                 ),
                 filled: true,
-                fillColor: Colors.grey[50],
+                fillColor: context.searchFieldColor,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 12,
@@ -523,21 +534,21 @@ class _ClinicsPageState extends State<ClinicsPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
+            Icon(Icons.error_outline, size: 64, color: context.iconColor.withOpacity(0.5)),
             const SizedBox(height: 16),
             Text(
               l10n.errorLoadingClinics,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[600],
+                color: context.textColor,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               _error!,
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[600]),
+              style: TextStyle(color: context.secondaryTextColor),
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
@@ -555,7 +566,7 @@ class _ClinicsPageState extends State<ClinicsPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.local_hospital, size: 80, color: Colors.grey[400]),
+            Icon(Icons.local_hospital, size: 80, color: context.iconColor.withOpacity(0.5)),
             const SizedBox(height: 16),
             Text(
               _searchController.text.isEmpty
@@ -564,14 +575,14 @@ class _ClinicsPageState extends State<ClinicsPage> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[600],
+                color: context.textColor,
               ),
             ),
             if (_searchController.text.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
                 l10n.tryDifferentSearch,
-                style: TextStyle(color: Colors.grey[600]),
+                style: TextStyle(color: context.secondaryTextColor),
               ),
             ],
           ],
@@ -605,7 +616,7 @@ class _ClinicsPageState extends State<ClinicsPage> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                            color: context.chipBackground(AppTheme.primaryColor),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(
@@ -629,9 +640,9 @@ class _ClinicsPageState extends State<ClinicsPage> {
                               const SizedBox(height: 4),
                               Text(
                                 clinic.specialtiesText,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: AppTheme.textSecondary,
+                                  color: context.secondaryTextColor,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -641,7 +652,7 @@ class _ClinicsPageState extends State<ClinicsPage> {
                         ),
                         const Icon(
                           Icons.chevron_right,
-                          color: AppTheme.textSecondary,
+                          color: Colors.grey,
                         ),
                       ],
                     ),
@@ -651,15 +662,15 @@ class _ClinicsPageState extends State<ClinicsPage> {
                         const Icon(
                           Icons.location_on,
                           size: 16,
-                          color: AppTheme.textSecondary,
+                          color: Colors.grey,
                         ),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             clinic.fullAddress,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
-                              color: AppTheme.textSecondary,
+                              color: context.secondaryTextColor,
                             ),
                           ),
                         ),
@@ -672,14 +683,14 @@ class _ClinicsPageState extends State<ClinicsPage> {
                           const Icon(
                             Icons.phone,
                             size: 16,
-                            color: AppTheme.textSecondary,
+                            color: Colors.grey,
                           ),
                           const SizedBox(width: 6),
                           Text(
                             clinic.phoneNumber!,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
-                              color: AppTheme.textSecondary,
+                              color: context.secondaryTextColor,
                             ),
                           ),
                         ],

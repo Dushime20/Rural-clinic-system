@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../data/models/clinic_models.dart';
+import '../../../../core/theme/theme_extensions.dart';
+import '../../../../generated/app_localizations.dart';
 
 /// Clinic Recommendation Card Widget
 /// Displays a clinic recommendation with blue theme to differentiate from pharmacy cards
@@ -21,7 +23,13 @@ class ClinicRecommendationCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.blue.shade100, width: 1),
+        side: BorderSide(
+          color: context.adaptiveColor(
+            lightColor: Colors.blue.shade100,
+            darkColor: Colors.blue.withOpacity(0.3),
+          ),
+          width: 1,
+        ),
       ),
       child: InkWell(
         onTap: onTap ?? () => _showClinicDetails(context),
@@ -42,10 +50,10 @@ class ClinicRecommendationCard extends StatelessWidget {
                       children: [
                         Text(
                           clinic.name,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                            color: context.textColor,
                           ),
                         ),
                         if (clinic.distance != null)
@@ -56,14 +64,14 @@ class ClinicRecommendationCard extends StatelessWidget {
                                 Icon(
                                   Icons.location_on,
                                   size: 16,
-                                  color: Colors.blue.shade600,
+                                  color: context.infoColor,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
                                   clinic.distanceText,
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: Colors.grey.shade600,
+                                    color: context.secondaryTextColor,
                                   ),
                                 ),
                               ],
@@ -72,7 +80,7 @@ class ClinicRecommendationCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  _buildReasonBadge(),
+                  _buildReasonBadge(context),
                 ],
               ),
 
@@ -85,7 +93,7 @@ class ClinicRecommendationCard extends StatelessWidget {
                   runSpacing: 6,
                   children: clinic.specialties
                       .take(3)
-                      .map((specialty) => _buildSpecialtyChip(specialty))
+                      .map((specialty) => _buildSpecialtyChip(context, specialty))
                       .toList(),
                 ),
 
@@ -97,7 +105,7 @@ class ClinicRecommendationCard extends StatelessWidget {
                   Icon(
                     Icons.place_outlined,
                     size: 16,
-                    color: Colors.grey.shade600,
+                    color: context.secondaryTextColor,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -105,7 +113,7 @@ class ClinicRecommendationCard extends StatelessWidget {
                       clinic.fullAddress,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade700,
+                        color: context.secondaryTextColor,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -122,14 +130,14 @@ class ClinicRecommendationCard extends StatelessWidget {
                     Icon(
                       Icons.access_time,
                       size: 16,
-                      color: clinic.isOpenNow! ? Colors.green : Colors.red,
+                      color: clinic.isOpenNow! ? context.successColor : context.errorColor,
                     ),
                     const SizedBox(width: 8),
                     Text(
                       clinic.openingStatusText,
                       style: TextStyle(
                         fontSize: 14,
-                        color: clinic.isOpenNow! ? Colors.green : Colors.red,
+                        color: clinic.isOpenNow! ? context.successColor : context.errorColor,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -148,8 +156,8 @@ class ClinicRecommendationCard extends StatelessWidget {
                         onPressed: () => _makePhoneCall(clinic.phoneNumber!),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
-                          foregroundColor: Colors.blue.shade700,
-                          side: BorderSide(color: Colors.blue.shade300),
+                          foregroundColor: context.infoColor,
+                          side: BorderSide(color: context.infoColor),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -159,7 +167,10 @@ class ClinicRecommendationCard extends StatelessWidget {
                           children: [
                             Icon(Icons.phone, size: 18),
                             SizedBox(width: 6),
-                            Text('Call', style: TextStyle(fontSize: 14)),
+                            Text(
+                              AppLocalizations.of(context)!.call,
+                              style: TextStyle(fontSize: 14),
+                            ),
                           ],
                         ),
                       ),
@@ -171,7 +182,7 @@ class ClinicRecommendationCard extends StatelessWidget {
                           _openMaps(clinic.latitude, clinic.longitude),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        backgroundColor: Colors.blue.shade600,
+                        backgroundColor: context.infoColor,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -182,7 +193,10 @@ class ClinicRecommendationCard extends StatelessWidget {
                         children: [
                           Icon(Icons.directions, size: 18),
                           SizedBox(width: 6),
-                          Text('Navigate', style: TextStyle(fontSize: 14)),
+                          Text(
+                            AppLocalizations.of(context)!.navigate,
+                            style: TextStyle(fontSize: 14),
+                          ),
                         ],
                       ),
                     ),
@@ -196,26 +210,50 @@ class ClinicRecommendationCard extends StatelessWidget {
     );
   }
 
-  Widget _buildReasonBadge() {
+  Widget _buildReasonBadge(BuildContext context) {
+    final badgeText = clinic.reasonBadgeText;
+    
     Color badgeColor;
     Color textColor;
 
-    switch (clinic.reasonBadgeText) {
-      case 'Recurring':
-        badgeColor = Colors.orange.shade50;
-        textColor = Colors.orange.shade700;
-        break;
-      case 'Persistent':
-        badgeColor = Colors.amber.shade50;
-        textColor = Colors.amber.shade800;
-        break;
-      case 'Chronic':
-        badgeColor = Colors.red.shade50;
-        textColor = Colors.red.shade700;
-        break;
-      default:
-        badgeColor = Colors.blue.shade50;
-        textColor = Colors.blue.shade700;
+    // Determine colors based on badge text
+    if (badgeText.contains('Recurring')) {
+      badgeColor = context.adaptiveColor(
+        lightColor: Colors.orange.shade50,
+        darkColor: const Color(0xFF3A2A1E),
+      );
+      textColor = context.adaptiveColor(
+        lightColor: Colors.orange.shade700,
+        darkColor: const Color(0xFFFFB74D),
+      );
+    } else if (badgeText.contains('Persistent')) {
+      badgeColor = context.adaptiveColor(
+        lightColor: Colors.amber.shade50,
+        darkColor: const Color(0xFF3A321E),
+      );
+      textColor = context.adaptiveColor(
+        lightColor: Colors.amber.shade800,
+        darkColor: const Color(0xFFFFD54F),
+      );
+    } else if (badgeText.contains('Chronic')) {
+      badgeColor = context.adaptiveColor(
+        lightColor: Colors.red.shade50,
+        darkColor: const Color(0xFF3A1E1E),
+      );
+      textColor = context.adaptiveColor(
+        lightColor: Colors.red.shade700,
+        darkColor: const Color(0xFFE57373),
+      );
+    } else {
+      // Default for 'Specialist Care' or other
+      badgeColor = context.adaptiveColor(
+        lightColor: Colors.blue.shade50,
+        darkColor: const Color(0xFF1E2A3A),
+      );
+      textColor = context.adaptiveColor(
+        lightColor: Colors.blue.shade700,
+        darkColor: const Color(0xFF64B5F6),
+      );
     }
 
     return Container(
@@ -225,7 +263,7 @@ class ClinicRecommendationCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        clinic.reasonBadgeText,
+        badgeText,
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
@@ -235,19 +273,27 @@ class ClinicRecommendationCard extends StatelessWidget {
     );
   }
 
-  Widget _buildSpecialtyChip(String specialty) {
+  Widget _buildSpecialtyChip(BuildContext context, String specialty) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
+        color: context.chipBackground(context.infoColor),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.blue.shade200),
+        border: Border.all(
+          color: context.adaptiveColor(
+            lightColor: Colors.blue.shade200,
+            darkColor: context.infoColor.withOpacity(0.5),
+          ),
+        ),
       ),
       child: Text(
         specialty.replaceAll('_', ' '),
         style: TextStyle(
           fontSize: 12,
-          color: Colors.blue.shade700,
+          color: context.adaptiveColor(
+            lightColor: Colors.blue.shade700,
+            darkColor: const Color(0xFF64B5F6),
+          ),
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -273,9 +319,12 @@ class ClinicRecommendationCard extends StatelessWidget {
   }
 
   void _showClinicDetails(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: context.modalBackgroundColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -297,7 +346,7 @@ class ClinicRecommendationCard extends StatelessWidget {
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 20),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
+                    color: context.borderColor,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -306,9 +355,10 @@ class ClinicRecommendationCard extends StatelessWidget {
               // Title
               Text(
                 clinic.name,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
+                  color: context.textColor,
                 ),
               ),
 
@@ -318,13 +368,13 @@ class ClinicRecommendationCard extends StatelessWidget {
               if (clinic.distance != null)
                 Row(
                   children: [
-                    Icon(Icons.location_on, size: 18, color: Colors.blue.shade600),
+                    Icon(Icons.location_on, size: 18, color: context.infoColor),
                     const SizedBox(width: 4),
                     Text(
                       clinic.distanceText,
                       style: TextStyle(
                         fontSize: 16,
-                        color: Colors.grey.shade600,
+                        color: context.secondaryTextColor,
                       ),
                     ),
                   ],
@@ -333,11 +383,12 @@ class ClinicRecommendationCard extends StatelessWidget {
               const SizedBox(height: 20),
 
               // Specialties section
-              const Text(
-                'Specialties',
+              Text(
+                l10n.specialties,
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
+                  color: context.textColor,
                 ),
               ),
               const SizedBox(height: 12),
@@ -345,40 +396,42 @@ class ClinicRecommendationCard extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 8,
                 children: clinic.specialties
-                    .map((specialty) => _buildSpecialtyChip(specialty))
+                    .map((specialty) => _buildSpecialtyChip(context, specialty))
                     .toList(),
               ),
 
               const SizedBox(height: 20),
 
               // Address section
-              const Text(
-                'Address',
+              Text(
+                l10n.address,
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
+                  color: context.textColor,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 clinic.fullAddress,
-                style: const TextStyle(fontSize: 16),
+                style: TextStyle(fontSize: 16, color: context.textColor),
               ),
 
               // Phone section
               if (clinic.phoneNumber != null) ...[
                 const SizedBox(height: 20),
-                const Text(
-                  'Contact',
+                Text(
+                  l10n.phoneNumber,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
+                    color: context.textColor,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   clinic.phoneNumber!,
-                  style: const TextStyle(fontSize: 16),
+                  style: TextStyle(fontSize: 16, color: context.textColor),
                 ),
               ],
 
@@ -390,14 +443,14 @@ class ClinicRecommendationCard extends StatelessWidget {
                     Icon(
                       Icons.access_time,
                       size: 20,
-                      color: clinic.isOpenNow! ? Colors.green : Colors.red,
+                      color: clinic.isOpenNow! ? context.successColor : context.errorColor,
                     ),
                     const SizedBox(width: 8),
                     Text(
                       clinic.openingStatusText,
                       style: TextStyle(
                         fontSize: 16,
-                        color: clinic.isOpenNow! ? Colors.green : Colors.red,
+                        color: clinic.isOpenNow! ? context.successColor : context.errorColor,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -408,17 +461,18 @@ class ClinicRecommendationCard extends StatelessWidget {
               // Reason section
               if (clinic.reason != null) ...[
                 const SizedBox(height: 20),
-                const Text(
+                Text(
                   'Why Recommended',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
+                    color: context.textColor,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   clinic.reasonExplanation,
-                  style: const TextStyle(fontSize: 16),
+                  style: TextStyle(fontSize: 16, color: context.textColor),
                 ),
               ],
 
@@ -435,10 +489,10 @@ class ClinicRecommendationCard extends StatelessWidget {
                           _makePhoneCall(clinic.phoneNumber!);
                         },
                         icon: const Icon(Icons.phone),
-                        label: const Text('Call Clinic'),
+                        label: Text(l10n.call),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.blue.shade700,
-                          side: BorderSide(color: Colors.blue.shade300),
+                          foregroundColor: context.infoColor,
+                          side: BorderSide(color: context.infoColor),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
                       ),
@@ -451,9 +505,9 @@ class ClinicRecommendationCard extends StatelessWidget {
                         _openMaps(clinic.latitude, clinic.longitude);
                       },
                       icon: const Icon(Icons.directions),
-                      label: const Text('Get Directions'),
+                      label: Text(l10n.getDirections),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue.shade600,
+                        backgroundColor: context.infoColor,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../data/models/clinic_models.dart';
+import '../../../../core/theme/theme_extensions.dart';
+import '../../../../generated/app_localizations.dart';
 
 /// Clinic Specialty Filter Widget
 /// Allows users to filter clinic recommendations by medical specialty
@@ -70,6 +72,7 @@ class _ClinicSpecialtyFilterState extends State<ClinicSpecialtyFilter> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final specialtyCounts = _getSpecialtyCounts();
 
     if (specialtyCounts.isEmpty) {
@@ -85,12 +88,12 @@ class _ClinicSpecialtyFilterState extends State<ClinicSpecialtyFilter> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Filter by Specialty',
+              Text(
+                l10n.filterBySpecialty,
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: context.textColor,
                 ),
               ),
               if (_selectedSpecialties.isNotEmpty)
@@ -99,7 +102,7 @@ class _ClinicSpecialtyFilterState extends State<ClinicSpecialtyFilter> {
                   icon: const Icon(Icons.clear, size: 16),
                   label: const Text('Clear'),
                   style: TextButton.styleFrom(
-                    foregroundColor: Colors.blue.shade700,
+                    foregroundColor: context.infoColor,
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                   ),
                 ),
@@ -129,7 +132,10 @@ class _ClinicSpecialtyFilterState extends State<ClinicSpecialtyFilter> {
                             color:
                                 isSelected
                                     ? Colors.white
-                                    : Colors.blue.shade700,
+                                    : context.adaptiveColor(
+                                        lightColor: const Color(0xFF1565C0),
+                                        darkColor: const Color(0xFF64B5F6),
+                                      ),
                           ),
                         ),
                         const SizedBox(width: 6),
@@ -141,8 +147,11 @@ class _ClinicSpecialtyFilterState extends State<ClinicSpecialtyFilter> {
                           decoration: BoxDecoration(
                             color:
                                 isSelected
-                                    ? Colors.white.withOpacity(0.25)
-                                    : Colors.blue.shade50,
+                                    ? Colors.white.withValues(alpha: 0.25)
+                                    : context.adaptiveColor(
+                                        lightColor: const Color(0xFFE3F2FD),
+                                        darkColor: const Color(0xFF1E2A3A),
+                                      ),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
@@ -153,7 +162,10 @@ class _ClinicSpecialtyFilterState extends State<ClinicSpecialtyFilter> {
                               color:
                                   isSelected
                                       ? Colors.white
-                                      : Colors.blue.shade700,
+                                      : context.adaptiveColor(
+                                          lightColor: const Color(0xFF1565C0),
+                                          darkColor: const Color(0xFF64B5F6),
+                                        ),
                             ),
                           ),
                         ),
@@ -161,14 +173,26 @@ class _ClinicSpecialtyFilterState extends State<ClinicSpecialtyFilter> {
                     ),
                     selected: isSelected,
                     onSelected: (_) => _toggleSpecialty(specialty),
-                    selectedColor: Colors.blue.shade600,
+                    selectedColor: context.adaptiveColor(
+                      lightColor: const Color(0xFF1E88E5),
+                      darkColor: const Color(0xFF1565C0),
+                    ),
                     checkmarkColor: Colors.white,
-                    backgroundColor: Colors.blue.shade50,
+                    backgroundColor: context.adaptiveColor(
+                      lightColor: const Color(0xFFE3F2FD),
+                      darkColor: const Color(0xFF1E2A3A),
+                    ),
                     side: BorderSide(
                       color:
                           isSelected
-                              ? Colors.blue.shade600
-                              : Colors.blue.shade200,
+                              ? context.adaptiveColor(
+                                  lightColor: const Color(0xFF1E88E5),
+                                  darkColor: const Color(0xFF1565C0),
+                                )
+                              : context.adaptiveColor(
+                                  lightColor: const Color(0xFF90CAF9),
+                                  darkColor: const Color(0xFF42A5F5).withValues(alpha: 0.5),
+                                ),
                       width: isSelected ? 2 : 1,
                     ),
                     padding: const EdgeInsets.symmetric(
@@ -184,20 +208,38 @@ class _ClinicSpecialtyFilterState extends State<ClinicSpecialtyFilter> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                color: context.adaptiveColor(
+                  lightColor: const Color(0xFFE3F2FD),
+                  darkColor: const Color(0xFF1E2A3A),
+                ),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.shade200),
+                border: Border.all(
+                  color: context.adaptiveColor(
+                    lightColor: const Color(0xFF90CAF9),
+                    darkColor: const Color(0xFF42A5F5).withValues(alpha: 0.5),
+                  ),
+                ),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.filter_list, size: 16, color: Colors.blue.shade700),
+                  Icon(
+                    Icons.filter_list,
+                    size: 16,
+                    color: context.adaptiveColor(
+                      lightColor: const Color(0xFF1565C0),
+                      darkColor: const Color(0xFF64B5F6),
+                    ),
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       '${_getFilteredCount()} ${_getFilteredCount() == 1 ? 'clinic' : 'clinics'} with selected ${_selectedSpecialties.length == 1 ? 'specialty' : 'specialties'}',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.blue.shade900,
+                        color: context.adaptiveColor(
+                          lightColor: const Color(0xFF0D47A1),
+                          darkColor: const Color(0xFF90CAF9),
+                        ),
                         fontWeight: FontWeight.w500,
                       ),
                     ),

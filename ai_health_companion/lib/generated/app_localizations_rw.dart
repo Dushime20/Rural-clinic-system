@@ -518,6 +518,9 @@ class AppLocalizationsRw extends AppLocalizations {
   String get specialties => 'Ubumenyi';
 
   @override
+  String get filterBySpecialty => 'Hagendewe ku mwihariko';
+
+  @override
   String get openNow => 'Ubu bufunguye';
 
   @override
@@ -527,7 +530,7 @@ class AppLocalizationsRw extends AppLocalizations {
   String get generalMedicine => 'Ubuvuzi Rusange';
 
   @override
-  String get empoweringRuralHealthcare => 'Gutera imbere ubuvuzi mu cyaro';
+  String get empoweringRuralHealthcare => 'Igufasha mwisuzuma n\'inama';
 
   @override
   String get signInToContinue => 'Injira kugirango ukomeze';

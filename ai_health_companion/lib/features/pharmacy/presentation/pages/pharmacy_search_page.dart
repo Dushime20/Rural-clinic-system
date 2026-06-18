@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../shared/widgets/app_header.dart';
 import '../../../../generated/app_localizations.dart';
+import '../../../../core/theme/theme_extensions.dart';
 
 class PharmacySearchPage extends StatefulWidget {
   const PharmacySearchPage({super.key});
@@ -113,16 +114,16 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
         .toList();
   }
 
-  Color _getStatusColor(String status) {
+  Color _getStatusColor(BuildContext context, String status) {
     switch (status) {
       case 'In Stock':
-        return Colors.green;
+        return context.successColor;
       case 'Low Stock':
-        return Colors.orange;
+        return context.warningColor;
       case 'Out of Stock':
-        return Colors.red;
+        return context.errorColor;
       default:
-        return Colors.grey;
+        return context.iconColor;
     }
   }
 
@@ -165,17 +166,34 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
                 // Search Bar
                 TextField(
                   controller: _searchController,
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: context.adaptiveColor(
+                    lightColor: Colors.white,
+                    darkColor: Colors.white,
+                  )),
                   decoration: InputDecoration(
                     hintText: l10n.searchMedicationPlaceholder,
-                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
-                    prefixIcon: const Icon(Icons.search, color: Colors.white),
+                    hintStyle: TextStyle(
+                      color: context.adaptiveColor(
+                        lightColor: Colors.white.withOpacity(0.7),
+                        darkColor: Colors.white.withOpacity(0.7),
+                      ),
+                    ),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: context.adaptiveColor(
+                        lightColor: Colors.white,
+                        darkColor: Colors.white,
+                      ),
+                    ),
                     suffixIcon:
                         _searchController.text.isNotEmpty
                             ? IconButton(
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.clear,
-                                color: Colors.white,
+                                color: context.adaptiveColor(
+                                  lightColor: Colors.white,
+                                  darkColor: Colors.white,
+                                ),
                               ),
                               onPressed: () {
                                 _searchController.clear();
@@ -186,7 +204,10 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
                             )
                             : null,
                     filled: true,
-                    fillColor: Colors.white.withOpacity(0.2),
+                    fillColor: context.adaptiveColor(
+                      lightColor: Colors.white.withOpacity(0.2),
+                      darkColor: Colors.white.withOpacity(0.2),
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
@@ -199,7 +220,10 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: context.adaptiveColor(
+                      lightColor: Colors.white.withOpacity(0.2),
+                      darkColor: Colors.white.withOpacity(0.2),
+                    ),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: DropdownButtonHideUnderline(
@@ -207,10 +231,18 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
                       value: _selectedHealthCenter,
                       isExpanded: true,
                       dropdownColor: Theme.of(context).primaryColor,
-                      style: const TextStyle(color: Colors.white),
-                      icon: const Icon(
+                      style: TextStyle(
+                        color: context.adaptiveColor(
+                          lightColor: Colors.white,
+                          darkColor: Colors.white,
+                        ),
+                      ),
+                      icon: Icon(
                         Icons.arrow_drop_down,
-                        color: Colors.white,
+                        color: context.adaptiveColor(
+                          lightColor: Colors.white,
+                          darkColor: Colors.white,
+                        ),
                       ),
                       items:
                           healthCenters.map((center) {
@@ -237,7 +269,10 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
                   child: ElevatedButton(
                     onPressed: _isSearching ? null : _performSearch,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
+                      backgroundColor: context.adaptiveColor(
+                        lightColor: Colors.white,
+                        darkColor: Colors.white.withOpacity(0.95),
+                      ),
                       foregroundColor: Theme.of(context).primaryColor,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
@@ -275,7 +310,7 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
                           Icon(
                             Icons.medication_outlined,
                             size: 80,
-                            color: Colors.grey[400],
+                            color: context.iconColor.withOpacity(0.5),
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -284,7 +319,7 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
                                 : l10n.noResultsFound,
                             style: TextStyle(
                               fontSize: 18,
-                              color: Colors.grey[600],
+                              color: context.secondaryTextColor,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -292,7 +327,7 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
                             l10n.enterMedicationNameToCheck,
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.grey[500],
+                              color: context.secondaryTextColor.withOpacity(0.8),
                             ),
                           ),
                         ],
@@ -338,7 +373,7 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
                                               medication['category'],
                                               style: TextStyle(
                                                 fontSize: 14,
-                                                color: Colors.grey[600],
+                                                color: context.secondaryTextColor,
                                               ),
                                             ),
                                           ],
@@ -351,6 +386,7 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
                                         ),
                                         decoration: BoxDecoration(
                                           color: _getStatusColor(
+                                            context,
                                             medication['status'],
                                           ).withOpacity(0.1),
                                           borderRadius: BorderRadius.circular(
@@ -361,6 +397,7 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
                                           medication['status'],
                                           style: TextStyle(
                                             color: _getStatusColor(
+                                              context,
                                               medication['status'],
                                             ),
                                             fontWeight: FontWeight.bold,
@@ -376,7 +413,7 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
                                       Icon(
                                         Icons.location_on,
                                         size: 16,
-                                        color: Colors.grey[600],
+                                        color: context.iconColor,
                                       ),
                                       const SizedBox(width: 4),
                                       Expanded(
@@ -384,7 +421,7 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
                                           medication['location'],
                                           style: TextStyle(
                                             fontSize: 14,
-                                            color: Colors.grey[700],
+                                            color: context.textColor,
                                           ),
                                         ),
                                       ),
@@ -396,14 +433,14 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
                                       Icon(
                                         Icons.inventory_2,
                                         size: 16,
-                                        color: Colors.grey[600],
+                                        color: context.iconColor,
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
                                         l10n.stockUnits.replaceAll('{stock}', '${medication['stock']}'),
                                         style: TextStyle(
                                           fontSize: 14,
-                                          color: Colors.grey[700],
+                                          color: context.textColor,
                                         ),
                                       ),
                                     ],
@@ -415,14 +452,14 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
                                         Icon(
                                           Icons.calendar_today,
                                           size: 16,
-                                          color: Colors.grey[600],
+                                          color: context.iconColor,
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
                                           l10n.expiresDate.replaceAll('{date}', medication['expiryDate']),
                                           style: TextStyle(
                                             fontSize: 14,
-                                            color: Colors.grey[700],
+                                            color: context.textColor,
                                           ),
                                         ),
                                       ],
@@ -518,7 +555,7 @@ class _PharmacySearchPageState extends State<PharmacySearchPage> {
             width: 100,
             child: Text(
               label,
-              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 14, color: context.secondaryTextColor),
             ),
           ),
           Expanded(

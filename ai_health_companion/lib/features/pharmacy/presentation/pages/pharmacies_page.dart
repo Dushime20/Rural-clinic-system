@@ -8,6 +8,7 @@ import '../../../../shared/widgets/custom_drawer.dart';
 import '../../../diagnosis/data/models/diagnosis_models.dart';
 import '../../../diagnosis/data/services/diagnosis_service.dart';
 import '../../../../generated/app_localizations.dart';
+import '../../../../core/theme/theme_extensions.dart';
 
 class PharmaciesPage extends StatefulWidget {
   const PharmaciesPage({super.key});
@@ -172,6 +173,7 @@ class _PharmaciesPageState extends State<PharmaciesPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: context.modalBackgroundColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -192,7 +194,7 @@ class _PharmaciesPageState extends State<PharmaciesPage> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
+                    color: context.borderColor,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -205,7 +207,7 @@ class _PharmaciesPageState extends State<PharmaciesPage> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                      color: context.chipBackground(AppTheme.primaryColor),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
@@ -295,21 +297,21 @@ class _PharmaciesPageState extends State<PharmaciesPage> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
+                    color: context.containerColor,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     children: [
                       Icon(
                         Icons.info_outline,
-                        color: Colors.grey[600],
+                        color: context.secondaryTextColor,
                         size: 20,
                       ),
                       const SizedBox(width: 8),
                       Text(
                         l10n.noMedicinesAvailable,
                         style: TextStyle(
-                          color: Colors.grey[600],
+                          color: context.secondaryTextColor,
                           fontSize: 14,
                         ),
                       ),
@@ -356,8 +358,11 @@ class _PharmaciesPageState extends State<PharmaciesPage> {
                       icon: const Icon(Icons.navigation, size: 18),
                       label: Text(l10n.navigate),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
+                        backgroundColor: context.successColor,
+                        foregroundColor: context.adaptiveColor(
+                          lightColor: Colors.white,
+                          darkColor: Colors.white,
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -378,7 +383,7 @@ class _PharmaciesPageState extends State<PharmaciesPage> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 20, color: AppTheme.textSecondary),
+        Icon(icon, size: 20, color: context.secondaryTextColor),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -386,9 +391,9 @@ class _PharmaciesPageState extends State<PharmaciesPage> {
             children: [
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppTheme.textSecondary,
+                  color: context.secondaryTextColor,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -422,9 +427,9 @@ class _PharmaciesPageState extends State<PharmaciesPage> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: context.containerColor,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: context.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -450,7 +455,7 @@ class _PharmaciesPageState extends State<PharmaciesPage> {
                 ].join(' '),
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey[600],
+                  color: context.secondaryTextColor,
                 ),
               ),
             ),
@@ -465,7 +470,7 @@ class _PharmaciesPageState extends State<PharmaciesPage> {
                   Icon(
                     Icons.attach_money,
                     size: 16,
-                    color: AppTheme.textSecondary,
+                    color: context.secondaryTextColor,
                   ),
                   Text(
                     medicine.priceText,
@@ -509,7 +514,7 @@ class _PharmaciesPageState extends State<PharmaciesPage> {
     final l10n = AppLocalizations.of(context)!;
     
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: context.backgroundColor,
       appBar: AppHeader(
         title: l10n.pharmacies,
         subtitle: '${_filteredPharmacies.length} ${l10n.pharmaciesAvailable}',
@@ -527,7 +532,7 @@ class _PharmaciesPageState extends State<PharmaciesPage> {
           // Search bar
           Container(
             padding: const EdgeInsets.all(16),
-            color: Colors.white,
+            color: context.surfaceColor,
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
@@ -543,10 +548,10 @@ class _PharmaciesPageState extends State<PharmaciesPage> {
                     : null,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
+                  borderSide: BorderSide(color: context.borderColor),
                 ),
                 filled: true,
-                fillColor: Colors.grey[50],
+                fillColor: context.searchFieldColor,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 12,
@@ -585,21 +590,21 @@ class _PharmaciesPageState extends State<PharmaciesPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
+            Icon(Icons.error_outline, size: 64, color: context.secondaryTextColor),
             const SizedBox(height: 16),
             Text(
               l10n.errorLoadingPharmacies,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[600],
+                color: context.textColor,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               _error!,
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[600]),
+              style: TextStyle(color: context.secondaryTextColor),
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
@@ -617,7 +622,7 @@ class _PharmaciesPageState extends State<PharmaciesPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.local_pharmacy, size: 80, color: Colors.grey[400]),
+            Icon(Icons.local_pharmacy, size: 80, color: context.secondaryTextColor),
             const SizedBox(height: 16),
             Text(
               _searchController.text.isEmpty
@@ -626,14 +631,14 @@ class _PharmaciesPageState extends State<PharmaciesPage> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[600],
+                color: context.textColor,
               ),
             ),
             if (_searchController.text.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
                 l10n.tryDifferentSearch,
-                style: TextStyle(color: Colors.grey[600]),
+                style: TextStyle(color: context.secondaryTextColor),
               ),
             ],
           ],
@@ -667,7 +672,7 @@ class _PharmaciesPageState extends State<PharmaciesPage> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                            color: context.chipBackground(AppTheme.primaryColor),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(
@@ -713,7 +718,7 @@ class _PharmaciesPageState extends State<PharmaciesPage> {
                         ),
                         const Icon(
                           Icons.chevron_right,
-                          color: AppTheme.textSecondary,
+                          color: Colors.grey,
                         ),
                       ],
                     ),
@@ -723,15 +728,15 @@ class _PharmaciesPageState extends State<PharmaciesPage> {
                         const Icon(
                           Icons.location_on,
                           size: 16,
-                          color: AppTheme.textSecondary,
+                          color: Colors.grey,
                         ),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             pharmacy.fullAddress,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
-                              color: AppTheme.textSecondary,
+                              color: context.secondaryTextColor,
                             ),
                           ),
                         ),
@@ -744,14 +749,14 @@ class _PharmaciesPageState extends State<PharmaciesPage> {
                           const Icon(
                             Icons.phone,
                             size: 16,
-                            color: AppTheme.textSecondary,
+                            color: Colors.grey,
                           ),
                           const SizedBox(width: 6),
                           Text(
                             pharmacy.phoneNumber!,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
-                              color: AppTheme.textSecondary,
+                              color: context.secondaryTextColor,
                             ),
                           ),
                         ],

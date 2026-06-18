@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/theme_extensions.dart';
 
 class FeatureCard extends StatelessWidget {
   final String title;
@@ -25,10 +26,10 @@ class FeatureCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.cardColor,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: AppTheme.softShadow,
-          border: Border.all(color: AppTheme.backgroundColor, width: 2),
+          boxShadow: context.isDarkMode ? [] : AppTheme.softShadow,
+          border: Border.all(color: context.borderColor, width: 2),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -37,7 +38,7 @@ class FeatureCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: color.withAlpha(26),
+                color: context.chipBackground(color),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
@@ -53,14 +54,14 @@ class FeatureCard extends StatelessWidget {
                   title,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: AppTheme.textPrimary,
+                        color: context.textColor,
                       ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   description,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondary,
+                        color: context.secondaryTextColor,
                         fontSize: 12,
                       ),
                   maxLines: 2,

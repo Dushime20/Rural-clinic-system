@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/app_header.dart';
 import '../../../../generated/app_localizations.dart';
+import '../../../../core/theme/theme_extensions.dart';
 
 class HelpSupportPage extends ConsumerStatefulWidget {
   const HelpSupportPage({super.key});
@@ -227,7 +228,7 @@ class _HelpSupportPageState extends ConsumerState<HelpSupportPage>
                 borderRadius: BorderRadius.circular(16),
               ),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: context.surfaceColor,
             ),
           ),
         ),
@@ -515,7 +516,7 @@ class _HelpSupportPageState extends ConsumerState<HelpSupportPage>
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: AppTheme.softShadow,
       ),
@@ -608,7 +609,10 @@ class _HelpSupportPageState extends ConsumerState<HelpSupportPage>
               onPressed: _reportIssue,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.errorColor,
-                foregroundColor: Colors.white,
+                foregroundColor: context.adaptiveColor(
+                  lightColor: Colors.white,
+                  darkColor: Colors.white,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),

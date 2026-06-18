@@ -179,11 +179,12 @@
   "noClinicsFound": "Nta mavuriro yabonetse",
   "noMatchingClinics": "Nta mavuriro ahuye",
   "specialties": "Ubumenyi",
+  "filterBySpecialty": "Hagendewe ku mwihariko",
   "openNow": "Ubu bufunguye",
   "closed": "Brafunze",
   "generalMedicine": "Ubuvuzi Rusange",
   
-  "empoweringRuralHealthcare": "Gutera imbere ubuvuzi mu cyaro",
+  "empoweringRuralHealthcare": "Igufasha mwisuzuma n'inama",
   "signInToContinue": "Injira kugirango ukomeze",
   "emailIsRequired": "Imeri irakenwe",
   "emailMustContainAt": "Imeri igomba kugira @",

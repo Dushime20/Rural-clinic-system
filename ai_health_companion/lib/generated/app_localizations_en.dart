@@ -516,6 +516,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get specialties => 'Specialties';
 
   @override
+  String get filterBySpecialty => 'Filter by Specialty';
+
+  @override
   String get openNow => 'Open Now';
 
   @override

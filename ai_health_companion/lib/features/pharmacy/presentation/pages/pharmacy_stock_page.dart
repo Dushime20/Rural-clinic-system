@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../shared/widgets/app_header.dart';
 import '../../../../generated/app_localizations.dart';
+import '../../../../core/theme/theme_extensions.dart';
 
 class PharmacyStockPage extends StatefulWidget {
   const PharmacyStockPage({super.key});
@@ -108,18 +109,18 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
         .toList();
   }
 
-  Color _getStockStatusColor(String status) {
+  Color _getStockStatusColor(BuildContext context, String status) {
     switch (status) {
       case 'Good':
-        return Colors.green;
+        return context.successColor;
       case 'Low':
-        return Colors.orange;
+        return context.warningColor;
       case 'Critical':
-        return Colors.red;
+        return context.errorColor;
       case 'Out':
-        return Colors.grey;
+        return context.iconColor;
       default:
-        return Colors.grey;
+        return context.iconColor;
     }
   }
 
@@ -146,9 +147,18 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
         ],
         bottom: TabBar(
           controller: _tabController,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          indicatorColor: Colors.white,
+          labelColor: context.adaptiveColor(
+            lightColor: Colors.white,
+            darkColor: Colors.white,
+          ),
+          unselectedLabelColor: context.adaptiveColor(
+            lightColor: Colors.white70,
+            darkColor: Colors.white60,
+          ),
+          indicatorColor: context.adaptiveColor(
+            lightColor: Colors.white,
+            darkColor: Colors.white,
+          ),
           tabs: [
             Tab(text: l10n.overviewTab),
             Tab(text: l10n.alertsTab),
@@ -183,7 +193,7 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
                   l10n.totalItems,
                   '${_stockData.length}',
                   Icons.inventory_2,
-                  Colors.blue,
+                  context.infoColor,
                 ),
               ),
               const SizedBox(width: 12),
@@ -192,7 +202,7 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
                   l10n.lowStock,
                   '${_getLowStockCount()}',
                   Icons.warning,
-                  Colors.orange,
+                  context.warningColor,
                 ),
               ),
               const SizedBox(width: 12),
@@ -201,7 +211,7 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
                   l10n.outOfStock,
                   '${_getOutOfStockCount()}',
                   Icons.error,
-                  Colors.red,
+                  context.errorColor,
                 ),
               ),
             ],
@@ -264,7 +274,11 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.check_circle, size: 80, color: Colors.green[300]),
+              Icon(
+                Icons.check_circle,
+                size: 80,
+                color: context.successColor.withOpacity(0.6),
+              ),
               const SizedBox(height: 16),
               Text(
                 l10n.noStockAlerts,
@@ -273,7 +287,7 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
               const SizedBox(height: 8),
               Text(
                 l10n.allMedicationsAdequatelyStocked,
-                style: TextStyle(color: Colors.grey[600]),
+                style: TextStyle(color: context.secondaryTextColor),
               ),
             ],
           ),
@@ -287,8 +301,11 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
               margin: const EdgeInsets.only(bottom: 12),
               child: ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: Colors.red[100],
-                  child: Icon(Icons.warning, color: Colors.red[700]),
+                  backgroundColor: context.errorColor.withOpacity(0.1),
+                  child: Icon(
+                    Icons.warning,
+                    color: context.errorColor,
+                  ),
                 ),
                 title: Text(
                   item['name'],
@@ -301,7 +318,9 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
                   onPressed: () {
                     _showReorderDialog(item);
                   },
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: context.errorColor,
+                  ),
                   child: Text(l10n.reorderButton),
                 ),
               ),
@@ -335,7 +354,7 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
             const SizedBox(height: 4),
             Text(
               title,
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 12, color: context.secondaryTextColor),
               textAlign: TextAlign.center,
             ),
           ],
@@ -356,10 +375,12 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
       child: ExpansionTile(
         leading: CircleAvatar(
           backgroundColor:
-              totalStock < threshold ? Colors.red[100] : Colors.green[100],
+              totalStock < threshold
+                  ? context.errorColor.withOpacity(0.1)
+                  : context.successColor.withOpacity(0.1),
           child: Icon(
             Icons.medication,
-            color: totalStock < threshold ? Colors.red[700] : Colors.green[700],
+            color: totalStock < threshold ? context.errorColor : context.successColor,
           ),
         ),
         title: Text(
@@ -377,8 +398,8 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
                 Expanded(
                   child: LinearProgressIndicator(
                     value: stockPercentage / 100,
-                    backgroundColor: Colors.grey[300],
-                    color: totalStock < threshold ? Colors.red : Colors.green,
+                    backgroundColor: context.containerColor,
+                    color: totalStock < threshold ? context.errorColor : context.successColor,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -416,6 +437,7 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
                           ),
                           decoration: BoxDecoration(
                             color: _getStockStatusColor(
+                              context,
                               location['status'],
                             ).withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
@@ -423,7 +445,7 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
                           child: Text(
                             '${location['stock']} units',
                             style: TextStyle(
-                              color: _getStockStatusColor(location['status']),
+                              color: _getStockStatusColor(context, location['status']),
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
                             ),
@@ -466,7 +488,7 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(l10n.stockDataSynchronized),
-          backgroundColor: Colors.green,
+          backgroundColor: context.successColor,
         ),
       );
     });
@@ -494,7 +516,7 @@ class _PharmacyStockPageState extends State<PharmacyStockPage>
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(l10n.reorderRequestSubmitted),
-                      backgroundColor: Colors.green,
+                      backgroundColor: context.successColor,
                     ),
                   );
                 },

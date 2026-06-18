@@ -10,6 +10,7 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/providers/theme_provider.dart';
 import '../../../../core/providers/language_provider.dart';
 import '../../../../shared/widgets/app_header.dart';
+import '../../../../core/theme/theme_extensions.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -157,7 +158,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
         decoration: BoxDecoration(
-          gradient: AppTheme.primaryGradient,
+          gradient: context.primaryGradient,
           borderRadius: BorderRadius.circular(20),
         ),
         padding: const EdgeInsets.all(24),
@@ -165,7 +166,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           children: [
             CircleAvatar(
               radius: 48,
-              backgroundColor: Colors.white,
+              backgroundColor: context.avatarBackgroundColor,
               child: Text(
                 _initials,
                 style: const TextStyle(
@@ -178,29 +179,44 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             const SizedBox(height: 16),
             Text(
               _fullName.isEmpty ? l10n.loading : _fullName,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: context.adaptiveColor(
+                  lightColor: Colors.white,
+                  darkColor: Colors.white,
+                ),
               ),
             ),
             const SizedBox(height: 4),
             Text(
               _email,
-              style: const TextStyle(fontSize: 14, color: Colors.white70),
+              style: TextStyle(
+                fontSize: 14,
+                color: context.adaptiveColor(
+                  lightColor: Colors.white70,
+                  darkColor: Colors.white70,
+                ),
+              ),
             ),
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.white.withAlpha(51),
+                color: context.adaptiveColor(
+                  lightColor: Colors.white.withAlpha(51),
+                  darkColor: Colors.white.withAlpha(51),
+                ),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
                 _formatRole(_role),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: Colors.white,
+                  color: context.adaptiveColor(
+                    lightColor: Colors.white,
+                    darkColor: Colors.white,
+                  ),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -209,14 +225,26 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               const SizedBox(height: 6),
               Text(
                 _phone,
-                style: const TextStyle(fontSize: 13, color: Colors.white70),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: context.adaptiveColor(
+                    lightColor: Colors.white70,
+                    darkColor: Colors.white70,
+                  ),
+                ),
               ),
             ],
             if (_clinicId.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
                 '${l10n.clinic}: $_clinicId',
-                style: const TextStyle(fontSize: 12, color: Colors.white60),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: context.adaptiveColor(
+                    lightColor: Colors.white60,
+                    darkColor: Colors.white60,
+                  ),
+                ),
               ),
             ],
             const SizedBox(height: 20),
@@ -227,7 +255,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 icon: const Icon(Icons.edit, size: 18),
                 label: Text(l10n.editProfile),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
+                  backgroundColor: context.adaptiveColor(
+                    lightColor: Colors.white,
+                    darkColor: Colors.white.withOpacity(0.95),
+                  ),
                   foregroundColor: AppTheme.primaryColor,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
@@ -471,9 +502,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           (ctx) => StatefulBuilder(
             builder:
                 (ctx, setSheetState) => Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.vertical(
+                  decoration: BoxDecoration(
+                    color: context.modalBackgroundColor,
+                    borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(24),
                     ),
                   ),
@@ -495,7 +526,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                             width: 40,
                             height: 4,
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade300,
+                              color: context.borderColor,
                               borderRadius: BorderRadius.circular(2),
                             ),
                           ),
@@ -598,8 +629,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                           ),
                                           backgroundColor:
                                               result['success'] == true
-                                                  ? AppTheme.successColor
-                                                  : AppTheme.errorColor,
+                                                  ? context.successColor
+                                                  : context.errorColor,
                                         ),
                                       );
 
@@ -614,7 +645,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                     },
                             icon:
                                 saving
-                                    ? const SizedBox(
+                                    ? SizedBox(
                                       width: 18,
                                       height: 18,
                                       child: CircularProgressIndicator(
@@ -668,7 +699,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
+                      color: context.borderColor,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -699,8 +730,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       decoration: BoxDecoration(
                         color:
                             isSelected
-                                ? AppTheme.primaryColor.withValues(alpha: 0.1)
-                                : Colors.grey.withValues(alpha: 0.1),
+                                ? context.chipBackground(AppTheme.primaryColor)
+                                : context.chipBackground(Colors.grey),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(
@@ -741,7 +772,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                           content: Text(
                             l10n.languageChangedTo(language.nativeName),
                           ),
-                          backgroundColor: AppTheme.successColor,
+                          backgroundColor: context.successColor,
                           duration: const Duration(seconds: 2),
                         ),
                       );

@@ -21,6 +21,7 @@ import '../../data/models/clinic_models.dart';
 import '../widgets/clinic_recommendation_card.dart';
 import '../widgets/pattern_analysis_notice.dart';
 import '../widgets/clinic_specialty_filter.dart';
+import '../../../../core/theme/theme_extensions.dart';
 
 class DiagnosisResultPage extends ConsumerStatefulWidget {
   final Map<String, dynamic> diagnosisData;
@@ -515,7 +516,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(l10n.pdfError('$e')),
-            backgroundColor: Colors.red,
+            backgroundColor: context.errorColor,
           ),
         );
       }
@@ -575,7 +576,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(l10n.shareError('$e')),
-            backgroundColor: Colors.red,
+            backgroundColor: context.errorColor,
           ),
         );
       }
@@ -614,9 +615,18 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                   ),
                   const SizedBox(height: 8),
                   ListTile(
-                    leading: const CircleAvatar(
-                      backgroundColor: Color(0xFF25D366),
-                      child: Icon(Icons.chat, color: Colors.white),
+                    leading: CircleAvatar(
+                      backgroundColor: context.adaptiveColor(
+                        lightColor: const Color(0xFF25D366),
+                        darkColor: const Color(0xFF128C7E),
+                      ),
+                      child: Icon(
+                        Icons.chat,
+                        color: context.adaptiveColor(
+                          lightColor: Colors.white,
+                          darkColor: Colors.white,
+                        ),
+                      ),
                     ),
                     title: Text(l10n.whatsapp),
                     subtitle: Text(l10n.sendToPatientWhatsapp),
@@ -626,8 +636,8 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                     },
                   ),
                   ListTile(
-                    leading: const CircleAvatar(
-                      backgroundColor: Colors.blue,
+                    leading: CircleAvatar(
+                      backgroundColor: context.infoColor,
                       child: Icon(Icons.email, color: Colors.white),
                     ),
                     title: Text(l10n.emailLabel),
@@ -670,7 +680,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: context.backgroundColor,
       appBar: AppHeader(
         title: l10n.diagnosisReport,
         subtitle: _diagnosis!.diagnosisId,
@@ -802,8 +812,8 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
               const SizedBox(height: 16),
               _buildPrescriptionsCard(),
             ],
-            // Pharmacy recommendations section
-            if (_diagnosis!.prescriptions?.isNotEmpty == true) ...[
+            // Pharmacy recommendations section (hide for historical diagnoses)
+            if (!_isHistorical && _diagnosis!.prescriptions?.isNotEmpty == true) ...[
               const SizedBox(height: 16),
               if (_nearbyPharmacies.isNotEmpty)
                 _buildPharmaciesCard()
@@ -910,40 +920,42 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
     required Color color,
     required Widget child,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: AppTheme.softShadow,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.08),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(16),
+    return Builder(
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: context.cardColor,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: AppTheme.softShadow,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: context.chipBackground(color),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(16),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(icon, color: color, size: 20),
+                  const SizedBox(width: 10),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: color,
+                    ),
+                  ),
+                ],
               ),
             ),
-            child: Row(
-              children: [
-                Icon(icon, color: color, size: 20),
-                const SizedBox(width: 10),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: color,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Padding(padding: const EdgeInsets.all(16), child: child),
-        ],
+            Padding(padding: const EdgeInsets.all(16), child: child),
+          ],
+        ),
       ),
     );
   }
@@ -1559,7 +1571,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(
                                           content: Text(l10n.cannotOpenDialer),
-                                          backgroundColor: Colors.red,
+                                          backgroundColor: context.errorColor,
                                         ),
                                       );
                                     }
@@ -1570,7 +1582,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text('${l10n.error}: $e'),
-                                        backgroundColor: Colors.red,
+                                        backgroundColor: context.errorColor,
                                       ),
                                     );
                                   }
@@ -1608,7 +1620,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(l10n.cannotOpenMaps),
-                                        backgroundColor: Colors.red,
+                                        backgroundColor: context.errorColor,
                                       ),
                                     );
                                   }
@@ -1628,7 +1640,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                             icon: const Icon(Icons.navigation, size: 16),
                             label: Text(l10n.navigate),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
+                              backgroundColor: context.successColor,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               shape: RoundedRectangleBorder(
@@ -1912,7 +1924,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
                       icon: const Icon(Icons.navigation, size: 18),
                       label: Text(l10n.navigate),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
+                        backgroundColor: context.successColor,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
@@ -2049,7 +2061,7 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
               icon: const Icon(Icons.local_pharmacy),
               label: Text(l10n.browseAllPharmacies),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
+                backgroundColor: context.warningColor,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
@@ -2497,19 +2509,40 @@ class _DiagnosisResultPageState extends ConsumerState<DiagnosisResultPage> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.amber.withValues(alpha: 0.08),
+        color: context.adaptiveColor(
+          lightColor: Colors.amber.withValues(alpha: 0.08),
+          darkColor: const Color(0xFF3A2E1E),
+        ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+        border: Border.all(
+          color: context.adaptiveColor(
+            lightColor: Colors.amber.withValues(alpha: 0.4),
+            darkColor: const Color(0xFFFFB74D).withValues(alpha: 0.5),
+          ),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 20),
+          Icon(
+            Icons.warning_amber_rounded,
+            color: context.adaptiveColor(
+              lightColor: Colors.amber,
+              darkColor: const Color(0xFFFFB74D),
+            ),
+            size: 20,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               l10n.disclaimer,
-              style: const TextStyle(fontSize: 12, color: Colors.black87),
+              style: TextStyle(
+                fontSize: 12,
+                color: context.adaptiveColor(
+                  lightColor: Colors.black87,
+                  darkColor: const Color(0xFFE0E0E0),
+                ),
+              ),
             ),
           ),
         ],

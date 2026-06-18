@@ -179,6 +179,7 @@
   "noClinicsFound": "No clinics found",
   "noMatchingClinics": "No matching clinics",
   "specialties": "Specialties",
+  "filterBySpecialty": "Filter by Specialty",
   "openNow": "Open Now",
   "closed": "Closed",
   "generalMedicine": "General Medicine",

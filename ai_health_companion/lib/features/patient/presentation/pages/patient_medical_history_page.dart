@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/app_header.dart';
 import '../../../../generated/app_localizations.dart';
+import '../../../../core/theme/theme_extensions.dart';
 
 class PatientMedicalHistoryPage extends ConsumerStatefulWidget {
   final String patientId;
@@ -158,9 +159,18 @@ class _PatientMedicalHistoryPageState
         ],
         bottom: TabBar(
           controller: _tabController,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          indicatorColor: Colors.white,
+          labelColor: context.adaptiveColor(
+            lightColor: Colors.white,
+            darkColor: Colors.white,
+          ),
+          unselectedLabelColor: context.adaptiveColor(
+            lightColor: Colors.white70,
+            darkColor: Colors.white60,
+          ),
+          indicatorColor: context.adaptiveColor(
+            lightColor: Colors.white,
+            darkColor: Colors.white,
+          ),
           tabs: [
             Tab(text: l10n.timelineTab, icon: const Icon(Icons.timeline)),
             Tab(text: l10n.medicationsTab, icon: const Icon(Icons.medication)),
@@ -254,7 +264,10 @@ class _PatientMedicalHistoryPageState
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: context.adaptiveColor(
+                    lightColor: Colors.white,
+                    darkColor: Colors.white.withOpacity(0.95),
+                  ),
                   borderRadius: BorderRadius.circular(30),
                 ),
                 child: const Icon(
@@ -271,7 +284,10 @@ class _PatientMedicalHistoryPageState
                     Text(
                       _patient['name'],
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: Colors.white,
+                        color: context.adaptiveColor(
+                          lightColor: Colors.white,
+                          darkColor: Colors.white,
+                        ),
                         fontWeight: FontWeight.w700,
                       ),
                     ),

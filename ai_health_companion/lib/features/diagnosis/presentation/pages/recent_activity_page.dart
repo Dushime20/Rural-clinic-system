@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/services/dashboard_service.dart';
 import '../../../../shared/widgets/app_header.dart';
+import '../../../../core/theme/theme_extensions.dart';
+import '../../../../generated/app_localizations.dart';
 
 class RecentActivityPage extends ConsumerStatefulWidget {
   const RecentActivityPage({super.key});
@@ -37,6 +39,7 @@ class _RecentActivityPageState extends ConsumerState<RecentActivityPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final recentDiagnoses = (_stats['recentDiagnoses'] as List?) ?? [];
     final recentPatients = (_stats['recentPatients'] as List?) ?? [];
 
@@ -45,9 +48,9 @@ class _RecentActivityPageState extends ConsumerState<RecentActivityPage> {
     
     for (final d in recentDiagnoses) {
       activities.add({
-        'title': 'Diagnosis recorded',
-        'subtitle': d['disease'] ?? d['selectedDiagnosis']?['disease'] ?? 'Unknown',
-        'time': _formatTime(d['diagnosisDate'] ?? d['createdAt']),
+        'title': l10n.diagnosisRecorded,
+        'subtitle': d['disease'] ?? d['selectedDiagnosis']?['disease'] ?? l10n.unknown,
+        'time': _formatTime(d['diagnosisDate'] ?? d['createdAt'], l10n),
         'date': d['diagnosisDate'] ?? d['createdAt'],
         'icon': Icons.psychology,
         'color': AppTheme.primaryColor,
@@ -57,9 +60,9 @@ class _RecentActivityPageState extends ConsumerState<RecentActivityPage> {
     
     for (final p in recentPatients) {
       activities.add({
-        'title': 'Patient added',
+        'title': l10n.patientAdded,
         'subtitle': '${p['firstName'] ?? ''} ${p['lastName'] ?? ''}'.trim(),
-        'time': _formatTime(p['createdAt']),
+        'time': _formatTime(p['createdAt'], l10n),
         'date': p['createdAt'],
         'icon': Icons.person_add,
         'color': AppTheme.secondaryColor,
@@ -79,9 +82,10 @@ class _RecentActivityPageState extends ConsumerState<RecentActivityPage> {
     });
 
     return Scaffold(
+      backgroundColor: context.backgroundColor,
       appBar: AppHeader(
-        title: 'Recent Activity',
-        subtitle: 'View all recent actions',
+        title: l10n.recentActivity,
+        subtitle: l10n.viewAll,
         showBackButton: true,
       ),
       body: _isLoading
@@ -96,22 +100,14 @@ class _RecentActivityPageState extends ConsumerState<RecentActivityPage> {
                           Icon(
                             Icons.history,
                             size: 64,
-                            color: AppTheme.textDisabled,
+                            color: context.secondaryTextColor,
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'No recent activity',
+                            l10n.noRecentActivity,
                             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  color: AppTheme.textSecondary,
+                                  color: context.secondaryTextColor,
                                 ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Your recent diagnoses and patients will appear here',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: AppTheme.textDisabled,
-                                ),
-                            textAlign: TextAlign.center,
                           ),
                         ],
                       ),
@@ -132,7 +128,7 @@ class _RecentActivityPageState extends ConsumerState<RecentActivityPage> {
                               activity['icon'],
                               activity['color'],
                             ),
-                            if (!isLast) const Divider(height: 32),
+                            if (!isLast) Divider(height: 32, color: context.borderColor),
                           ],
                         );
                       },
@@ -151,9 +147,9 @@ class _RecentActivityPageState extends ConsumerState<RecentActivityPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: AppTheme.softShadow,
+        boxShadow: context.isDarkMode ? [] : AppTheme.softShadow,
       ),
       child: Row(
         children: [
@@ -161,7 +157,7 @@ class _RecentActivityPageState extends ConsumerState<RecentActivityPage> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: context.chipBackground(color),
               borderRadius: BorderRadius.circular(24),
             ),
             child: Icon(icon, color: color, size: 24),
@@ -175,13 +171,14 @@ class _RecentActivityPageState extends ConsumerState<RecentActivityPage> {
                   title,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w600,
+                        color: context.textColor,
                       ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.textSecondary,
+                        color: context.secondaryTextColor,
                       ),
                 ),
               ],
@@ -191,7 +188,7 @@ class _RecentActivityPageState extends ConsumerState<RecentActivityPage> {
           Text(
             time,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.textDisabled,
+                  color: context.secondaryTextColor,
                 ),
           ),
         ],
@@ -199,16 +196,14 @@ class _RecentActivityPageState extends ConsumerState<RecentActivityPage> {
     );
   }
 
-  String _formatTime(dynamic dateStr) {
+  String _formatTime(dynamic dateStr, AppLocalizations l10n) {
     if (dateStr == null) return '';
     try {
       final date = DateTime.parse(dateStr.toString());
       final diff = DateTime.now().difference(date);
-      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-      if (diff.inHours < 24) return '${diff.inHours}h ago';
-      if (diff.inDays < 7) return '${diff.inDays}d ago';
-      if (diff.inDays < 30) return '${(diff.inDays / 7).floor()}w ago';
-      return '${(diff.inDays / 30).floor()}mo ago';
+      if (diff.inMinutes < 60) return l10n.minutesAgo(diff.inMinutes);
+      if (diff.inHours < 24) return l10n.hoursAgo(diff.inHours);
+      return l10n.daysAgo(diff.inDays);
     } catch (_) {
       return '';
     }

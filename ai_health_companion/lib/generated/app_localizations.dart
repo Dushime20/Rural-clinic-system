@@ -1114,6 +1114,12 @@ abstract class AppLocalizations {
   /// **'Specialties'**
   String get specialties;
 
+  /// No description provided for @filterBySpecialty.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by Specialty'**
+  String get filterBySpecialty;
+
   /// No description provided for @openNow.
   ///
   /// In en, this message translates to:

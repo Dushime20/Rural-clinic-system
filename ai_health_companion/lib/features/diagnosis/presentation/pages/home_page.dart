@@ -10,6 +10,7 @@ import '../../../../shared/widgets/quick_action_button.dart';
 import '../../../../shared/widgets/animated_counter.dart';
 import '../../../../shared/widgets/custom_drawer.dart';
 import '../../../../generated/app_localizations.dart';
+import '../../../../core/theme/theme_extensions.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -97,7 +98,7 @@ class _HomePageState extends ConsumerState<HomePage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: context.backgroundColor,
       drawer: const CustomDrawer(),
       body: CustomScrollView(
         slivers: [
@@ -157,7 +158,7 @@ class _HomePageState extends ConsumerState<HomePage>
       ),
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
-          decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
+          decoration: BoxDecoration(gradient: context.primaryGradient),
           child: SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -256,13 +257,9 @@ class _HomePageState extends ConsumerState<HomePage>
             child: Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppTheme.primaryColor, Color(0xFF4CAF50)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                gradient: context.primaryGradient,
                 borderRadius: BorderRadius.circular(24),
-                boxShadow: AppTheme.mediumShadow,
+                boxShadow: context.isDarkMode ? [] : AppTheme.mediumShadow,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -314,8 +311,14 @@ class _HomePageState extends ConsumerState<HomePage>
                     child: ElevatedButton.icon(
                       onPressed: () => context.go('/diagnosis'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: AppTheme.primaryColor,
+                        backgroundColor: context.adaptiveColor(
+                          lightColor: Colors.white,
+                          darkColor: Colors.white.withOpacity(0.95),
+                        ),
+                        foregroundColor: context.adaptiveColor(
+                          lightColor: AppTheme.primaryColor,
+                          darkColor: const Color(0xFF1E1E1E),
+                        ),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
@@ -388,16 +391,16 @@ class _HomePageState extends ConsumerState<HomePage>
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cardColor,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: AppTheme.softShadow,
+        boxShadow: context.isDarkMode ? [] : AppTheme.softShadow,
       ),
       child: Column(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: context.chipBackground(color),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(icon, color: color, size: 24),
@@ -416,7 +419,7 @@ class _HomePageState extends ConsumerState<HomePage>
             title,
             style: Theme.of(
               context,
-            ).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
+            ).textTheme.bodySmall?.copyWith(color: context.secondaryTextColor),
             textAlign: TextAlign.center,
           ),
         ],
@@ -597,9 +600,9 @@ class _HomePageState extends ConsumerState<HomePage>
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: context.cardColor,
                     borderRadius: BorderRadius.circular(20),
-                    boxShadow: AppTheme.softShadow,
+                    boxShadow: context.isDarkMode ? [] : AppTheme.softShadow,
                   ),
                   child:
                       activities.isEmpty
@@ -608,7 +611,7 @@ class _HomePageState extends ConsumerState<HomePage>
                               padding: const EdgeInsets.all(16),
                               child: Text(
                                 l10n.noRecentActivity,
-                                style: const TextStyle(color: AppTheme.textSecondary),
+                                style: TextStyle(color: context.secondaryTextColor),
                               ),
                             ),
                           )
@@ -620,7 +623,7 @@ class _HomePageState extends ConsumerState<HomePage>
                                     .map(
                                       (e) => Column(
                                         children: [
-                                          if (e.key > 0) const Divider(),
+                                          if (e.key > 0) Divider(color: context.borderColor),
                                           _buildActivityItem(
                                             e.value['title'],
                                             e.value['subtitle'],
@@ -670,7 +673,7 @@ class _HomePageState extends ConsumerState<HomePage>
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: context.chipBackground(color),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Icon(icon, color: color, size: 20),
@@ -689,7 +692,7 @@ class _HomePageState extends ConsumerState<HomePage>
                 Text(
                   subtitle,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.textSecondary,
+                    color: context.secondaryTextColor,
                   ),
                 ),
               ],
@@ -699,7 +702,7 @@ class _HomePageState extends ConsumerState<HomePage>
             time,
             style: Theme.of(
               context,
-            ).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
+            ).textTheme.bodySmall?.copyWith(color: context.secondaryTextColor),
           ),
         ],
       ),
